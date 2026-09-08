@@ -133,6 +133,11 @@ async function validarCicloCompleto({ tentativa = 1 } = {}) {
   assert.equal(r.banco.inicializado, true, 'banco de dados não inicializou');
   assert.equal(r.banco.criado, true, 'banco do teste de fumaça deveria ser novo (diretório temporário)');
   assert.ok(r.banco.versaoSchema >= 1, 'versão do schema não identificada');
+
+  // fluxo IPC do jogador valida a cadeia renderer → preload → main → serviço → SQLite
+  assert.equal(r.jogador.preparado, true, 'banco de fumaça deveria começar sem jogador');
+  assert.equal(r.jogador.criado, true, 'criação do jogador via IPC falhou');
+  assert.equal(r.jogador.carregado, true, 're-consulta do jogador via IPC falhou');
   return r;
 }
 
