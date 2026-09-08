@@ -672,3 +672,274 @@
   background: var(--pulso-perigo);
   color: var(--pulso-branco);
 }
+
+/* ── Navegação principal ───────────────────────────────────────────── */
+.navegacao {
+  display: flex;
+  gap: 4px;
+  padding: 0 18px 10px;
+  border-top: 1px solid var(--pulso-cinza-escuro);
+  margin-top: 10px;
+}
+
+.navegacao-aba {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-top: 2px solid transparent;
+  color: var(--pulso-cinza);
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  padding: 10px 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.navegacao-aba:hover {
+  color: var(--pulso-branco);
+}
+
+.navegacao-aba.ativo {
+  color: var(--pulso-vermelho);
+  border-top-color: var(--pulso-vermelho);
+}
+
+/* ── Progressão do personagem (Fase 06) ────────────────────────────── */
+.progressao-resumo {
+  background: var(--pulso-superficie);
+  border: 1px solid var(--pulso-cinza-escuro);
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.progressao-nivel {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.progressao-nivel-rotulo {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--pulso-cinza);
+}
+
+.progressao-nivel-valor {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--pulso-vermelho);
+  line-height: 1;
+}
+
+.progressao-xp-bloco {
+  margin-bottom: 12px;
+}
+
+.progressao-xp-rotulo {
+  display: block;
+  font-size: 12px;
+  color: var(--pulso-branco);
+  margin-bottom: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.progressao-xp-barra {
+  height: 8px;
+  background: var(--pulso-fundo);
+  border: 1px solid var(--pulso-cinza-escuro);
+  position: relative;
+  overflow: hidden;
+}
+
+.progressao-xp-preenchimento {
+  position: absolute;
+  inset: 0;
+  background: var(--pulso-vermelho);
+  transform-origin: left;
+  transition: transform 0.4s ease;
+}
+
+.progressao-xp-proximo {
+  display: block;
+  font-size: 11px;
+  color: var(--pulso-cinza);
+  margin-top: 6px;
+}
+
+.progressao-pontos {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid var(--pulso-cinza-escuro);
+}
+
+.progressao-pontos-rotulo {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--pulso-cinza);
+}
+
+.progressao-pontos-valor {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--pulso-destaque);
+}
+
+.progressao-pontos-valor.zerado {
+  color: var(--pulso-cinza);
+}
+
+.rotulo-secao-atributos {
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--pulso-cinza);
+  margin: 18px 0 10px;
+}
+
+.progressao-atributos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.atributo-linha {
+  display: grid;
+  grid-template-columns: 100px 1fr 40px 32px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: var(--pulso-superficie);
+  border: 1px solid var(--pulso-cinza-escuro);
+}
+
+.atributo-nome {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--pulso-cinza);
+}
+
+.atributo-barra {
+  height: 4px;
+  background: var(--pulso-fundo);
+  position: relative;
+  overflow: hidden;
+}
+
+.atributo-preenchimento {
+  position: absolute;
+  inset: 0;
+  background: var(--pulso-vermelho);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.atributo-valor {
+  font-size: 13px;
+  color: var(--pulso-branco);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.atributo-botao {
+  width: 28px;
+  height: 24px;
+  background: transparent;
+  border: 1px solid var(--pulso-cinza-escuro);
+  color: var(--pulso-destaque);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.atributo-botao:hover:not(:disabled) {
+  background: var(--pulso-destaque);
+  color: var(--pulso-fundo);
+  border-color: var(--pulso-destaque);
+}
+
+.atributo-botao:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.acoes-progressao {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.botao-teste {
+  background: transparent;
+  border: 1px dashed var(--pulso-cinza-escuro);
+  color: var(--pulso-cinza);
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.botao-teste:hover {
+  border-color: var(--pulso-cinza);
+  color: var(--pulso-branco);
+}
+
+/* Level Up modal */
+.level-up-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.level-up-modal {
+  background: var(--pulso-superficie);
+  border: 2px solid var(--pulso-vermelho);
+  padding: 32px 40px;
+  text-align: center;
+  animation: scaleIn 0.3s ease;
+}
+
+.level-up-titulo {
+  font-size: 14px;
+  letter-spacing: 0.3em;
+  color: var(--pulso-vermelho);
+  margin-bottom: 8px;
+}
+
+.level-up-nivel {
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--pulso-branco);
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.level-up-recompensa {
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: var(--pulso-destaque);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}

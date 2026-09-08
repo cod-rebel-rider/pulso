@@ -121,8 +121,59 @@ const MIGRACAO_004 = Object.freeze({
   },
 });
 
+/** Migração 005 — progressão do jogador: XP, nível e atributos (Fase 06). */
+const MIGRACAO_005 = Object.freeze({
+  versao: 5,
+  nome: 'criar-tabela-progressao',
+  cima(banco) {
+    // Progressão do jogador: XP total, nível (derivado) e pontos de atributo.
+    // O nível é calculado a partir do XP (não armazenado como coluna mutável),
+    // mas persistimos xp_total e pontos_disponiveis para evitar recálculo.
+    banco.exec(`
+      CREATE TABLE jogador_progressao (
+        id                   INTEGER PRIMARY KEY,
+        jogador_id           INTEGER NOT NULL UNIQUE REFERENCES jogador(id) ON DELETE CASCADE,
+        xp_total             INTEGER NOT NULL DEFAULT 0,
+        pontos_disponiveis   INTEGER NOT NULL DEFAULT 0,
+        criado_em            TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        CHECK (xp_total >= 0),
+        CHECK (pontos_disponiveis >= 0)
+      ) STRICT
+    `);
+
+    // Atributos do jogador: características de progressão (diferentes dos status).
+    // Todos começam em 1. Valores entre 1 e 100.
+    banco.exec(`
+      CREATE TABLE jogador_atributo (
+        id                   INTEGER PRIMARY KEY,
+        jogador_id           INTEGER NOT NULL UNIQUE REFERENCES jogador(id) ON DELETE CASCADE,
+        tecnologia           INTEGER NOT NULL DEFAULT 1,
+        criatividade         INTEGER NOT NULL DEFAULT 1,
+        musica               INTEGER NOT NULL DEFAULT 1,
+        social               INTEGER NOT NULL DEFAULT 1,
+        energia              INTEGER NOT NULL DEFAULT 1,
+        foco                 INTEGER NOT NULL DEFAULT 1,
+        disciplina           INTEGER NOT NULL DEFAULT 1,
+        criado_em            TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        CHECK (tecnologia BETWEEN 1 AND 100),
+        CHECK (criatividade BETWEEN 1 AND 100),
+        CHECK (musica BETWEEN 1 AND 100),
+        CHECK (social BETWEEN 1 AND 100),
+        CHECK (energia BETWEEN 1 AND 100),
+        CHECK (foco BETWEEN 1 AND 100),
+        CHECK (disciplina BETWEEN 1 AND 100)
+      ) STRICT
+    `);
+
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_progressao_jogador ON jogador_progressao(jogador_id)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_atributo_jogador ON jogador_atributo(jogador_id)');
+  },
+});
+
 /** Lista oficial de migrações — fases futuras ACRESCENTAM ao final. */
-export const MIGRACOES = Object.freeze([MIGRACAO_001, MIGRACAO_002, MIGRACAO_003, MIGRACAO_004]);
+export const MIGRACOES = Object.freeze([MIGRACAO_001, MIGRACAO_002, MIGRACAO_003, MIGRACAO_004, MIGRACAO_005]);
 
 function validarLista(migracoes) {
   migracoes.forEach((migracao, indice) => {

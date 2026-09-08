@@ -24,9 +24,12 @@ import { inicializarBanco } from '../core/database/inicializar.js';
 import { RepositorioJogador } from '../core/database/repositorios/jogador.js';
 import { RepositorioStatus } from '../core/database/repositorios/status.js';
 import { RepositorioMissao } from '../core/database/repositorios/missao.js';
+import { RepositorioProgressao } from '../core/database/repositorios/progressao.js';
 import { ServicoJogador } from '../core/aplicacao/servico-jogador.js';
 import { ServicoStatus } from '../core/aplicacao/servico-status.js';
 import { ServicoMissao } from '../core/aplicacao/servico-missao.js';
+import { ServicoProgressao } from '../core/aplicacao/servico-progressao.js';
+import { calcularNivel } from '../core/dominio/progressao.js';
 import { ErroValidacao, ErroConflito, ErroTransicao } from '../core/erros.js';
 import canais from './canais.cjs';
 
@@ -51,6 +54,7 @@ let estadoBanco = null;
 let servicoJogador = null;
 let servicoStatus = null;
 let servicoMissao = null;
+let servicoProgressao = null;
 
 // ── Teste de fumaça ─────────────────────────────────────────────────────
 const resultadosFumaca = {
@@ -294,6 +298,43 @@ function registrarIpc() {
       registro.info(`Missão excluída: id=${id}`);
       return { ok: true };
     }));
+
+  // ── Progressão ───────────────────────────────────────────────────────
+  ipcMain.handle(canais.PROGRESSAO_OBTER, () =>
+    traduzirResultadoOperacao(() => {
+      const jogador = servicoJogador.obter();
+      if (!jogador) return { ok: false, erro: 'conflito', mensagem: 'Nenhum jogador configurado.' };
+      const progressao = servicoProgressao.obter(jogador.id);
+      return { ok: true, progressao };
+    }));
+
+  ipcMain.handle(canais.PROGRESSAO_ADICIONAR_XP, (_evento, { quantidade } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const jogador = servicoJogador.obter();
+      if (!jogador) return { ok: false, erro: 'conflito', mensagem: 'Nenhum jogador configurado.' };
+      const resultado = servicoProgressao.adicionarXp(jogador.id, Number(quantidade ?? 0));
+      if (resultado.nivelou) {
+        registro.info(
+          `LEVEL UP! Nível ${resultado.progresso.nivel} alcançado (+${resultado.niveisGanhos} ponto(s) de atributo)`,
+        );
+      } else {
+        registro.info(`XP adicionado: +${quantidade} (total: ${resultado.progressao.xpTotal})`);
+      }
+      return { ok: true, ...resultado };
+    }));
+
+  ipcMain.handle(canais.PROGRESSAO_AUMENTAR_ATRIBUTO, (_evento, { atributo, quantidade } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const jogador = servicoJogador.obter();
+      if (!jogador) return { ok: false, erro: 'conflito', mensagem: 'Nenhum jogador configurado.' };
+      const resultado = servicoProgressao.aumentarAtributo(
+        jogador.id,
+        atributo,
+        Number(quantidade ?? 1),
+      );
+      registro.info(`Atributo aumentado: ${atributo} → ${resultado.atributos[atributo]}`);
+      return { ok: true, ...resultado };
+    }));
 }
 
 /**
@@ -368,9 +409,11 @@ async function aoIniciar() {
   const repositorioJogador = new RepositorioJogador(estadoBanco.banco);
   const repositorioStatus = new RepositorioStatus(estadoBanco.banco);
   const repositorioMissao = new RepositorioMissao(estadoBanco.banco);
+  const repositorioProgressao = new RepositorioProgressao(estadoBanco.banco);
 
-  // Criação atômica: jogador + status inicial em uma única transação.
+  // Criação atômica: jogador + status inicial + progressão inicial em uma única transação.
   servicoStatus = new ServicoStatus({ repositorio: repositorioStatus, repositorioJogador });
+  servicoProgressao = new ServicoProgressao({ repositorio: repositorioProgressao, repositorioJogador });
   servicoJogador = new ServicoJogador({
     repositorio: repositorioJogador,
     banco: estadoBanco.banco,
@@ -378,6 +421,10 @@ async function aoIniciar() {
       const status = servicoStatus.criarInicial(jogador.id);
       registro.info(
         `Status inicial criado: energia=${status.energia}, foco=${status.foco}, estresse=${status.estresse}, criatividade=${status.criatividade}`,
+      );
+                  const progressao = servicoProgressao.inicializar(jogador.id);
+      registro.info(
+        `Progressão inicial criada: nível=${calcularNivel(progressao.progressao.xpTotal)}, xp=${progressao.progressao.xpTotal}, pontos=${progressao.progressao.pontosDisponiveis}`,
       );
     },
   });

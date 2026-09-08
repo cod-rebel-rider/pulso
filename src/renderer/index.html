@@ -88,7 +88,7 @@
     <!-- Missões (Fase 05) -->
     <section class="nucleo visao oculto" id="visao-missao">
       <p class="rotulo-secao">MISSÃO</p>
-      <h1 class="titulo-secao" id="missao-título">—</h1>
+            <h1 class="titulo-secao" id="missao-titulo">—</h1>
       <p class="descricao-secao" id="missao-descricao">—</p>
 
       <dl class="missao-meta" id="missao-meta">
@@ -181,6 +181,44 @@
         </div>
       </form>
     </section>
+
+    <!-- Progressão do personagem (Fase 06) -->
+    <section class="nucleo visao oculto" id="visao-progressao">
+      <p class="rotulo-secao">PERSONAGEM</p>
+      <h1 class="titulo-secao">PROGRESSÃO</h1>
+
+      <div class="progressao-resumo">
+        <div class="progressao-nivel">
+          <span class="progressao-nivel-rotulo">NÍVEL</span>
+          <span class="progressao-nivel-valor" id="progressao-nivel-valor">1</span>
+        </div>
+        <div class="progressao-xp-bloco">
+          <span class="progressao-xp-rotulo" id="progressao-xp-rotulo">XP 0 / 100</span>
+          <div class="progressao-xp-barra">
+            <span class="progressao-xp-preenchimento" id="progressao-xp-preenchimento"></span>
+          </div>
+          <span class="progressao-xp-proximo" id="progressao-xp-proximo">Próximo nível: 100 XP</span>
+        </div>
+        <div class="progressao-pontos">
+          <span class="progressao-pontos-rotulo">PONTOS DE ATRIBUTO</span>
+          <span class="progressao-pontos-valor" id="progressao-pontos-valor">0</span>
+        </div>
+      </div>
+
+      <p class="rotulo-secao-atributos">ATRIBUTOS</p>
+      <div class="progressao-atributos" id="progressao-atributos"></div>
+
+      <div class="acoes-progressao">
+        <button type="button" id="botao-teste-xp" class="botao-teste">+100 XP (TESTE)</button>
+      </div>
+    </section>
+
+    <!-- Navegação principal -->
+    <nav class="navegacao" id="navegacao" aria-label="Navegação principal">
+      <button type="button" class="navegacao-aba ativo" data-visao="visao-boot">INÍCIO</button>
+      <button type="button" class="navegacao-aba" data-visao="visao-missoes">MISSÕES</button>
+      <button type="button" class="navegacao-aba" data-visao="visao-progressao">PERSONAGEM</button>
+    </nav>
 
     <footer class="rodape">
       <span id="rodape-ambiente">AMBIENTE: —</span>

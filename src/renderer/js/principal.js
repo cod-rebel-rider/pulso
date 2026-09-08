@@ -32,6 +32,18 @@ let missoesCarregadas = [];
 let filtroAtual = 'todas';
 let missaoAtualId = null;
 let modoEdicaoMissao = false;
+// Progressão (Fase 06)
+let progressaoAtual = null;
+const ATRIBUTOS_ORDEM = ['tecnologia', 'criatividade', 'musica', 'social', 'energia', 'foco', 'disciplina'];
+const ATRIBUTOS_ROTULOS = {
+  tecnologia: 'TECNOLOGIA',
+  criatividade: 'CRIATIVIDADE',
+  musica: 'MÚSICA',
+  social: 'SOCIAL',
+  energia: 'ENERGIA',
+  foco: 'FOCO',
+  disciplina: 'DISCIPLINA',
+};
 
 function consultar(id) {
   const elemento = document.getElementById(id);
@@ -51,14 +63,28 @@ function mapearElementos() {
   elementos.botaoInicializar = consultar('botao-inicializar');
   elementos.botaoCancelar = consultar('botao-cancelar');
   elementos.botaoEditar = consultar('botao-editar');
-  elementos.botaoTesteStatus = consultar('botao-teste-status');
+      elementos.botaoTesteStatus = consultar('botao-teste-status');
   elementos.statusPainel = consultar('status-painel');
   elementos.statusLista = consultar('status-lista');
   // Missões (Fase 05)
-  elementos.visaoMissao = consultar('visao-missao');
   elementos.visaoMissoes = consultar('visao-missoes');
+  elementos.visaoMissao = consultar('visao-missao');
   elementos.visaoFormularioMissao = consultar('visao-formulario-missao');
-  elementos.missaoTitulo = consultar('missao-título');
+  elementos.listaMissoes = consultar('lista-missoes');
+  elementos.avisoMissoes = consultar('aviso-missoes');
+  elementos.botaoNovaMissao = consultar('botao-nova-missao');
+  elementos.filtrosMissao = consultar('filtros-missao');
+  elementos.formularioMissao = consultar('formulario-missao');
+  elementos.formularioMissaoTituloSecao = consultar('formulario-missao-titulo-secao');
+  elementos.formularioMissaoTitulo = consultar('formulario-missao-titulo');
+  elementos.campoMissaoTitulo = consultar('campo-missao-titulo');
+  elementos.campoMissaoDescricao = consultar('campo-missao-descricao');
+  elementos.campoMissaoPrioridade = consultar('campo-missao-prioridade');
+  elementos.campoMissaoPrazo = consultar('campo-missao-prazo');
+  elementos.avisoFormularioMissao = consultar('aviso-formulario-missao');
+  elementos.botaoSalvarMissao = consultar('botao-salvar-missao');
+  elementos.botaoCancelarMissao = consultar('botao-cancelar-missao');
+  elementos.missaoTitulo = consultar('missao-titulo');
   elementos.missaoDescricao = consultar('missao-descricao');
   elementos.missaoEstado = consultar('missao-estado');
   elementos.missaoPrioridade = consultar('missao-prioridade');
@@ -73,20 +99,9 @@ function mapearElementos() {
   elementos.missaoCancelar = consultar('missao-cancelar');
   elementos.missaoExcluir = consultar('missao-excluir');
   elementos.missaoVoltar = consultar('missao-voltar');
-  elementos.filtrosMissao = consultar('filtros-missao');
-  elementos.botaoNovaMissao = consultar('botao-nova-missao');
-  elementos.avisoMissoes = consultar('aviso-missoes');
-  elementos.listaMissoes = consultar('lista-missoes');
-  elementos.formularioMissao = consultar('formulario-missao');
-  elementos.formularioMissaoTituloSecao = consultar('formulario-missao-titulo-secao');
-  elementos.formularioMissaoTitulo = consultar('formulario-missao-titulo');
-  elementos.campoMissaoTitulo = consultar('campo-missao-titulo');
-  elementos.campoMissaoDescricao = consultar('campo-missao-descricao');
-  elementos.campoMissaoPrioridade = consultar('campo-missao-prioridade');
-  elementos.campoMissaoPrazo = consultar('campo-missao-prazo');
-  elementos.avisoFormularioMissao = consultar('aviso-formulario-missao');
-  elementos.botaoSalvarMissao = consultar('botao-salvar-missao');
-  elementos.botaoCancelarMissao = consultar('botao-cancelar-missao');
+  // Progressão (Fase 06)
+  ELEMENTOS_PROGRESSAO.forEach((id) => { elementos[id] = consultar(id); });
+  elementos.botaoTesteXp = consultar('botao-teste-xp');
   elementos.versao = consultar('versao');
   elementos.estado = consultar('estado');
   elementos.estadoTexto = consultar('estado-texto');
@@ -412,6 +427,150 @@ async function excluirMissao() {
   }
 }
 
+// ════════════════════════════════════════════════════════════════════════
+// PROGRESSÃO (Fase 06)
+// ════════════════════════════════════════════════════════════════════════
+
+/** Carrega a progressão do jogador via IPC e renderiza. */
+async function carregarProgressao() {
+  if (!jogadorAtual) return;
+  try {
+    const resultado = await window.pulso.progressao.obter();
+    if (resultado.ok && resultado.progressao) {
+      progressaoAtual = resultado.progressao;
+      renderizarProgressao(resultado.progressao);
+    }
+  } catch (erro) {
+    console.error(`PULSO: falha ao carregar progressão — ${erro.message}`, erro);
+  }
+}
+
+/** Atualiza a UI a partir do objeto de progressão retornado pelo núcleo. */
+function renderizarProgressao(progressao) {
+  if (!progressao) return;
+  const nivel = progressao.nivel;
+  const xpAtual = progressao.xpAtual;
+  const xpNecessario = progressao.xpProximoNivel;
+  const pontos = progressao.pontosDisponiveis;
+
+  document.getElementById('progressao-nivel-valor').textContent = String(nivel);
+  document.getElementById('progressao-xp-rotulo').textContent = `XP ${xpAtual} / ${xpNecessario}`;
+  document.getElementById('progressao-xp-proximo').textContent = `Próximo nível: ${xpNecessario} XP`;
+
+  const proporcao = xpNecessario > 0 ? Math.min(xpAtual / xpNecessario, 1) : 0;
+  document.getElementById('progressao-xp-preenchimento').style.transform = `scaleX(${proporcao})`;
+  document.getElementById('progressao-pontos-valor').textContent = String(pontos);
+
+  renderizarAtributos(progressao.atributos, pontos);
+}
+
+/** Monta/atualiza as linhas de atributos. */
+function renderizarAtributos(atributos, pontosDisponiveis) {
+  const container = document.getElementById('progressao-atributos');
+  if (!container) return;
+
+  // Preserva elementos existentes para evitar piscar
+  const existentes = new Map(
+    [...container.querySelectorAll('[data-atributo]')].map((el) => [el.dataset.atributo, el]),
+  );
+
+  const fragment = document.createDocumentFragment();
+
+  for (const nome of ATRIBUTOS_ORDEM) {
+    let linha = existentes.get(nome);
+    if (!linha) {
+      linha = document.createElement('div');
+      linha.className = 'progressao-atributo-linha';
+      linha.dataset.atributo = nome;
+
+      const rotulo = document.createElement('span');
+      rotulo.className = 'progressao-atributo-rotulo';
+
+      const valor = document.createElement('span');
+      valor.className = 'progressao-atributo-valor';
+
+      const botao = document.createElement('button');
+      botao.type = 'button';
+      botao.className = 'progressao-atributo-aumentar';
+      botao.textContent = '+';
+      botao.addEventListener('click', () => aumentarAtributo(nome));
+
+      linha.append(rotulo, valor, botao);
+    }
+
+    const valorAtual = atributos?.[nome] ?? 1;
+    linha.querySelector('.progressao-atributo-rotulo').textContent = ATRIBUTOS_ROTULOS[nome];
+    linha.querySelector('.progressao-atributo-valor').textContent = String(valorAtual);
+
+    const botao = linha.querySelector('.progressao-atributo-aumentar');
+    botao.disabled = !pontosDisponiveis || pontosDisponiveis < 1;
+
+    fragment.append(linha);
+  }
+
+  container.replaceChildren(fragment);
+}
+
+/** Aumenta um atributo via IPC (gasta 1 ponto). */
+async function aumentarAtributo(nome) {
+  if (!jogadorAtual || !progressaoAtual) return;
+  if (progressaoAtual.pontosDisponiveis < 1) return;
+
+  try {
+    const resultado = await window.pulso.progressao.aumentarAtributo(nome);
+    if (resultado.ok && resultado.progressao) {
+      progressaoAtual = resultado.progressao;
+      renderizarProgressao(resultado.progressao);
+      if (resultado.subiuNivel) {
+        exibirLevelUp(resultado.progressao);
+      }
+    } else if (resultado.mensagem) {
+      console.warn(`PULSO: não foi possível aumentar ${nome} — ${resultado.mensagem}`);
+    }
+  } catch (erro) {
+    console.error(`PULSO: falha ao aumentar atributo — ${erro.message}`, erro);
+  }
+}
+
+/** Concede XP via IPC (apenas para testes nesta fase). */
+async function adicionarXpTeste(quantidade) {
+  if (!jogadorAtual) return;
+  try {
+    const resultado = await window.pulso.progressao.adicionarXp(quantidade);
+    if (resultado.ok && resultado.progressao) {
+      progressaoAtual = resultado.progressao;
+      renderizarProgressao(resultado.progressao);
+      if (resultado.subiuNivel) {
+        exibirLevelUp(resultado.progressao);
+      }
+    }
+  } catch (erro) {
+    console.error(`PULSO: falha ao adicionar XP — ${erro.message}`, erro);
+  }
+}
+
+/** Exibe feedback visual de level up. */
+function exibirLevelUp(progressao) {
+  console.log(`PULSO: LEVEL UP! Nível ${progressao.nível} — +${progressao.pontosDisponiveis} ponto(s)`);
+  // Feedback visual simples via console; modal/banner em fase de polimento
+}
+
+/** Maps de elementos do DOM, populados no mapearElementos(). */
+const ELEMENTOS_PROGRESSAO = [
+  'progressao-nivel-valor',
+  'progressao-xp-rotulo',
+  'progressao-xp-proximo',
+  'progressao-xp-preenchimento',
+  'progressao-pontos-valor',
+  'progressao-atributos',
+  'botao-teste-xp',
+];
+
+/** Mostra o painel de navegação e a visão de progressão se o jogador existir. */
+function elementosNavegacao() {
+  return ['navegacao', 'visao-progressao'];
+}
+
 /** Revela as linhas em sequência, como um log de terminal. */
 function agendarLinhasBoot() {
   [...elementos.boot.children].forEach((item, indice) => {
@@ -510,7 +669,14 @@ function executarBoot() {
     definirEstado('SISTEMA ONLINE');
     elementos.botaoEditar.disabled = false;
     elementos.mensagem.textContent = 'Operador identificado. Aguardando módulos…';
+    // Revela a navegação e a visão de progressão
+    for (const id of elementosNavegacao()) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('oculto');
+    }
     carregarStatus();
+    carregarMissoes();
+    carregarProgressao();
   }, atrasoConclusao);
 }
 
@@ -571,7 +737,9 @@ document.addEventListener('DOMContentLoaded', () => {
   elementos.formulario.addEventListener('submit', submeterIdentidade);
   elementos.botaoEditar.addEventListener('click', () =>
     exibirConfiguracao({ modo: 'edicao', jogador: jogadorAtual }));
-  elementos.botaoCancelar.addEventListener('click', () => exibirVisao('visao-boot'));
+    elementos.botaoCancelar.addEventListener('click', () => exibirVisao('visao-boot'));
+  // Progressão (Fase 06) — XP de teste apenas para validar a infraestrutura
+  elementos.botaoTesteXp.addEventListener('click', () => adicionarXpTeste(100));
   elementos.botaoTesteStatus.addEventListener('click', () => {
     alterarStatus('energia', -10);
     alterarStatus('foco', -5);

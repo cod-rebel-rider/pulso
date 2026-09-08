@@ -30,6 +30,9 @@ const CANAL_MISSAO_INICIAR = 'missao:iniciar'; // igual a canais.cjs → MISSAO_
 const CANAL_MISSAO_CONCLUIR = 'missao:concluir'; // igual a canais.cjs → MISSAO_CONCLUIR
 const CANAL_MISSAO_CANCELAR = 'missao:cancelar'; // igual a canais.cjs → MISSAO_CANCELAR
 const CANAL_MISSAO_EXCLUIR = 'missao:excluir'; // igual a canais.cjs → MISSAO_EXCLUIR
+const CANAL_PROGRESSAO_OBTER = 'progressao:obter'; // igual a canais.cjs → PROGRESSAO_OBTER
+const CANAL_PROGRESSAO_ADICIONAR_XP = 'progressao:adicionarXp'; // igual a canais.cjs → PROGRESSAO_ADICIONAR_XP
+const CANAL_PROGRESSAO_AUMENTAR_ATRIBUTO = 'progressao:aumentarAtributo'; // igual a canais.cjs → PROGRESSAO_AUMENTAR_ATRIBUTO
 
 const { contextBridge, ipcRenderer } = require('electron');
 
@@ -148,6 +151,37 @@ contextBridge.exposeInMainWorld(
        * @returns {Promise<{ok: boolean, erro?: string, mensagem?: string}>}
        */
       excluir: (id) => ipcRenderer.invoke(CANAL_MISSAO_EXCLUIR, { id }),
+    }),
+
+    /**
+     * Operações específicas de progressão — nunca acesso genérico ao banco.
+     */
+    progressao: Object.freeze({
+      /**
+       * Obtém o estado completo da progressão (XP, nível, progresso, atributos).
+       * @param {number} jogadorId
+       * @returns {Promise<{ok: boolean, progresso?: object, atributos?: object, erro?: string, mensagem?: string}>}
+       */
+      obter: (jogadorId) => ipcRenderer.invoke(CANAL_PROGRESSAO_OBTER, { jogadorId }),
+
+      /**
+       * Adiciona XP ao jogador (processa level up automaticamente).
+       * @param {number} jogadorId
+       * @param {number} quantidade XP a adicionar (positivo)
+       * @returns {Promise<{ok: boolean, progresso?: object, nivelou?: boolean, niveisGanhos?: number, erro?: string, mensagem?: string}>}
+       */
+      adicionarXp: (jogadorId, quantidade) =>
+        ipcRenderer.invoke(CANAL_PROGRESSAO_ADICIONAR_XP, { jogadorId, quantidade }),
+
+      /**
+       * Distribui pontos em um atributo.
+       * @param {number} jogadorId
+       * @param {string} atributo nome do atributo
+       * @param {number} quantidade pontos a adicionar (positivo)
+       * @returns {Promise<{ok: boolean, atributos?: object, progresso?: object, erro?: string, mensagem?: string}>}
+       */
+      aumentarAtributo: (jogadorId, atributo, quantidade) =>
+        ipcRenderer.invoke(CANAL_PROGRESSAO_AUMENTAR_ATRIBUTO, { jogadorId, atributo, quantidade }),
     }),
   }),
 );
