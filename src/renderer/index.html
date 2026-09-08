@@ -73,7 +73,16 @@
 
       <p class="mensagem" id="mensagem">Iniciando núcleo…</p>
 
-      <button type="button" id="botao-editar" class="botao-secundario" disabled>EDITAR IDENTIDADE</button>
+      <!-- Status do operador (Fase 04) -->
+      <section class="status-painel" id="status-painel" aria-label="Status do operador">
+        <p class="rotulo-secao">ESTADO OPERACIONAL</p>
+        <div class="status-lista" id="status-lista"></div>
+      </section>
+
+      <div class="acoes-boot">
+        <button type="button" id="botao-editar" class="botao-secundario" disabled>EDITAR IDENTIDADE</button>
+        <button type="button" id="botao-teste-status" class="botao-secundario oculto">AJUSTAR STATUS</button>
+      </div>
     </section>
 
     <footer class="rodape">

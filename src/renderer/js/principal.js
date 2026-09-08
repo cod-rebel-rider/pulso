@@ -26,6 +26,7 @@ const elementos = {};
 const contexto = { info: null, infoBanco: null };
 let jogadorAtual = null;
 let modoEdicao = false;
+const STATUS_ORDEM = ['energia', 'foco', 'estresse', 'criatividade'];
 
 function consultar(id) {
   const elemento = document.getElementById(id);
@@ -45,6 +46,9 @@ function mapearElementos() {
   elementos.botaoInicializar = consultar('botao-inicializar');
   elementos.botaoCancelar = consultar('botao-cancelar');
   elementos.botaoEditar = consultar('botao-editar');
+  elementos.botaoTesteStatus = consultar('botao-teste-status');
+  elementos.statusPainel = consultar('status-painel');
+  elementos.statusLista = consultar('status-lista');
   elementos.versao = consultar('versao');
   elementos.estado = consultar('estado');
   elementos.estadoTexto = consultar('estado-texto');
@@ -78,6 +82,76 @@ function montarLinhasBoot(linhas, neutro) {
       return item;
     }),
   );
+}
+
+/** Monta as linhas de status (uma por vez, via DOM). */
+function montarLinhasStatus() {
+  elementos.statusLista.replaceChildren(
+    ...STATUS_ORDEM.map((nome) => {
+      const linha = document.createElement('div');
+      linha.className = 'status-linha';
+      linha.dataset.status = nome;
+
+      const rotulo = document.createElement('span');
+      rotulo.className = 'status-nome';
+      rotulo.textContent = nome.toUpperCase();
+
+      const barra = document.createElement('div');
+      barra.className = 'status-barra';
+      const preenchimento = document.createElement('span');
+      preenchimento.className = 'status-preenchimento';
+      preenchimento.style.transform = 'scaleX(0)';
+      barra.append(preenchimento);
+
+      const valor = document.createElement('span');
+      valor.className = 'status-valor';
+      valor.textContent = '—';
+
+      linha.append(rotulo, barra, valor);
+      return linha;
+    }),
+  );
+}
+
+/** Atualiza a UI a partir do objeto de status retornado pelo núcleo. */
+function renderizarStatus(status) {
+  if (!status) return;
+  for (const nome of STATUS_ORDEM) {
+    const linha = elementos.statusLista.querySelector(`[data-status="${nome}"]`);
+    if (!linha) continue;
+    const valor = status[nome];
+    linha.querySelector('.status-valor').textContent = String(valor);
+    linha.querySelector('.status-preenchimento').style.transform = `scaleX(${valor / 100})`;
+  }
+}
+
+/** Carrega o status do jogador via IPC e renderiza. */
+async function carregarStatus() {
+  if (!jogadorAtual) return;
+  try {
+    const resultado = await window.pulso.status.obter(jogadorAtual.id);
+    if (resultado.ok && resultado.status) {
+      renderizarStatus(resultado.status);
+      elementos.botaoTesteStatus.classList.remove('oculto');
+    }
+  } catch (erro) {
+    console.error(`PULSO: falha ao carregar status — ${erro.message}`, erro);
+  }
+}
+
+/** Altera um status via IPC (delta em pontos). */
+async function alterarStatus(nome, delta) {
+  if (!jogadorAtual) return;
+  try {
+    const resultado = await window.pulso.status.alterar(jogadorAtual.id, nome, delta);
+    if (resultado.ok && resultado.status) {
+      renderizarStatus(resultado.status);
+    } else {
+      console.warn(`PULSO: não foi possível alterar ${nome} — ${resultado.mensagem ?? 'erro'}`);
+    }
+  } catch (erro) {
+    console.error(`PULSO: falha ao alterar status — ${erro.message}`, erro);
+  }
 }
 
 /** Revela as linhas em sequência, como um log de terminal. */
@@ -171,12 +245,14 @@ function executarBoot() {
   const linhas = linhasDoBoot();
   montarLinhasBoot(linhas, false);
   agendarLinhasBoot();
+  montarLinhasStatus();
 
   const atrasoConclusao = ATRASO_INICIAL_MS + linhas.length * ATRASO_ENTRE_LINHAS_MS;
   setTimeout(() => {
     definirEstado('SISTEMA ONLINE');
     elementos.botaoEditar.disabled = false;
     elementos.mensagem.textContent = 'Operador identificado. Aguardando módulos…';
+    carregarStatus();
   }, atrasoConclusao);
 }
 
@@ -238,5 +314,13 @@ document.addEventListener('DOMContentLoaded', () => {
   elementos.botaoEditar.addEventListener('click', () =>
     exibirConfiguracao({ modo: 'edicao', jogador: jogadorAtual }));
   elementos.botaoCancelar.addEventListener('click', () => exibirVisao('visao-boot'));
+  elementos.botaoTesteStatus.addEventListener('click', () => {
+    // Teste rápido: aplica deltas variados para validar a infraestrura.
+    // Em fases futuras, missões/eventos alterarão os status.
+    alterarStatus('energia', -10);
+    alterarStatus('foco', -5);
+    alterarStatus('estresse', 8);
+    alterarStatus('criatividade', -3);
+  });
   iniciar();
 });

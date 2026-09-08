@@ -368,3 +368,66 @@
 #botao-editar {
   margin-top: 14px;
 }
+
+/* ── Status do operador (Fase 04) ──────────────────────────────────── */
+.status-painel {
+  width: 100%;
+  max-width: 460px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--pulso-cinza-escuro);
+}
+
+.status-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.status-linha {
+  display: grid;
+  grid-template-columns: 92px 1fr 36px;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-nome {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  color: var(--pulso-cinza);
+  text-align: right;
+}
+
+.status-barra {
+  height: 6px;
+  background: var(--pulso-superficie);
+  border: 1px solid var(--pulso-cinza-escuro);
+  position: relative;
+  overflow: hidden;
+}
+
+.status-preenchimento {
+  position: absolute;
+  inset: 0;
+  background: var(--pulso-vermelho);
+  transform-origin: left;
+  transition: transform 0.4s ease;
+}
+
+.status-valor {
+  font-size: 12px;
+  color: var(--pulso-branco);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.acoes-boot {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+#botao-teste-status {
+  margin-top: 0;
+}
