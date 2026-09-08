@@ -16,6 +16,7 @@
  */
 
 const CANAL_INFO_SISTEMA = 'info:sistema'; // igual a canais.cjs → INFO_SISTEMA
+const CANAL_BANCO_INFO = 'banco:info'; // igual a canais.cjs → BANCO_INFO
 
 const { contextBridge, ipcRenderer } = require('electron');
 
@@ -29,5 +30,11 @@ contextBridge.exposeInMainWorld(
      *   dataHora: string}>}
      */
     infoSistema: () => ipcRenderer.invoke(CANAL_INFO_SISTEMA),
+
+    /**
+     * Estado real do banco de dados local (somente leitura, sem caminhos).
+     * @returns {Promise<{nome: string, estado: string, versaoSchema: number}>}
+     */
+    infoBanco: () => ipcRenderer.invoke(CANAL_BANCO_INFO),
   }),
 );

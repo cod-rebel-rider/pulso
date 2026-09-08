@@ -8,4 +8,5 @@
  */
 module.exports = Object.freeze({
   INFO_SISTEMA: 'info:sistema',
+  BANCO_INFO: 'banco:info',
 });
