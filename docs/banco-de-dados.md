@@ -99,11 +99,30 @@ CREATE TABLE jogador_status (
   criado_em      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   atualizado_em  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 ) STRICT;
+
+-- migração 004 "criar-tabela-missoes" — Fase 05
+CREATE TABLE missao (
+  id             INTEGER PRIMARY KEY,
+  jogador_id     INTEGER NOT NULL REFERENCES jogador(id) ON DELETE CASCADE,
+  titulo         TEXT NOT NULL,
+  descricao      TEXT,
+  estado         TEXT NOT NULL DEFAULT 'pendente',
+  prioridade     TEXT NOT NULL DEFAULT 'normal',
+  prazo          TEXT,
+  iniciada_em    TEXT,
+  concluida_em   TEXT,
+  cancelada_em   TEXT,
+  criado_em      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  atualizado_em  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+) STRICT;
+
+CREATE INDEX IF NOT EXISTS idx_missao_jogador ON missao(jogador_id);
+CREATE INDEX IF NOT EXISTS idx_missao_estado ON missao(estado);
 ```
 
 
 
-- `schema_migrations` responde "qual é a versão atual do banco?" (`SELECT MAX(versao)` . Atual: **v3**..
+- `schema_migrations` responde "qual é a versão atual do banco?" (`SELECT MAX(versao)` . Atual: **v4**..
 - `meta` guarda metadados técnico-operacionais(chave/valor. **Não** é configuração de ambiente(,isso vive em `config/*.json`) nem dado de sistema de jogo..
 
 - `jogador` (ver `docs/jogador.md`): identidade do operador — entidade central do PULSO; single-player imposta pelo Serviço,, com schema aberto a evolução futura.
@@ -147,7 +166,8 @@ src/core/database/
 └── repositorios/
     ├── meta.js                 → RepositorioMeta (padrão de referência)
     ├── jogador.js              → RepositorioJogador (Fase 03)
-    └── status.js               → RepositorioStatus (Fase 04)
+    ├── status.js               → RepositorioStatus (Fase 04)
+    └── missao.js               → RepositorioMissao (Fase 05)
 ```
 
 Padrão estabelecido (ver `src/core/database/repositorios/meta.js`):
@@ -156,7 +176,7 @@ Padrão estabelecido (ver `src/core/database/repositorios/meta.js`):
 - statements preparados uma vez, no construtor;
 - métodos com nomes de intenção (`obter`, `definir`, `remover`), sem vazamento de SQL;
 - repositórios das fases seguem o mesmo modelo em `repositorios/` (o jogador — Fase 03 — já segue o padrão);
-- migrações atuais: **001** (infraestrutura), **002** (jogador — Fase 03) e **003** (status — Fase 04).
+- migrações atuais: **001** (infraestrutura), **002** (jogador — Fase 03), **003** (status — Fase 04) e **004** (missões — Fase 05).
 
 Fluxo de inicialização da aplicação (main.js):
 
