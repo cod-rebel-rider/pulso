@@ -249,3 +249,122 @@
 .rodape .separador {
   color: var(--pulso-vermelho);
 }
+
+/* ── visões e formulário do operador (Fase 03) ───────────────────────── */
+.visao.oculto {
+  display: none;
+}
+
+.rotulo-secao {
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  color: var(--pulso-vermelho);
+}
+
+.titulo-secao {
+  font-size: clamp(34px, 5vw, 56px);
+  letter-spacing: 0.14em;
+  line-height: 1;
+  color: var(--pulso-branco);
+}
+
+.descricao-secao {
+  font-size: 13px;
+  color: var(--pulso-cinza);
+  margin-bottom: 8px;
+}
+
+#formulario-jogador {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 460px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+#formulario-jogador label {
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  color: var(--pulso-cinza);
+  margin-top: 10px;
+}
+
+#formulario-jogador .opcional {
+  color: var(--pulso-cinza-escuro);
+  letter-spacing: 0.08em;
+}
+
+#formulario-jogador input {
+  background: var(--pulso-superficie);
+  border: 1px solid var(--pulso-cinza-escuro);
+  color: var(--pulso-branco);
+  font-family: var(--pulso-mono);
+  font-size: 15px;
+  padding: 10px 12px;
+  outline: none;
+}
+
+#formulario-jogador input:focus {
+  border-color: var(--pulso-vermelho);
+  box-shadow: 0 0 0 1px var(--pulso-vermelho-escuro);
+}
+
+.aviso {
+  min-height: 18px;
+  font-size: 12px;
+  color: var(--pulso-vermelho);
+}
+
+.acoes-formulario {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+#botao-inicializar {
+  background: transparent;
+  border: 1px solid var(--pulso-vermelho);
+  color: var(--pulso-vermelho);
+  font-family: var(--pulso-mono);
+  font-size: 14px;
+  letter-spacing: 0.24em;
+  padding: 10px 24px;
+  cursor: pointer;
+}
+
+#botao-inicializar:hover:not(:disabled) {
+  background: var(--pulso-vermelho-escuro);
+  color: var(--pulso-branco);
+}
+
+#botao-inicializar:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
+
+.botao-secundario {
+  background: transparent;
+  border: 1px solid var(--pulso-cinza-escuro);
+  color: var(--pulso-cinza);
+  font-family: var(--pulso-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.botao-secundario:hover:not(:disabled) {
+  border-color: var(--pulso-cinza);
+  color: var(--pulso-branco);
+}
+
+.botao-secundario:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+#botao-editar {
+  margin-top: 14px;
+}

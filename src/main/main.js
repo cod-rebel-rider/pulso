@@ -21,6 +21,9 @@ import registro from './registro.js';
 import { determinarAmbiente, carregarConfiguracao } from './configuracao.js';
 import { criarJanela, extrairConsole } from './janela.js';
 import { inicializarBanco } from '../core/database/inicializar.js';
+import { RepositorioJogador } from '../core/database/repositorios/jogador.js';
+import { ServicoJogador } from '../core/aplicacao/servico-jogador.js';
+import { ErroValidacao, ErroConflito } from '../core/erros.js';
 import canais from './canais.cjs';
 
 const MODO_TESTE_FUMACA = process.argv.includes('--teste-fumaca');
@@ -29,8 +32,11 @@ const ambiente = MODO_TESTE_FUMACA ? 'teste' : determinarAmbiente({ isPackaged: 
 // Diretório de dados do usuário: resolvido dinamicamente pelo sistema
 // operacional (appData/pulso), fora do repositório. No teste de fumaça,
 // um diretório temporário isolado é usado para não tocar no banco real.
+// PULSO_DIRETORIO_DADOS permite testes manuais com banco próprio.
 if (MODO_TESTE_FUMACA) {
   app.setPath('userData', mkdtempSync(join(tmpdir(), 'pulso-fumaca-')));
+} else if (process.env.PULSO_DIRETORIO_DADOS) {
+  app.setPath('userData', process.env.PULSO_DIRETORIO_DADOS);
 } else {
   app.setPath('userData', join(app.getPath('appData'), 'pulso'));
 }
@@ -38,6 +44,7 @@ if (MODO_TESTE_FUMACA) {
 let janelaPrincipal = null;
 let configuracao = null;
 let estadoBanco = null;
+let servicoJogador = null;
 
 // ── Teste de fumaça ─────────────────────────────────────────────────────
 const resultadosFumaca = {
@@ -90,6 +97,27 @@ function executarTesteFumaca(janela) {
       );
       resultadosFumaca.ipcAtivo = !!(info && info.nome === 'PULSO' && info.versao === app.getVersion());
 
+      // valida o fluxo IPC do jogador (estado → criar → re-consultar), com o
+      // banco temporário do teste — exercita a cadeia renderer → preload → main
+      // → serviço → repositório → SQLite
+      const jogadorInicial = await janela.webContents.executeJavaScript(
+        'window.pulso?.jogador ? window.pulso.jogador.estado() : Promise.resolve(null)',
+        true,
+      );
+      const criacao = await janela.webContents.executeJavaScript(
+        'window.pulso?.jogador ? window.pulso.jogador.criar({ nome: "Operador Teste", codinome: "teste" }) : Promise.resolve(null)',
+        true,
+      );
+      const jogadorFinal = await janela.webContents.executeJavaScript(
+        'window.pulso?.jogador ? window.pulso.jogador.estado() : Promise.resolve(null)',
+        true,
+      );
+      resultadosFumaca.jogador = {
+        preparado: !!jogadorInicial && jogadorInicial.existe === false && jogadorInicial.jogador === null,
+        criado: !!criacao && criacao.ok && criacao.jogador?.nome === 'Operador Teste',
+        carregado: !!jogadorFinal && jogadorFinal.existe === true && jogadorFinal.jogador?.codinome === 'teste',
+      };
+
       // aguarda o renderer concluir a inicialização (flag de prontidão)
       const inicio = Date.now();
       while (Date.now() - inicio < 5000) {
@@ -106,10 +134,15 @@ function executarTesteFumaca(janela) {
 
       const bancoOk =
         resultadosFumaca.banco?.inicializado === true && resultadosFumaca.banco.versaoSchema >= 1;
+      const jogadorOk =
+        resultadosFumaca.jogador?.preparado === true &&
+        resultadosFumaca.jogador?.criado === true &&
+        resultadosFumaca.jogador?.carregado === true;
       const ok =
         resultadosFumaca.aplicacaoIniciou &&
         resultadosFumaca.janelaCriada &&
         bancoOk &&
+        jogadorOk &&
         resultadosFumaca.rendererPronto &&
         resultadosFumaca.ipcAtivo &&
         resultadosFumaca.errosConsole.length === 0;
@@ -117,7 +150,7 @@ function executarTesteFumaca(janela) {
         ok,
         ok
           ? null
-          : `aplicacaoIniciou=${resultadosFumaca.aplicacaoIniciou}, janelaCriada=${resultadosFumaca.janelaCriada}, bancoOk=${bancoOk}, rendererPronto=${resultadosFumaca.rendererPronto}, ipcAtivo=${resultadosFumaca.ipcAtivo}, errosConsole=${resultadosFumaca.errosConsole.length}`,
+          : `aplicacaoIniciou=${resultadosFumaca.aplicacaoIniciou}, janelaCriada=${resultadosFumaca.janelaCriada}, bancoOk=${bancoOk}, jogadorOk=${JSON.stringify(resultadosFumaca.jogador)}, rendererPronto=${resultadosFumaca.rendererPronto}, ipcAtivo=${resultadosFumaca.ipcAtivo}, errosConsole=${resultadosFumaca.errosConsole.length}`,
       );
     } catch (erro) {
       encerrarFumaca(false, `falha na verificação do renderer: ${erro.message}`);
@@ -144,6 +177,60 @@ function registrarIpc() {
     estado: 'online',
     versaoSchema: estadoBanco ? estadoBanco.versaoSchema : null,
   }));
+
+  ipcMain.handle(canais.JOGADOR_ESTADO, () => {
+    try {
+      const jogador = servicoJogador.obter();
+      if (jogador) {
+        registro.info(
+          `Jogador carregado: ${jogador.nome}${jogador.codinome ? ` (${jogador.codinome})` : ''}`,
+        );
+      } else {
+        registro.info('Nenhum jogador configurado — aguardando configuração inicial.');
+      }
+      return { existe: !!jogador, jogador };
+    } catch (erro) {
+      registro.erro('Falha ao consultar o jogador.', erro);
+      return { existe: false, jogador: null, falha: true };
+    }
+  });
+
+  ipcMain.handle(canais.JOGADOR_CRIAR, (_evento, dados) =>
+    traduzirResultadoOperacao(() => {
+      const jogador = servicoJogador.criar(dados ?? {});
+      registro.info(`Jogador criado: ${jogador.nome}`);
+      return { ok: true, jogador };
+    }));
+
+  ipcMain.handle(canais.JOGADOR_ATUALIZAR, (_evento, dados) =>
+    traduzirResultadoOperacao(() => {
+      const jogador = servicoJogador.atualizar(Number(dados?.id ?? 0), {
+        nome: dados?.nome,
+        codinome: dados?.codinome,
+      });
+      registro.info(`Identidade do jogador atualizada: ${jogador.nome}`);
+      return { ok: true, jogador };
+    }));
+}
+
+/**
+ * Executa a operação e traduz erros do núcleo para respostas seguras da
+ * IPC: mensagens de validação/conflito são seguras para a interface;
+ * falhas internas são registradas e mascaradas.
+ */
+function traduzirResultadoOperacao(executar) {
+  try {
+    return executar();
+  } catch (erro) {
+    if (erro instanceof ErroValidacao) {
+      return { ok: false, erro: 'validacao', campo: erro.campo, mensagem: erro.message };
+    }
+    if (erro instanceof ErroConflito) {
+      return { ok: false, erro: 'conflito', mensagem: erro.message };
+    }
+    registro.erro('Falha interna em operação do jogador.', erro);
+    return { ok: false, erro: 'interno', mensagem: 'Falha interna ao processar a operação.' };
+  }
 }
 
 // ── Erros globais ───────────────────────────────────────────────────────
@@ -191,6 +278,9 @@ async function aoIniciar() {
     return;
   }
 
+  // Camada de aplicação: serviço do jogador sobre o repositório do banco.
+  servicoJogador = new ServicoJogador({ repositorio: new RepositorioJogador(estadoBanco.banco) });
+
   registrarIpc();
   janelaPrincipal = criarJanela(configuracao, { exibir: !MODO_TESTE_FUMACA });
 
@@ -202,6 +292,7 @@ async function aoIniciar() {
       criado: estadoBanco.criado,
       versaoSchema: estadoBanco.versaoSchema,
     };
+    resultadosFumaca.jogador = null;
     executarTesteFumaca(janelaPrincipal);
   } else {
     registro.info(`PULSO iniciado (ambiente: ${ambiente}, versão ${app.getVersion()}).`);
