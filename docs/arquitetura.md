@@ -37,8 +37,8 @@ Regras estruturais:
 | --- | --- | --- |
 | Interface | `src/renderer` | Telas, componentes, estilos, feedback visual |
 | Processo principal | `src/main` | Ciclo de vida do aplicativo, janela, ponte IPC, integração com o SO |
-| Aplicação | `src/core/aplicacao` | Casos de uso ("criar missão", "registrar transação"), orquestração |
-| Domínio | `src/core/dominio` | Entidades e regras (jogador, atributos, XP, missões, finanças) |
+| Domínio | `src/core/dominio` | **Iniciado (Fase 03)**: `jogador.js` (regras de identidade, validações puras) |
+| Aplicação | `src/core/aplicacao` | **Iniciado (Fase 03)**: `servico-jogador.js` (orquestração single-player) |
 | Persistência | `src/core/database` | **Implementada (Fase 02)**: conexão SQLite, migrações, repositórios |
 | Módulos | `src/modules` | Funcionalidades independentes com contrato público documentado |
 
@@ -46,7 +46,8 @@ Regras estruturais:
 
 - **Interface ↔ núcleo:** via IPC do Electron (a partir da Fase 01), com canais nomeados por módulo e mensagens estruturadas (ex.: canal `missao:listar`). O renderer recebe apenas dados já processados.
 - **Módulo ↔ módulo:** preferencialmente indireto, por meio da camada de aplicação. Acoplamento direto entre módulos deve ser evitado; quando necessário, deve estar explícito no contrato do módulo.
-- **Núcleo ↔ banco:** exclusivamente pela camada de persistência (`src/core/database/`), por meio de repositórios — **implementado na Fase 02** (conexão, migrações e `RepositorioMeta` como padrão de referência).
+- **Núcleo ↔ banco:** exclusivamente pela camada de persistência (`src/core/database/`), por meio de repositórios — **implementado na Fase 02** (conexão, migrações) e estendido na Fase 03 (`RepositorioJogador`);
+- **Domínio validando com regras próprias:** desde a Fase 03, a identidade do jogador é validada em `src/core/dominio/jogador.js` (puro, testável) antes de persistir;
 
 ## 4. Módulos previstos (apenas planejados — nenhum implementado)
 
