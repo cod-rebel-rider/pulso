@@ -1,0 +1,6 @@
+{
+  "ambiente": "teste",
+  "idioma": "pt-BR",
+  "depuracao": true,
+  "descricao": "Configuração usada pela suíte de testes. Banco de dados e arquivos temporários devem apontar para locais descartáveis quando implementados."
+}
