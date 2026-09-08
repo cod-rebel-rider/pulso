@@ -22,6 +22,14 @@ const CANAL_JOGADOR_CRIAR = 'jogador:criar'; // igual a canais.cjs → JOGADOR_C
 const CANAL_JOGADOR_ATUALIZAR = 'jogador:atualizar'; // igual a canais.cjs → JOGADOR_ATUALIZAR
 const CANAL_STATUS_OBTER = 'status:obter'; // igual a canais.cjs → STATUS_OBTER
 const CANAL_STATUS_ALTERAR = 'status:alterar'; // igual a canais.cjs → STATUS_ALTERAR
+const CANAL_MISSAO_CRIAR = 'missao:criar'; // igual a canais.cjs → MISSAO_CRIAR
+const CANAL_MISSAO_LISTAR = 'missao:listar'; // igual a canais.cjs → MISSAO_LISTAR
+const CANAL_MISSAO_OBTER = 'missao:obter'; // igual a canais.cjs → MISSAO_OBTER
+const CANAL_MISSAO_ATUALIZAR = 'missao:atualizar'; // igual a canais.cjs → MISSAO_ATUALIZAR
+const CANAL_MISSAO_INICIAR = 'missao:iniciar'; // igual a canais.cjs → MISSAO_INICIAR
+const CANAL_MISSAO_CONCLUIR = 'missao:concluir'; // igual a canais.cjs → MISSAO_CONCLUIR
+const CANAL_MISSAO_CANCELAR = 'missao:cancelar'; // igual a canais.cjs → MISSAO_CANCELAR
+const CANAL_MISSAO_EXCLUIR = 'missao:excluir'; // igual a canais.cjs → MISSAO_EXCLUIR
 
 const { contextBridge, ipcRenderer } = require('electron');
 
@@ -80,6 +88,66 @@ contextBridge.exposeInMainWorld(
        */
       alterar: (jogadorId, status, delta) =>
         ipcRenderer.invoke(CANAL_STATUS_ALTERAR, { jogadorId, status, delta }),
+    }),
+
+    /**
+     * Operações específicas de missões — nunca acesso genérico ao banco.
+     */
+    missao: Object.freeze({
+      /**
+       * Cria uma nova missão.
+       * @param {{ titulo: string, descricao?: string, prioridade?: string, prazo?: string }} dados
+       * @returns {Promise<{ok: boolean, missao?: object, erro?: string, campo?: string, mensagem?: string}>}
+       */
+      criar: (dados) => ipcRenderer.invoke(CANAL_MISSAO_CRIAR, dados),
+
+      /**
+       * Lista todas as missões do jogador.
+       * @returns {Promise<{ok: boolean, missoes?: object[], erro?: string, mensagem?: string}>}
+       */
+      listar: () => ipcRenderer.invoke(CANAL_MISSAO_LISTAR),
+
+      /**
+       * Obtém uma missão pelo id.
+       * @param {number} id
+       * @returns {Promise<{ok: boolean, missao?: object, erro?: string, mensagem?: string}>}
+       */
+      obter: (id) => ipcRenderer.invoke(CANAL_MISSAO_OBTER, { id }),
+
+      /**
+       * Atualiza dados básicos da missão.
+       * @param {{ id: number, titulo?: string, descricao?: string, prioridade?: string, prazo?: string }} dados
+       * @returns {Promise<{ok: boolean, missao?: object, erro?: string, campo?: string, mensagem?: string}>}
+       */
+      atualizar: (dados) => ipcRenderer.invoke(CANAL_MISSAO_ATUALIZAR, dados),
+
+      /**
+       * Inicia uma missão (PENDENTE → EM_ANDAMENTO).
+       * @param {number} id
+       * @returns {Promise<{ok: boolean, missao?: object, erro?: string, mensagem?: string}>}
+       */
+      iniciar: (id) => ipcRenderer.invoke(CANAL_MISSAO_INICIAR, { id }),
+
+      /**
+       * Conclui uma missão (EM_ANDAMENTO → CONCLUÍDA).
+       * @param {number} id
+       * @returns {Promise<{ok: boolean, missao?: object, erro?: string, mensagem?: string}>}
+       */
+      concluir: (id) => ipcRenderer.invoke(CANAL_MISSAO_CONCLUIR, { id }),
+
+      /**
+       * Cancela uma missão (PENDENTE/EM_ANDAMENTO → CANCELADA).
+       * @param {number} id
+       * @returns {Promise<{ok: boolean, missao?: object, erro?: string, mensagem?: string}>}
+       */
+      cancelar: (id) => ipcRenderer.invoke(CANAL_MISSAO_CANCELAR, { id }),
+
+      /**
+       * Exclui uma missão (apenas pendentes/em andamento).
+       * @param {number} id
+       * @returns {Promise<{ok: boolean, erro?: string, mensagem?: string}>}
+       */
+      excluir: (id) => ipcRenderer.invoke(CANAL_MISSAO_EXCLUIR, { id }),
     }),
   }),
 );

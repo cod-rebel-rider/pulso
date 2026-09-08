@@ -23,9 +23,11 @@ import { criarJanela, extrairConsole } from './janela.js';
 import { inicializarBanco } from '../core/database/inicializar.js';
 import { RepositorioJogador } from '../core/database/repositorios/jogador.js';
 import { RepositorioStatus } from '../core/database/repositorios/status.js';
+import { RepositorioMissao } from '../core/database/repositorios/missao.js';
 import { ServicoJogador } from '../core/aplicacao/servico-jogador.js';
 import { ServicoStatus } from '../core/aplicacao/servico-status.js';
-import { ErroValidacao, ErroConflito } from '../core/erros.js';
+import { ServicoMissao } from '../core/aplicacao/servico-missao.js';
+import { ErroValidacao, ErroConflito, ErroTransicao } from '../core/erros.js';
 import canais from './canais.cjs';
 
 const MODO_TESTE_FUMACA = process.argv.includes('--teste-fumaca');
@@ -48,6 +50,7 @@ let configuracao = null;
 let estadoBanco = null;
 let servicoJogador = null;
 let servicoStatus = null;
+let servicoMissao = null;
 
 // ── Teste de fumaça ─────────────────────────────────────────────────────
 const resultadosFumaca = {
@@ -229,6 +232,68 @@ function registrarIpc() {
       );
       return { ok: true, status };
     }));
+
+  // ── Missões ─────────────────────────────────────────────────────────
+  ipcMain.handle(canais.MISSAO_CRIAR, (_evento, dados) =>
+    traduzirResultadoOperacao(() => {
+      const jogador = servicoJogador.obter();
+      const missao = servicoMissao.criar(jogador.id, dados ?? {});
+      registro.info(`Missão criada: ${missao.titulo} (${missao.estado})`);
+      return { ok: true, missao };
+    }));
+
+  ipcMain.handle(canais.MISSAO_LISTAR, () =>
+    traduzirResultadoOperacao(() => {
+      const jogador = servicoJogador.obter();
+      const missoes = servicoMissao.listar(jogador.id);
+      return { ok: true, missoes };
+    }));
+
+  ipcMain.handle(canais.MISSAO_OBTER, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const missao = servicoMissao.obter(Number(id ?? 0));
+      return { ok: true, missao };
+    }));
+
+  ipcMain.handle(canais.MISSAO_ATUALIZAR, (_evento, dados) =>
+    traduzirResultadoOperacao(() => {
+      const missao = servicoMissao.atualizar(Number(dados?.id ?? 0), {
+        titulo: dados?.titulo,
+        descricao: dados?.descricao,
+        prioridade: dados?.prioridade,
+        prazo: dados?.prazo,
+      });
+      registro.info(`Missão atualizada: ${missao.titulo}`);
+      return { ok: true, missao };
+    }));
+
+  ipcMain.handle(canais.MISSAO_INICIAR, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const missao = servicoMissao.iniciar(Number(id ?? 0));
+      registro.info(`Missão iniciada: ${missao.titulo}`);
+      return { ok: true, missao };
+    }));
+
+  ipcMain.handle(canais.MISSAO_CONCLUIR, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const missao = servicoMissao.concluir(Number(id ?? 0));
+      registro.info(`Missão concluída: ${missao.titulo}`);
+      return { ok: true, missao };
+    }));
+
+  ipcMain.handle(canais.MISSAO_CANCELAR, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const missao = servicoMissao.cancelar(Number(id ?? 0));
+      registro.info(`Missão cancelada: ${missao.titulo}`);
+      return { ok: true, missao };
+    }));
+
+  ipcMain.handle(canais.MISSAO_EXCLUIR, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => {
+      servicoMissao.excluir(Number(id ?? 0));
+      registro.info(`Missão excluída: id=${id}`);
+      return { ok: true };
+    }));
 }
 
 /**
@@ -246,7 +311,10 @@ function traduzirResultadoOperacao(executar) {
     if (erro instanceof ErroConflito) {
       return { ok: false, erro: 'conflito', mensagem: erro.message };
     }
-    registro.erro('Falha interna em operação do jogador.', erro);
+    if (erro instanceof ErroTransicao) {
+      return { ok: false, erro: 'transicao', mensagem: erro.message };
+    }
+    registro.erro('Falha interna em operação do núcleo.', erro);
     return { ok: false, erro: 'interno', mensagem: 'Falha interna ao processar a operação.' };
   }
 }
@@ -299,6 +367,7 @@ async function aoIniciar() {
   // Camada de aplicação: serviços sobre os repositórios do banco.
   const repositorioJogador = new RepositorioJogador(estadoBanco.banco);
   const repositorioStatus = new RepositorioStatus(estadoBanco.banco);
+  const repositorioMissao = new RepositorioMissao(estadoBanco.banco);
 
   // Criação atômica: jogador + status inicial em uma única transação.
   servicoStatus = new ServicoStatus({ repositorio: repositorioStatus, repositorioJogador });
@@ -312,6 +381,7 @@ async function aoIniciar() {
       );
     },
   });
+  servicoMissao = new ServicoMissao({ repositorio: repositorioMissao });
 
   registrarIpc();
   janelaPrincipal = criarJanela(configuracao, { exibir: !MODO_TESTE_FUMACA });

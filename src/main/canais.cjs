@@ -14,4 +14,12 @@ module.exports = Object.freeze({
   JOGADOR_ATUALIZAR: 'jogador:atualizar',
   STATUS_OBTER: 'status:obter',
   STATUS_ALTERAR: 'status:alterar',
+  MISSAO_CRIAR: 'missao:criar',
+  MISSAO_LISTAR: 'missao:listar',
+  MISSAO_OBTER: 'missao:obter',
+  MISSAO_ATUALIZAR: 'missao:atualizar',
+  MISSAO_INICIAR: 'missao:iniciar',
+  MISSAO_CONCLUIR: 'missao:concluir',
+  MISSAO_CANCELAR: 'missao:cancelar',
+  MISSAO_EXCLUIR: 'missao:excluir',
 });
