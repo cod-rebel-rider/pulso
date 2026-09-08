@@ -1,0 +1,251 @@
+/* PULSO — tela de fundação (Fase 01) */
+
+/* ── fundo: grade e rede ─────────────────────────────────────────────── */
+.grade-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(138, 138, 147, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(138, 138, 147, 0.06) 1px, transparent 1px);
+  background-size: 42px 42px;
+  -webkit-mask-image: radial-gradient(ellipse at 40% 45%, #000 25%, transparent 78%);
+  mask-image: radial-gradient(ellipse at 40% 45%, #000 25%, transparent 78%);
+}
+
+.rede-fundo {
+  position: fixed;
+  top: 10%;
+  right: 3%;
+  width: min(38vw, 460px);
+  z-index: 0;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.rede-fundo .fio {
+  fill: none;
+  stroke: var(--pulso-cinza-escuro);
+  stroke-width: 1;
+  stroke-dasharray: 4 7;
+  animation: fluxo 14s linear infinite;
+}
+
+.rede-fundo .no {
+  fill: var(--pulso-cinza-escuro);
+}
+
+.rede-fundo .no-destaque {
+  fill: var(--pulso-vermelho);
+  filter: drop-shadow(0 0 4px rgba(229, 72, 77, 0.6));
+}
+
+@keyframes fluxo {
+  to {
+    stroke-dashoffset: -220;
+  }
+}
+
+/* ── estrutura ───────────────────────────────────────────────────────── */
+.tela {
+  position: relative;
+  z-index: 1;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 26px 36px;
+}
+
+/* filete vermelho superior (acento HUD) */
+.tela::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 7;
+  background: linear-gradient(90deg, var(--pulso-vermelho), transparent 62%);
+}
+
+.cabecalho {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--pulso-cinza-escuro);
+  padding-bottom: 12px;
+}
+
+.marca {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.38em;
+  color: var(--pulso-branco);
+}
+
+.marca::before {
+  content: '▍';
+  color: var(--pulso-vermelho);
+  margin-right: 8px;
+}
+
+.versao {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--pulso-cinza);
+}
+
+/* ── núcleo da tela ──────────────────────────────────────────────────── */
+.nucleo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: 660px;
+}
+
+.estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  letter-spacing: 0.28em;
+  color: var(--pulso-cinza);
+  border: 1px solid var(--pulso-cinza-escuro);
+  background: rgba(19, 19, 24, 0.75);
+  padding: 8px 14px;
+}
+
+.estado .luz {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--pulso-vermelho);
+  box-shadow: 0 0 8px rgba(229, 72, 77, 0.8);
+  animation: pulsar 1.6s ease-in-out infinite;
+}
+
+.estado.falha {
+  color: var(--pulso-vermelho);
+  border-color: var(--pulso-vermelho-escuro);
+}
+
+.estado.falha .luz {
+  animation: none;
+}
+
+@keyframes pulsar {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.titulo {
+  font-size: clamp(54px, 9vw, 92px);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  color: var(--pulso-branco);
+  animation: interferencia 6s steps(1) infinite;
+}
+
+/* interferência sutil de sinal — nunca um "carnaval neon" */
+@keyframes interferencia {
+  0%,
+  91%,
+  100% {
+    text-shadow: 0 0 0 transparent;
+  }
+  92% {
+    text-shadow: 2px 0 var(--pulso-vermelho), -2px 0 rgba(242, 242, 245, 0.55);
+  }
+  94% {
+    text-shadow: -2px 0 var(--pulso-vermelho), 2px 0 rgba(242, 242, 245, 0.55);
+  }
+  96% {
+    text-shadow: 1px 0 var(--pulso-vermelho);
+  }
+}
+
+.subtitulo {
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  color: var(--pulso-cinza);
+}
+
+/* ── sequência de inicialização (terminal) ───────────────────────────── */
+.boot {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 10px;
+  min-height: calc(4 * 27px);
+}
+
+.boot li {
+  display: flex;
+  align-items: baseline;
+  max-width: 430px;
+  width: 100%;
+  font-size: 13px;
+  color: var(--pulso-cinza);
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+.boot li.visivel {
+  opacity: 1;
+  transform: none;
+}
+
+.boot .traco {
+  flex: 1;
+  border-bottom: 1px dotted var(--pulso-cinza-escuro);
+  margin: 0 10px 4px;
+}
+
+.boot .valor {
+  letter-spacing: 0.12em;
+  color: var(--pulso-vermelho);
+}
+
+.boot li.neutro .valor {
+  color: var(--pulso-cinza);
+}
+
+/* ── mensagens e rodapé ──────────────────────────────────────────────── */
+.mensagem {
+  font-size: 15px;
+  color: var(--pulso-branco);
+  margin-top: 8px;
+}
+
+.mensagem::before {
+  content: '▸';
+  color: var(--pulso-vermelho);
+  margin-right: 10px;
+}
+
+.rodape {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  border-top: 1px solid var(--pulso-cinza-escuro);
+  padding-top: 12px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--pulso-cinza);
+}
+
+.rodape .separador {
+  color: var(--pulso-vermelho);
+}

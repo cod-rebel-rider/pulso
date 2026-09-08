@@ -83,8 +83,8 @@ Quando implementados, cada módulo deverá ter: domínio próprio, casos de uso 
 
 ### ADR-002 — JavaScript moderno (ESM) e framework de interface
 
-- Projeto com `"type": "module"` e sintaxe ESM em todo o código.
-- A escolha de framework/biblioteca de UI (ou vanilla) **ainda não foi feita** — está registrada em `pendencias.md` para a Fase 01, quando a primeira janela existir. Não antecipar.
+- Projeto com `"type": "module"` e sintaxe ESM em todo o código. **Exceção:** o `preload.cjs` é CommonJS, pois o sandbox do Electron não suporta ESM nem `require` de arquivos locais no preload (ver ADR-005).
+- **Resolvido na Fase 01 (ver ADR-006):** a fundação usa JavaScript vanilla (sem framework de UI).
 
 ### ADR-003 — SQLite como persistência (a partir da Fase 02)
 
@@ -92,9 +92,58 @@ Quando implementados, cada módulo deverá ter: domínio próprio, casos de uso 
 
 ### ADR-004 — Runner de testes nativo (`node:test`)
 
-- Zero dependências externas na Fase 00; reavaliar apenas se a Fase 01 trouxer necessidade real.
+- Zero dependências externas além do Electron; reavaliar apenas se a Fase 01+ trouxer necessidade real.
 
-## 6. Preparação para a portabilidade (Fase 18 — nada implementado)
+### ADR-005 — Preload em CommonJS com sandbox ativado (Fase 01)
+
+**Decisão:** `src/main/preload.cjs` em CommonJS + `sandbox: true`.
+
+**Motivo:** no Electron, preload scripts em ESM exigem desativar o sandbox. Como a segurança da fundação tem prioridade (seção 7), mantivemos o sandbox e escrevemos o preload em CJS. Limitação decorrente: preload em sandbox não pode `require` arquivos locais, então os nomes de canais IPC são replicados manualmente entre `canais.cjs` (main) e `preload.cjs` — os testes unitários verificam essa sincronia.
+
+### ADR-006 — Interface da fundação em JavaScript vanilla (Fase 01)
+
+**Decisão:** HTML + CSS + JS puros na tela de fundação, sem framework (React, Vue, Svelte etc.).
+
+**Motivo:** a tela inicial é pequena e o custo de um framework não se justifica ainda. A arquitetura em camadas isola essa decisão no `src/renderer` — se a complexidade das próximas fases pedir um framework, a fundação não precisará ser desmontada. Pendência P-002 resolvida.
+
+### ADR-007 — Teste de fumaça nativo para validação da inicialização (Fase 01)
+
+**Decisão:** o processo principal aceita a flag `--teste-fumaca`: inicia, cria a janela, carrega o renderer, valida a IPC, coleta erros de console, imprime um relatório JSON (`PULSO_FUMACA:{...}`) e encerra sozinho. Os testes de integração (`node:test`) executam dois ciclos completos (inicia → encerra → inicia de novo).
+
+**Motivo:** valida os Testes 1–8 da Fase 01 sem depender de ferramentas externas (Playwright continua pendente para a Fase 17 — P-006).
+
+### ADR-008 — Fixação do Electron 37.x (incompatibilidade do 41.x no ambiente atual)
+
+**Decisão:** usar Electron **37.10.3** (fixado em `package.json`).
+
+**Problema encontrado:** o Electron 41.7.1 (e 39.x) sofre **SIGSEGV** no início da execução neste ambiente (Ubuntu 26.04, glibc 2.43, kernel 7.0) — confirmado com um aplicativo mínimo de 10 linhas, com e sem `--no-sandbox`/`--disable-gpu`/Wayland nativo; o registro do kernel aponta falha consistente no binário (`segfault at 0`). O Electron 37.10.3 funciona sem contornos.
+
+**Consequência:** upgrade do Electron maior requer reteste neste sistema (o teste de fumaça automatizado serve exatamente para isso). Registrado em `pendencias.md` (P-016).
+
+## 6. Fundação implementada (Fase 01)
+
+```text
+npm start
+  └─ src/main/main.js (processo principal, ESM)
+       ├─ configuracao.js  → carrega config/<ambiente>.json (PULSO_AMBIENTE ou isPackaged)
+       ├─ janela.js        → BrowserWindow segura + diagnósticos
+       │     └─ carrega src/renderer/index.html (CSP restritiva)
+       │           └─ js/principal.js → usa window.pulso
+       │                 └─ preload.cjs (CJS, sandbox) → ipcRenderer.invoke
+       ├─ canais.cjs       → nomes de canais IPC (único canal: info:sistema)
+       ├─ registro.js      → log identificável no console ([PULSO][ISO][NÍVEL])
+       └─ ciclo de vida    → instância única, window-all-closed, activate, erros globais
+```
+
+Pontos principais:
+
+- **Janela segura:** `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, `webSecurity: true`; exibida só após `ready-to-show` (sem flash branco); dimensões vindas da configuração.
+- **IPC mínima:** um único canal (`info:sistema`) — o renderer lê informações reais do sistema; nenhum objeto de Node é exposto.
+- **Renderer isolado:** CSP `default-src 'none'` com liberações explícitas para estilos/scripts locais e favicon em data-URI; sem rede.
+- **Erros identificáveis:** `uncaughtException`/`unhandledRejection` no main (diálogo de erro fora do modo teste), `did-fail-load`, `render-process-gone`, `unresponsive` e erros de console do renderer todos registrados via `registro.js`.
+- **Instância única:** `requestSingleInstanceLock` com foco na janela existente.
+
+## 7. Preparação para a portabilidade (Fase 18 — nada implementado)
 
 Para não fechar portas no futuro:
 
@@ -103,8 +152,10 @@ Para não fechar portas no futuro:
 - nenhuma dependência de rede para funções essenciais (offline-first);
 - ferramenta de empacotamento (electron-builder / electron-forge) será escolhida na Fase 18.
 
-## 7. Segurança (quando o Electron existir)
+## 8. Segurança (quando o Electron existir)
 
 - `contextIsolation: true` e `nodeIntegration: false` no renderer;
 - validação de tudo que cruza a barreira IPC;
 - nenhuma credencial no repositório (ver `regras-do-projeto.md`).
+
+**Implementado na Fase 01** (ver seção 6): sandbox ativado, preload em CJS com ponte mínima e CSP restritiva no renderer.

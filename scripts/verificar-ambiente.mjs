@@ -81,6 +81,16 @@ console.log(
   }`,
 );
 
+const versaoElectron = (() => {
+  try {
+    const pacote = JSON.parse(readFileSync(join(raiz, 'node_modules', 'electron', 'package.json'), 'utf-8'));
+    return pacote.version;
+  } catch {
+    return null;
+  }
+})();
+console.log(`Electron       : ${versaoElectron ?? 'não instalado (npm install adiciona a devDependency)'}`);
+
 console.log(separador);
 console.log('Estrutura de diretórios da Fase 00:');
 
@@ -94,8 +104,8 @@ for (const diretorio of DIRETORIOS_ESPERADOS) {
 console.log(separador);
 
 if (!estruturaOk) {
-  console.error('✖ Estrutura da Fase 00 incompleta. Consulte docs/arquitetura.md.');
+  console.error('✖ Estrutura do projeto incompleta. Consulte docs/arquitetura.md.');
   process.exitCode = 1;
 } else {
-  console.log('✔ Ambiente verificado. A aplicação gráfica será implementada na Fase 01 — Fundação.');
+  console.log('✔ Ambiente verificado. Fundação concluída (Fase 01) — use `npm start` para abrir o PULSO.');
 }

@@ -2,5 +2,11 @@
   "ambiente": "desenvolvimento",
   "idioma": "pt-BR",
   "depuracao": true,
+  "janela": {
+    "largura": 1100,
+    "altura": 700,
+    "larguraMinima": 800,
+    "alturaMinima": 520
+  },
   "descricao": "Configuração do ambiente de desenvolvimento. Nunca colocar dados pessoais, senhas, tokens ou caminhos pessoais neste arquivo."
 }

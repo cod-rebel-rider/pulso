@@ -2,7 +2,7 @@
 
 > Sistema pessoal de gestão da vida que transforma atividades, projetos, objetivos, finanças, aprendizado e música em uma experiência de progressão inspirada em RPG e Cyberpunk/Netrunner.
 
-**Status:** FASE 00 — PREPARAÇÃO (concluída). Nenhuma funcionalidade foi implementada ainda — esta fase criou apenas a base técnica, documentada e preparada para os próximos módulos.
+**Status:** FASE 01 — FUNDAÇÃO (concluída). A aplicação desktop mínima está funcional: abre, carrega a interface, funciona, fecha e reabre. Os sistemas de jogo/gerenciamento vêm nas próximas fases.
 
 ## Princípios
 
@@ -17,7 +17,8 @@
 
 ## Stack
 
-- **Electron + HTML/CSS/JavaScript** — aplicação desktop (avaliação completa em `docs/arquitetura.md`)
+- **Electron 37.x** — aplicação desktop (fixado por compatibilidade; ver `docs/arquitetura.md`, ADR-008)
+- **HTML + CSS + JavaScript (vanilla, ESM)** — interface e lógica
 - **SQLite** — persistência local (a partir da Fase 02)
 - **Node.js ≥ 20** e **npm ≥ 10** — ferramentas de desenvolvimento
 - Idioma do projeto: **Português do Brasil (pt-BR)**
@@ -25,10 +26,10 @@
 ## Como começar
 
 ```bash
-npm install                 # instala dependências (Fase 00: nenhuma)
+npm install                 # instala dependências (inclui o Electron)
+npm start                   # inicia a aplicação desktop
+npm test                    # testes unitários + teste de fumaça do Electron
 npm run verificar-ambiente  # verifica o ambiente de desenvolvimento
-npm test                    # executa os testes (sanidade, nesta fase)
-npm start                   # nesta fase: relatório do ambiente (o aplicativo virá na Fase 01)
 ```
 
 ## Estrutura
@@ -36,15 +37,15 @@ npm start                   # nesta fase: relatório do ambiente (o aplicativo v
 ```text
 pulso/
 ├── src/
-│   ├── main/       → processo principal (Electron — Fase 01)
-│   ├── renderer/   → interface (Cyberpunk/Netrunner — Fase 01+)
-│   ├── core/       → núcleo: aplicação, domínio, persistência
+│   ├── main/       → processo principal Electron (janela, IPC, configuração, registro)
+│   ├── renderer/   → interface (tela de fundação Cyberpunk/Netrunner)
+│   ├── core/       → núcleo: aplicação, domínio, persistência (Fase 02+)
 │   └── modules/    → módulos futuros (missões, finanças, música…)
 ├── database/       → esquemas e migrações (Fase 02)
 ├── assets/         → recursos visuais e fontes locais
 ├── config/         → configurações por ambiente (dev/teste/produção)
 ├── scripts/        → ferramentas de desenvolvimento
-├── tests/          → testes (unidade e integração)
+├── tests/          → testes (unidade e integração/teste de fumaça)
 └── docs/           → documentação do projeto
 ```
 
@@ -70,4 +71,4 @@ pulso/
 
 ## Próxima etapa
 
-**FASE 01 — FUNDAÇÃO** (não implementada — ver `docs/roadmap.md`).
+**FASE 02 — BANCO DE DADOS** (não implementada — ver `docs/roadmap.md`).

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self' data:; font-src 'self'" />
+  <title>PULSO</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230B0B0D'/%3E%3Ccircle cx='8' cy='8' r='4.5' fill='none' stroke='%23E5484D' stroke-width='1.5'/%3E%3Ccircle cx='8' cy='8' r='1.5' fill='%23E5484D'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/principal.css" />
+</head>
+<body>
+  <!-- fundo: grade + rede (decorativos, invisíveis para leitores de tela) -->
+  <div class="grade-fundo" aria-hidden="true"></div>
+
+  <svg class="rede-fundo" viewBox="0 0 420 340" aria-hidden="true">
+    <g class="fios">
+      <path class="fio" d="M 60 300 L 150 220 L 260 250 L 350 160" />
+      <path class="fio" d="M 150 220 L 210 120 L 330 90" />
+      <path class="fio" d="M 210 120 L 120 60" />
+      <path class="fio" d="M 260 250 L 330 90" />
+      <path class="fio" d="M 60 300 L 30 190 L 120 60" />
+    </g>
+    <g class="nos">
+      <circle class="no" cx="60" cy="300" r="4" />
+      <circle class="no" cx="150" cy="220" r="3" />
+      <circle class="no no-destaque" cx="210" cy="120" r="5" />
+      <circle class="no" cx="260" cy="250" r="3" />
+      <circle class="no no-destaque" cx="350" cy="160" r="4" />
+      <circle class="no" cx="330" cy="90" r="3" />
+      <circle class="no" cx="120" cy="60" r="3" />
+      <circle class="no" cx="30" cy="190" r="3" />
+    </g>
+  </svg>
+
+  <main class="tela">
+    <header class="cabecalho">
+      <span class="marca">PULSO</span>
+      <span class="versao" id="versao">v—</span>
+    </header>
+
+    <section class="nucleo">
+      <p class="estado" id="estado" role="status">
+        <span class="luz" aria-hidden="true"></span>
+        <span id="estado-texto">INICIANDO…</span>
+      </p>
+
+      <h1 class="titulo">PULSO</h1>
+      <p class="subtitulo">Sistema pessoal de gestão da vida</p>
+
+      <ul class="boot" id="boot"></ul>
+
+      <p class="mensagem" id="mensagem">Iniciando núcleo…</p>
+    </section>
+
+    <footer class="rodape">
+      <span id="rodape-ambiente">AMBIENTE: —</span>
+      <span class="separador" aria-hidden="true">·</span>
+      <span id="rodape-versoes">ELECTRON — · NODE — · CHROME —</span>
+      <span class="separador" aria-hidden="true">·</span>
+      <span id="rodape-plataforma">PLATAFORMA: —</span>
+    </footer>
+  </main>
+
+  <script src="js/principal.js"></script>
+</body>
+</html>

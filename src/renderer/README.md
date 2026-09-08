@@ -1,13 +1,18 @@
 # src/renderer — Interface
 
-Destinado à **camada de interface** (processo de renderização do Electron, a partir da **Fase 01 — Fundação**).
+Implementada na **Fase 01 — Fundação** (tela de inicialização do PULSO), em JavaScript vanilla (ADR-006).
 
-Responsabilidades futuras:
+| Arquivo | Responsabilidade |
+| --- | --- |
+| `index.html` | Estrutura da tela inicial, CSP restritiva e favicon em data-URI |
+| `css/base.css` | Tokens da identidade visual (`--pulso-*`), reset, scanlines e acessibilidade |
+| `css/principal.css` | Layout da tela: grade, trilha de rede, HUD, terminal de inicialização, rodapé |
+| `js/principal.js` | Sequência de inicialização, estado do sistema e rodapé de informações reais |
 
-- telas, componentes visuais e estilos (identidade Cyberpunk/Netrunner);
-- apresentação dos dados vindos do núcleo;
-- captura das interações do usuário.
+Regras mantidas:
 
-A interface **não** acessa banco de dados nem arquivos diretamente: tudo passará pela camada de aplicação via IPC.
+- a interface **não** acessa banco de dados, arquivos ou APIs de Node: tudo via `window.pulso` (preload);
+- todos os textos em **pt-BR**;
+- a tela não simula funcionalidades futuras — exibe apenas o estado real da fundação.
 
-Consulte `docs/interface.md` e `docs/identidade-visual.md` para os princípios visuais.
+Princípios visuais: `docs/interface.md` e `docs/identidade-visual.md`.

@@ -2,5 +2,11 @@
   "ambiente": "teste",
   "idioma": "pt-BR",
   "depuracao": true,
-  "descricao": "Configuração usada pela suíte de testes. Banco de dados e arquivos temporários devem apontar para locais descartáveis quando implementados."
+  "janela": {
+    "largura": 1100,
+    "altura": 700,
+    "larguraMinima": 800,
+    "alturaMinima": 520
+  },
+  "descricao": "Configuração usada pela suíte de testes (inclui o teste de fumaça do Electron). Banco de dados e arquivos temporários devem apontar para locais descartáveis quando implementados."
 }
