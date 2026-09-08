@@ -81,8 +81,8 @@ test: configurar ambiente de testes
 
 ```text
 pulso/
-├── src/            → código-fonte (main, renderer, core, modules)
-├── database/       → esquemas e migrações (Fase 02)
+├── src/            → código-fonte (main, renderer, core/database, modules)
+├── database/       → (reservado) recursos versionados de banco — migrações vivem em src/core/database
 ├── assets/         → recursos visuais e fontes locais
 ├── config/         → configurações por ambiente
 ├── scripts/        → ferramentas de desenvolvimento
@@ -92,6 +92,8 @@ pulso/
 ├── .gitignore
 └── .editorconfig
 ```
+
+O **banco de dados do usuário** fica fora do repositório (ex.: `~/.config/pulso/pulso.db`) — detalhes e backup manual em `docs/banco-de-dados.md`.
 
 ## 8. Solução de problemas
 
@@ -103,3 +105,4 @@ pulso/
 | Testes de integração falham sem display | instalar `xvfb` (`sudo apt install xvfb`) ou executar em sessão gráfica |
 | Electron 39/41+ quebra com SIGSEGV neste sistema | manter Electron 37.x (fixado) — ver ADR-008; retestar upgrades com `npm test` |
 | "Outra instância do PULSO já está em execução" | fechar a janela aberta anteriormente e iniciar de novo |
+| Onde ficam os meus dados? | fora do repositório — ver `docs/banco-de-dados.md` (localização e backup manual) |

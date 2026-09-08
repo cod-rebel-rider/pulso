@@ -37,12 +37,13 @@ function mapearElementos() {
   elementos.rodapeAmbiente = consultar('rodape-ambiente');
   elementos.rodapeVersoes = consultar('rodape-versoes');
   elementos.rodapePlataforma = consultar('rodape-plataforma');
+  elementos.rodapeMemoria = consultar('rodape-memoria');
 }
 
 /** Cria as linhas do terminal de inicialização (ocultas até serem reveladas). */
-function montarLinhasBoot(neutro) {
+function montarLinhasBoot(linhas, neutro) {
   elementos.boot.replaceChildren(
-    ...LINHAS_BOOT.map((linha) => {
+    ...linhas.map((linha) => {
       const item = document.createElement('li');
       item.className = neutro ? 'neutro' : '';
 
@@ -75,11 +76,12 @@ function definirEstado(texto, falha = false) {
   elementos.estado.classList.toggle('falha', falha);
 }
 
-function preencherRodape(info) {
+function preencherRodape(info, infoBanco) {
   elementos.versao.textContent = `v${info.versao}`;
   elementos.rodapeAmbiente.textContent = `AMBIENTE: ${String(info.ambiente).toUpperCase()}`;
   elementos.rodapeVersoes.textContent = `ELECTRON ${info.electron} · NODE ${info.node} · CHROME ${info.chrome}`;
   elementos.rodapePlataforma.textContent = `PLATAFORMA: ${String(info.plataforma).toUpperCase()}`;
+  elementos.rodapeMemoria.textContent = `MEMÓRIA: ${String(infoBanco.estado).toUpperCase()} · SCHEMA v${infoBanco.versaoSchema}`;
 }
 
 /** Obtém as informações reais do sistema pela ponte segura do preload. */
@@ -90,21 +92,34 @@ async function carregarInformacoesSistema() {
   return window.pulso.infoSistema();
 }
 
+/** Lê o estado real da memória local (banco de dados) pela ponte segura. */
+async function carregarInformacoesBanco() {
+  if (!window.pulso || typeof window.pulso.infoBanco !== 'function') {
+    throw new Error('A ponte window.pulso.infoBanco não está disponível.');
+  }
+  return window.pulso.infoBanco();
+}
+
 async function iniciar() {
   try {
     const info = await carregarInformacoesSistema();
+    const infoBanco = await carregarInformacoesBanco();
 
-    preencherRodape(info);
-    montarLinhasBoot(false);
+    preencherRodape(info, infoBanco);
+    const linhas = [
+      ...LINHAS_BOOT,
+      { texto: 'memória local (sqlite)', valor: `SCHEMA v${infoBanco.versaoSchema}` },
+    ];
+    montarLinhasBoot(linhas, false);
     agendarLinhasBoot();
 
-    const atrasoConclusao = ATRASO_INICIAL_MS + LINHAS_BOOT.length * ATRASO_ENTRE_LINHAS_MS;
+    const atrasoConclusao = ATRASO_INICIAL_MS + linhas.length * ATRASO_ENTRE_LINHAS_MS;
     setTimeout(() => {
       definirEstado('SISTEMA ONLINE');
-      elementos.mensagem.textContent = 'Fundação carregada. Aguardando módulos…';
+      elementos.mensagem.textContent = 'Fundação carregada. Memória online. Aguardando módulos…';
     }, atrasoConclusao);
   } catch (erro) {
-    montarLinhasBoot(true);
+    montarLinhasBoot([...LINHAS_BOOT, { texto: 'memória local (sqlite)', valor: '—' }], true);
     agendarLinhasBoot();
     definirEstado('FALHA DE COMUNICAÇÃO', true);
     elementos.mensagem.textContent = 'Não foi possível falar com o núcleo. Detalhes no console.';

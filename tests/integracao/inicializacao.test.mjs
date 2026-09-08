@@ -12,13 +12,30 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import electronPath from 'electron';
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PRAZO_MS = 90_000;
+
+/**
+ * Caminho do binário do Electron lido do pacote npm (node_modules/electron/path.txt).
+ * Importar o módulo 'electron' aqui NÃO funciona: dentro do Node embutido do
+ * Electron ele resolve para o módulo embutido da API, não para o caminho.
+ */
+function resolverBinarioElectron() {
+  const pacoteElectron = join(raiz, 'node_modules', 'electron');
+  const relativo = readFileSync(join(pacoteElectron, 'path.txt'), 'utf-8').trim();
+  // formatos do path.txt: "dist/electron" (antigos) ou "electron" (novos,
+  // em que o index.js do pacote junta com dist/)
+  const candidatos = [join(pacoteElectron, 'dist', relativo), join(pacoteElectron, relativo)];
+  const binario = candidatos.find((caminho) => existsSync(caminho));
+  if (!binario) {
+    throw new Error(`Binário do Electron não encontrado em ${candidatos.join(' ou ')}. Execute "npm install".`);
+  }
+  return binario;
+}
 
 function resolverComandoGrafico() {
   if (process.env.DISPLAY || process.env.WAYLAND_DISPLAY) {
@@ -42,10 +59,15 @@ function executarTesteFumaca() {
       return;
     }
 
-    const argv = [...grafico.prefixo, electronPath, raiz, '--teste-fumaca'];
+    const argv = [...grafico.prefixo, resolverBinarioElectron(), raiz, '--teste-fumaca'];
+    // O processo de teste roda com ELECTRON_RUN_AS_NODE=1 (Node embutido do
+    // Electron, necessário para node:sqlite). O filho precisa voltar ao modo
+    // gráfico normal, então a variável é removida do ambiente herdado.
+    const ambienteFilho = { ...process.env, PULSO_AMBIENTE: 'teste' };
+    delete ambienteFilho.ELECTRON_RUN_AS_NODE;
     const filho = spawn(argv[0], argv.slice(1), {
       cwd: raiz,
-      env: { ...process.env, PULSO_AMBIENTE: 'teste' },
+      env: ambienteFilho,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
@@ -107,6 +129,10 @@ async function validarCicloCompleto({ tentativa = 1 } = {}) {
 
   assert.ok(r.versoes.electron, 'versão do Electron ausente no relatório');
   assert.ok(r.versoes.aplicacao, 'versão da aplicação ausente no relatório');
+
+  assert.equal(r.banco.inicializado, true, 'banco de dados não inicializou');
+  assert.equal(r.banco.criado, true, 'banco do teste de fumaça deveria ser novo (diretório temporário)');
+  assert.ok(r.banco.versaoSchema >= 1, 'versão do schema não identificada');
   return r;
 }
 
