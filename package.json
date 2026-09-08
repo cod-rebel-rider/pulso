@@ -8,7 +8,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "start": "electron .",
-    "test": "node --test tests/",
+    "test": "ELECTRON_RUN_AS_NODE=1 electron --test \"tests/**/*.test.mjs\"",
     "verificar-ambiente": "node scripts/verificar-ambiente.mjs"
   },
   "engines": {
