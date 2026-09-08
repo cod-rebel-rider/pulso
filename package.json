@@ -1,0 +1,17 @@
+{
+  "name": "pulso",
+  "version": "0.0.1",
+  "description": "PULSO — sistema pessoal de gestão da vida com progressão estilo RPG e interface inspirada em Cyberpunk/Netrunner. Local-first, offline-first, em Português do Brasil.",
+  "type": "module",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "node scripts/verificar-ambiente.mjs",
+    "test": "node --test tests/",
+    "verificar-ambiente": "node scripts/verificar-ambiente.mjs"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}

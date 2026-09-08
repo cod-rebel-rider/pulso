@@ -1,0 +1,41 @@
+# ── Dependências ────────────────────────────────
+node_modules/
+
+# ── Empacotamento e build ───────────────────────
+dist/
+out/
+build/
+release/
+
+# ── Logs e temporários ──────────────────────────
+logs/
+*.log
+npm-debug.log*
+*.tmp
+.cache/
+tmp/
+
+# ── Ambiente e segredos (nunca versionar) ───────
+.env
+.env.*
+!.env.exemplo
+
+# ── Bancos de dados locais (dados do usuário ficam FORA do repositório) ──
+*.sqlite
+*.sqlite3
+*.db
+
+# ── Testes ──────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ── Sistema operacional ─────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+
+# ── Editores ────────────────────────────────────
+.idea/
+.vscode/*
+!.vscode/extensions.json
