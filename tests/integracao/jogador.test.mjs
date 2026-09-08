@@ -132,18 +132,21 @@ test('não é possível criar múltiplos jogadores (aplicação single-player)',
   }
 });
 
-test('evolução: banco da Fase 02 recebe a migração do jogador sem repetir anteriores', () => {
+test('evolução: banco da Fase 02 recebe as migrações pendentes sem repetir anteriores', () => {
   const diretorio = mkdtempSync(join(tmpdir(), 'pulso-jogador-migracao-'));
   try {
     // banco "da Fase 02": apenas a migração 001 aplicada
     const faseAnterior = inicializarBanco({ diretorioDados: diretorio, migracoes: [MIGRACOES[0]] });
     faseAnterior.fechar();
 
-    // aplicação atual aplica apenas a migração 002 (jogador)
+    // aplicação atual aplica as migrações 002 (jogador) e 003 (status)
     const atual = inicializarBanco({ diretorioDados: diretorio });
     try {
-      assert.deepEqual(atual.migracoesAplicadas, [{ versao: 2, nome: 'criar-tabela-jogador' }]);
-      assert.equal(atual.versaoSchema, 2);
+      assert.deepEqual(atual.migracoesAplicadas, [
+        { versao: 2, nome: 'criar-tabela-jogador' },
+        { versao: 3, nome: 'criar-tabela-status' },
+      ]);
+      assert.equal(atual.versaoSchema, 3);
 
       // a tabela do jogador está disponível ao serviço
       const servico = new ServicoJogador({ repositorio: new RepositorioJogador(atual.banco) });
@@ -156,7 +159,7 @@ test('evolução: banco da Fase 02 recebe a migração do jogador sem repetir an
     const terceira = inicializarBanco({ diretorioDados: diretorio });
     try {
       assert.deepEqual(terceira.migracoesAplicadas, []);
-      assert.equal(terceira.versaoSchema, 2);
+      assert.equal(terceira.versaoSchema, 3);
     } finally {
       terceira.fechar();
     }
