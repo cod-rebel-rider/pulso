@@ -1,0 +1,67 @@
+/* PULSO — base visual (identidade: Cyberpunk / Netrunner / terminal)
+   Paleta definida em docs/identidade-visual.md — vermelho apenas como destaque. */
+
+:root {
+  --pulso-preto: #0b0b0d;
+  --pulso-superficie: #131318;
+  --pulso-vermelho: #e5484d;
+  --pulso-vermelho-escuro: #7f1d1d;
+  --pulso-cinza: #8a8a93;
+  --pulso-cinza-escuro: #3a3a42;
+  --pulso-branco: #f2f2f5;
+  --pulso-mono: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', ui-monospace,
+    'DejaVu Sans Mono', Consolas, monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: var(--pulso-preto);
+  color: var(--pulso-branco);
+  font-family: var(--pulso-mono);
+  overflow: hidden;
+  position: relative;
+}
+
+/* linhas de varredura discretas (textura de terminal) */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(242, 242, 245, 0.02) 0 1px,
+    transparent 1px 3px
+  );
+}
+
+::selection {
+  background: var(--pulso-vermelho-escuro);
+  color: var(--pulso-branco);
+}
+
+:focus-visible {
+  outline: 1px solid var(--pulso-vermelho);
+  outline-offset: 2px;
+}
+
+/* respeito a preferências de acessibilidade de movimento */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
