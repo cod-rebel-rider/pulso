@@ -2,5 +2,11 @@
   "ambiente": "producao",
   "idioma": "pt-BR",
   "depuracao": false,
+  "janela": {
+    "largura": 1100,
+    "altura": 700,
+    "larguraMinima": 800,
+    "alturaMinima": 520
+  },
   "descricao": "Configuração do aplicativo empacotado. Dados do usuário ficam no diretório de dados do sistema operacional, fora do repositório."
 }
