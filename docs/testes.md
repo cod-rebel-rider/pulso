@@ -15,8 +15,8 @@ Pirâmide clássica, respeitando o ritmo das fases:
 
 ```text
 tests/
-├── unidade/      → ambiente, configuração, registro, canais IPC, conexão e migrações
-└── integracao/   → inicialização da aplicação (fumaça) + persistência real do banco
+├── unidade/      → ambiente, configuração, registro, canais IPC, conexão, migrações, jogador, status
+└── integracao/   → inicialização da aplicação (fumaça), persistência real do banco, jogador, status
 ```
 
 ## 4. Teste de fumaça (Fases 01–02)

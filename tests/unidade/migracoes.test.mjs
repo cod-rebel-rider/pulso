@@ -7,21 +7,25 @@ import assert from 'node:assert/strict';
 import { abrirConexao, fecharConexao } from '../../src/core/database/conexao.js';
 import { aplicarMigracoes, versaoAtual, MIGRACOES } from '../../src/core/database/migracoes.js';
 
-test('banco vazio recebe as migrações oficiais: schema v2 com infraestrutura e jogador', () => {
+test('banco vazio recebe as migrações oficiais: schema v3 com infraestrutura, jogador e status', () => {
   const banco = abrirConexao({ caminho: ':memory:' });
   try {
     const resultado = aplicarMigracoes(banco);
     assert.deepEqual(resultado.aplicadas, [
       { versao: 1, nome: 'criar-infraestrutura-base' },
       { versao: 2, nome: 'criar-tabela-jogador' },
+      { versao: 3, nome: 'criar-tabela-status' },
     ]);
-    assert.equal(resultado.versaoAtual, 2);
-    assert.equal(versaoAtual(banco), 2);
+    assert.equal(resultado.versaoAtual, 3);
+    assert.equal(versaoAtual(banco), 3);
 
     assert.equal(banco.prepare("SELECT valor FROM meta WHERE chave = 'aplicacao'").get().valor, 'PULSO');
     // a tabela do jogador existe e aceita inserção mínima
     banco.prepare("INSERT INTO jogador (nome) VALUES ('Teste')").run();
     assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM jogador').get().n, 1);
+    // a tabela de status existe e aceita inserção mínima
+    banco.prepare("INSERT INTO jogador_status (jogador_id, energia, foco, estresse, criatividade) VALUES (1, 100, 100, 0, 100)").run();
+    assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM jogador_status').get().n, 1);
   } finally {
     fecharConexao(banco);
   }
@@ -44,8 +48,8 @@ test('migrações já aplicadas não são executadas novamente', () => {
     assert.equal(registroDepois.aplicada_em, registroOriginal.aplicada_em, 'registro inalterado');
     assert.equal(
       banco.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get().n,
-      2,
-      'ambas as migrações oficiais (001 e 002) registradas uma única vez',
+      3,
+      'todas as migrações oficiais (001, 002 e 003) registradas uma única vez',
     );
   } finally {
     fecharConexao(banco);

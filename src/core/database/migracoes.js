@@ -67,8 +67,31 @@ const MIGRACAO_002 = Object.freeze({
   },
 });
 
+/** Migração 003 — estado atual do jogador / sistema de status (Fase 04). */
+const MIGRACAO_003 = Object.freeze({
+  versao: 3,
+  nome: 'criar-tabela-status',
+  cima(banco) {
+    // Estado operacional do jogador DENTRO do PULSO (mecânicas de gameplay),
+    // não diagnóstico clínico. Um status por jogador (UNIQUE) — histórico
+    // completo fica para uma fase futura (docs/status.md).
+    banco.exec(`
+      CREATE TABLE jogador_status (
+        id             INTEGER PRIMARY KEY,
+        jogador_id     INTEGER NOT NULL UNIQUE REFERENCES jogador(id) ON DELETE CASCADE,
+        energia        INTEGER NOT NULL,
+        foco           INTEGER NOT NULL,
+        estresse       INTEGER NOT NULL,
+        criatividade   INTEGER NOT NULL,
+        criado_em      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+      ) STRICT
+    `);
+  },
+});
+
 /** Lista oficial de migrações — fases futuras ACRESCENTAM ao final. */
-export const MIGRACOES = Object.freeze([MIGRACAO_001, MIGRACAO_002]);
+export const MIGRACOES = Object.freeze([MIGRACAO_001, MIGRACAO_002, MIGRACAO_003]);
 
 function validarLista(migracoes) {
   migracoes.forEach((migracao, indice) => {

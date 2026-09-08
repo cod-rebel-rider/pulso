@@ -48,8 +48,8 @@ export class RepositorioJogador {
    * @returns {object} jogador criado
    */
   criar({ nome, codinome }) {
-    this._inserir.run(nome, codinome);
-    return this.buscarPrimeiro();
+    const resultado = this._inserir.run(nome, codinome);
+    return this.buscarPorId(Number(resultado.lastInsertRowid));
   }
 
   /** Primeiro jogador (aplicação single-player) ou null. */

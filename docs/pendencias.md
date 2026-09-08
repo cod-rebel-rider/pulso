@@ -23,6 +23,7 @@ Registro de necessidades identificadas durante as fases que **serão resolvidas 
 | P-017 | Backup automático do banco (agendado + verificação de integridade) | fase futura a definir | hoje: backup manual documentado (`banco-de-dados.md`, seção 9) |
 | P-018 | Criptografia do banco (ex.: SQLCipher) | avaliar quando houver ameaça real | decisão exigirá novo ADR (`banco-de-dados.md`, seção 10) |
 | P-019 | Migrações de reversão (down) e checksum de migrações aplicadas | fase futura | hoje: reversão = restaurar backup |
+| P-021 | Adicionar CHECK constraints no banco (ex.: `energia BETWEEN 0 AND 100`) | fase de polimento | hoje: a aplicação garante os limites antes de persistir |
 
 ## Pendências resolvidas
 

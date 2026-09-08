@@ -37,8 +37,8 @@ Regras estruturais:
 | --- | --- | --- |
 | Interface | `src/renderer` | Telas, componentes, estilos, feedback visual |
 | Processo principal | `src/main` | Ciclo de vida do aplicativo, janela, ponte IPC, integração com o SO |
-| Domínio | `src/core/dominio` | **Iniciado (Fase 03)**: `jogador.js` (regras de identidade, validações puras) |
-| Aplicação | `src/core/aplicacao` | **Iniciado (Fase 03)**: `servico-jogador.js` (orquestração single-player) |
+| Domínio | `src/core/dominio` | **Iniciado (Fase 03)**: `jogador.js` (identidade) · **Fase 04**: `status.js` (regras de estado: limites, validação, cálculo) |
+| Aplicação | `src/core/aplicacao` | **Iniciado (Fase 03)**: `servico-jogador.js` · **Fase 04**: `servico-status.js` (orquestração do estado) |
 | Persistência | `src/core/database` | **Implementada (Fase 02)**: conexão SQLite, migrações, repositórios |
 | Módulos | `src/modules` | Funcionalidades independentes com contrato público documentado |
 

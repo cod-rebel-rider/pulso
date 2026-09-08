@@ -20,6 +20,8 @@ const CANAL_BANCO_INFO = 'banco:info'; // igual a canais.cjs → BANCO_INFO
 const CANAL_JOGADOR_ESTADO = 'jogador:estado'; // igual a canais.cjs → JOGADOR_ESTADO
 const CANAL_JOGADOR_CRIAR = 'jogador:criar'; // igual a canais.cjs → JOGADOR_CRIAR
 const CANAL_JOGADOR_ATUALIZAR = 'jogador:atualizar'; // igual a canais.cjs → JOGADOR_ATUALIZAR
+const CANAL_STATUS_OBTER = 'status:obter'; // igual a canais.cjs → STATUS_OBTER
+const CANAL_STATUS_ALTERAR = 'status:alterar'; // igual a canais.cjs → STATUS_ALTERAR
 
 const { contextBridge, ipcRenderer } = require('electron');
 
@@ -60,6 +62,24 @@ contextBridge.exposeInMainWorld(
        * @returns {Promise<{ok: boolean, jogador?: object, erro?: string, campo?: string, mensagem?: string}>}
        */
       atualizar: (dados) => ipcRenderer.invoke(CANAL_JOGADOR_ATUALIZAR, dados),
+    }),
+
+    /**
+     * Operações específicas do estado do jogador (status) — nunca acesso
+     * genérico ao banco.
+     */
+    status: Object.freeze({
+      /** @param {number} jogadorId @returns {Promise<{ok: boolean, status?: object, erro?: string, mensagem?: string}>} */
+      obter: (jogadorId) => ipcRenderer.invoke(CANAL_STATUS_OBTER, { jogadorId }),
+
+      /**
+       * @param {number} jogadorId
+       * @param {string} status 'energia' | 'foco' | 'estresse' | 'criatividade'
+       * @param {number} delta alteração (ex.: -10, +15)
+       * @returns {Promise<{ok: boolean, status?: object, erro?: string, mensagem?: string}>}
+       */
+      alterar: (jogadorId, status, delta) =>
+        ipcRenderer.invoke(CANAL_STATUS_ALTERAR, { jogadorId, status, delta }),
     }),
   }),
 );
