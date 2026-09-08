@@ -22,7 +22,9 @@ import { determinarAmbiente, carregarConfiguracao } from './configuracao.js';
 import { criarJanela, extrairConsole } from './janela.js';
 import { inicializarBanco } from '../core/database/inicializar.js';
 import { RepositorioJogador } from '../core/database/repositorios/jogador.js';
+import { RepositorioStatus } from '../core/database/repositorios/status.js';
 import { ServicoJogador } from '../core/aplicacao/servico-jogador.js';
+import { ServicoStatus } from '../core/aplicacao/servico-status.js';
 import { ErroValidacao, ErroConflito } from '../core/erros.js';
 import canais from './canais.cjs';
 
@@ -45,6 +47,7 @@ let janelaPrincipal = null;
 let configuracao = null;
 let estadoBanco = null;
 let servicoJogador = null;
+let servicoStatus = null;
 
 // ── Teste de fumaça ─────────────────────────────────────────────────────
 const resultadosFumaca = {
@@ -211,6 +214,21 @@ function registrarIpc() {
       registro.info(`Identidade do jogador atualizada: ${jogador.nome}`);
       return { ok: true, jogador };
     }));
+
+  ipcMain.handle(canais.STATUS_OBTER, (_evento, { jogadorId } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const status = servicoStatus.obter(Number(jogadorId ?? 0));
+      return { ok: true, status };
+    }));
+
+  ipcMain.handle(canais.STATUS_ALTERAR, (_evento, { jogadorId, status: nomeStatus, delta } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const status = servicoStatus.alterar(Number(jogadorId ?? 0), nomeStatus, Number(delta));
+      registro.info(
+        `Status alterado: ${nomeStatus} ${delta > 0 ? '+' : ''}${delta} → ${status[nomeStatus]}`,
+      );
+      return { ok: true, status };
+    }));
 }
 
 /**
@@ -278,8 +296,22 @@ async function aoIniciar() {
     return;
   }
 
-  // Camada de aplicação: serviço do jogador sobre o repositório do banco.
-  servicoJogador = new ServicoJogador({ repositorio: new RepositorioJogador(estadoBanco.banco) });
+  // Camada de aplicação: serviços sobre os repositórios do banco.
+  const repositorioJogador = new RepositorioJogador(estadoBanco.banco);
+  const repositorioStatus = new RepositorioStatus(estadoBanco.banco);
+
+  // Criação atômica: jogador + status inicial em uma única transação.
+  servicoStatus = new ServicoStatus({ repositorio: repositorioStatus, repositorioJogador });
+  servicoJogador = new ServicoJogador({
+    repositorio: repositorioJogador,
+    banco: estadoBanco.banco,
+    aoCriar: (jogador) => {
+      const status = servicoStatus.criarInicial(jogador.id);
+      registro.info(
+        `Status inicial criado: energia=${status.energia}, foco=${status.foco}, estresse=${status.estresse}, criatividade=${status.criatividade}`,
+      );
+    },
+  });
 
   registrarIpc();
   janelaPrincipal = criarJanela(configuracao, { exibir: !MODO_TESTE_FUMACA });

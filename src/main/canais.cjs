@@ -12,4 +12,6 @@ module.exports = Object.freeze({
   JOGADOR_ESTADO: 'jogador:estado',
   JOGADOR_CRIAR: 'jogador:criar',
   JOGADOR_ATUALIZAR: 'jogador:atualizar',
+  STATUS_OBTER: 'status:obter',
+  STATUS_ALTERAR: 'status:alterar',
 });

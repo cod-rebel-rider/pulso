@@ -10,12 +10,22 @@
  */
 
 import { validarIdentidade } from '../dominio/jogador.js';
+import { comTransacao } from '../database/transacao.js';
 import { ErroConflito } from '../erros.js';
 
 export class ServicoJogador {
-  /** @param {{ repositorio: object }} dependências (repositório do jogador) */
-  constructor({ repositorio }) {
+  /**
+   * @param {{
+   *   repositorio: object,
+   *   banco?: import('node:sqlite').DatabaseSync,
+   *   aoCriar?: (jogador: object) => void
+   * }} dependências `banco` + `aoCriar` permitem criar o jogador e o status
+   * inicial de forma atômica (Fase 04).
+   */
+  constructor({ repositorio, banco = null, aoCriar = null }) {
     this._repositorio = repositorio;
+    this._banco = banco;
+    this._aoCriar = aoCriar;
   }
 
   /** Responde "existe um jogador configurado?". */
@@ -40,7 +50,13 @@ export class ServicoJogador {
       throw new ErroConflito('Já existe um jogador configurado neste sistema.');
     }
     const identidade = validarIdentidade(dados);
-    return this._repositorio.criar(identidade);
+    const criar = () => {
+      const jogador = this._repositorio.criar(identidade);
+      if (this._aoCriar) this._aoCriar(jogador); // ex.: status inicial (Fase 04)
+      return jogador;
+    };
+    // Com banco disponível, jogador + status inicial são atômicos.
+    return this._banco ? comTransacao(this._banco, criar) : criar();
   }
 
   /**
