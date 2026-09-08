@@ -9,9 +9,10 @@ core/
 │   ├── migracoes.js            → lista de migrações + executor transacional + versaoAtual
 │   ├── inicializar.js          → localizar/criar → conectar → migrar → validar
 │   └── repositorios/
-│       └── meta.js             → RepositorioMeta (padrão de repositório do PULSO)
-├── aplicacao/    → casos de uso e orquestração (fases futuras)
-└── dominio/      → entidades e regras de negócio (fases futuras)
+│       ├── meta.js             → RepositorioMeta (padrão de repositório do PULSO)
+│       └── jogador.js          → RepositorioJogador (Fase 03)
+├── dominio/      → regras puras de negócio (Fase 03: jogador.js)
+└── aplicacao/    → orquestração de casos de uso (Fase 03: servico-jogador.js)
 ```
 
-Regras de dependência: `aplicacao → dominio → persistencia`. O domínio nunca depende de interface nem da tecnologia de banco; **SQL vive somente nos repositórios**. Detalhes da persistência em `docs/banco-de-dados.md`.
+Regras de dependência: `aplicacao → dominio → persistencia`. O domínio nunca depende de interface nem da tecnologia de banco; **SQL vive somente nos repositórios**. Detalhes da persistência em `docs/banco-de-dados.md` e do jogador em `docs/jogador.md`.

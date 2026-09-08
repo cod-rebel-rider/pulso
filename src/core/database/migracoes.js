@@ -46,8 +46,29 @@ const MIGRACAO_001 = Object.freeze({
   },
 });
 
+/** Migração 002 — identidade do jogador (Fase 03). */
+const MIGRACAO_002 = Object.freeze({
+  versao: 2,
+  nome: 'criar-tabela-jogador',
+  cima(banco) {
+    // Entidade central do PULSO. Aplicação é single-player: o SERVIÇO
+    // impõe um único jogador; o schema permanece aberto a evolução futura
+    // (perfis múltiplos exigiriam apenas nova lógica, não novo schema).
+    // `id` é a identidade interna — nome/codinome podem mudar livremente.
+    banco.exec(`
+      CREATE TABLE jogador (
+        id            INTEGER PRIMARY KEY,
+        nome          TEXT NOT NULL,
+        codinome      TEXT,
+        criado_em     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+      ) STRICT
+    `);
+  },
+});
+
 /** Lista oficial de migrações — fases futuras ACRESCENTAM ao final. */
-export const MIGRACOES = Object.freeze([MIGRACAO_001]);
+export const MIGRACOES = Object.freeze([MIGRACAO_001, MIGRACAO_002]);
 
 function validarLista(migracoes) {
   migracoes.forEach((migracao, indice) => {

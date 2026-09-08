@@ -9,4 +9,7 @@
 module.exports = Object.freeze({
   INFO_SISTEMA: 'info:sistema',
   BANCO_INFO: 'banco:info',
+  JOGADOR_ESTADO: 'jogador:estado',
+  JOGADOR_CRIAR: 'jogador:criar',
+  JOGADOR_ATUALIZAR: 'jogador:atualizar',
 });

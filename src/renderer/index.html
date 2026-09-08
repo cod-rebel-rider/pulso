@@ -39,7 +39,28 @@
       <span class="versao" id="versao">v—</span>
     </header>
 
-    <section class="nucleo">
+    <section class="nucleo visao oculto" id="visao-configuracao">
+      <p class="rotulo-secao">REGISTRO DO OPERADOR</p>
+      <h1 class="titulo-secao">IDENTIDADE</h1>
+      <p class="descricao-secao">Informe quem opera este sistema. Os dados ficam somente neste computador.</p>
+
+      <form id="formulario-jogador" novalidate>
+        <label for="campo-nome">NOME</label>
+        <input id="campo-nome" name="nome" maxlength="60" autocomplete="off" spellcheck="false" />
+
+        <label for="campo-codinome">CODINOME <span class="opcional">(opcional)</span></label>
+        <input id="campo-codinome" name="codinome" maxlength="40" autocomplete="off" spellcheck="false" />
+
+        <p class="aviso" id="aviso-configuracao" role="alert"></p>
+
+        <div class="acoes-formulario">
+          <button type="submit" id="botao-inicializar">INICIALIZAR</button>
+          <button type="button" id="botao-cancelar" class="botao-secundario oculto">CANCELAR</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="nucleo visao" id="visao-boot">
       <p class="estado" id="estado" role="status">
         <span class="luz" aria-hidden="true"></span>
         <span id="estado-texto">INICIANDO…</span>
@@ -51,6 +72,8 @@
       <ul class="boot" id="boot"></ul>
 
       <p class="mensagem" id="mensagem">Iniciando núcleo…</p>
+
+      <button type="button" id="botao-editar" class="botao-secundario" disabled>EDITAR IDENTIDADE</button>
     </section>
 
     <footer class="rodape">

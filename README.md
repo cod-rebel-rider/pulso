@@ -2,7 +2,7 @@
 
 > Sistema pessoal de gestão da vida que transforma atividades, projetos, objetivos, finanças, aprendizado e música em uma experiência de progressão inspirada em RPG e Cyberpunk/Netrunner.
 
-**Status:** FASE 02 — BANCO DE DADOS (concluída). A aplicação abre, funciona, fecha e reabre — e agora possui **memória local persistente** (SQLite): criada automaticamente, versionada por migrações, isolada da interface.
+**Status:** FASE 03 — JOGADOR (concluída). O PULSO agora sabe **quem está dentro dele**: identidade persistente (nome + codinome), primeiro acesso com tela de configuração, edição, validação no domínio e API IPC controlada.
 
 ## Princípios
 
@@ -39,7 +39,7 @@ pulso/
 ├── src/
 │   ├── main/       → processo principal Electron (janela, IPC, configuração, registro)
 │   ├── renderer/   → interface (tela de fundação Cyberpunk/Netrunner)
-│   ├── core/       → núcleo: database (SQLite, migrações, repositórios), aplicação e domínio (fases futuras)
+│   ├── core/       → núcleo: database (SQLite, migrações, repositórios) + domínio (jogador) + aplicação (serviços)
 │   └── modules/    → módulos futuros (missões, finanças, música…)
 ├── database/       → esquemas e migrações (Fase 02)
 ├── assets/         → recursos visuais e fontes locais
@@ -71,4 +71,4 @@ pulso/
 
 ## Próxima etapa
 
-**FASE 03 — JOGADOR** (não implementada — ver `docs/roadmap.md`).
+**FASE 04 — STATUS** (não implementada — ver `docs/roadmap.md`).

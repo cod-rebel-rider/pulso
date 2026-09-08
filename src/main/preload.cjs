@@ -17,6 +17,9 @@
 
 const CANAL_INFO_SISTEMA = 'info:sistema'; // igual a canais.cjs → INFO_SISTEMA
 const CANAL_BANCO_INFO = 'banco:info'; // igual a canais.cjs → BANCO_INFO
+const CANAL_JOGADOR_ESTADO = 'jogador:estado'; // igual a canais.cjs → JOGADOR_ESTADO
+const CANAL_JOGADOR_CRIAR = 'jogador:criar'; // igual a canais.cjs → JOGADOR_CRIAR
+const CANAL_JOGADOR_ATUALIZAR = 'jogador:atualizar'; // igual a canais.cjs → JOGADOR_ATUALIZAR
 
 const { contextBridge, ipcRenderer } = require('electron');
 
@@ -36,5 +39,27 @@ contextBridge.exposeInMainWorld(
      * @returns {Promise<{nome: string, estado: string, versaoSchema: number}>}
      */
     infoBanco: () => ipcRenderer.invoke(CANAL_BANCO_INFO),
+
+    /**
+     * Operações específicas do jogador — nunca acesso genérico ao banco.
+     */
+    jogador: Object.freeze({
+      /** @returns {Promise<{existe: boolean, jogador: object|null, falha?: boolean}>} */
+      estado: () => ipcRenderer.invoke(CANAL_JOGADOR_ESTADO),
+
+      /**
+       * Cria o jogador (primeiro acesso).
+       * @param {{ nome: string, codinome?: string }} dados
+       * @returns {Promise<{ok: boolean, jogador?: object, erro?: string, campo?: string, mensagem?: string}>}
+       */
+      criar: (dados) => ipcRenderer.invoke(CANAL_JOGADOR_CRIAR, dados),
+
+      /**
+       * Atualiza a identidade do jogador.
+       * @param {{ id: number, nome: string, codinome?: string }} dados
+       * @returns {Promise<{ok: boolean, jogador?: object, erro?: string, campo?: string, mensagem?: string}>}
+       */
+      atualizar: (dados) => ipcRenderer.invoke(CANAL_JOGADOR_ATUALIZAR, dados),
+    }),
   }),
 );

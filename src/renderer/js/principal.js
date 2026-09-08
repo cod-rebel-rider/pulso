@@ -1,14 +1,18 @@
 /**
- * PULSO — Renderer da tela de fundação (Fase 01)
+ * PULSO — Renderer (Fase 03 — Jogador)
  *
  * Sem acesso a APIs de Node.js: tudo chega via window.pulso,
- * a ponte mínima exposta pelo preload (src/main/preload.cjs).
+ * a ponte controlada exposta pelo preload (src/main/preload.cjs).
  *
- * A tela não simula funcionalidades futuras: exibe apenas o estado real
- * da fundação (processo principal, janela, interface e IPC).
+ * Fluxo:
+ *   primeiro acesso   → visão de configuração (IDENTIDADE DO OPERADOR)
+ *   jogador existente → boot com operador identificado + edição
+ *
+ * As regras de validação vivem no domínio (src/core/dominio/jogador.js);
+ * a interface apenas coleta, apresenta e reage.
  */
 
-const LINHAS_BOOT = [
+const LINHAS_BASE = [
   { texto: 'processo principal', valor: 'ATIVO' },
   { texto: 'janela principal', valor: 'CRIADA' },
   { texto: 'interface', valor: 'CARREGADA' },
@@ -19,6 +23,9 @@ const ATRASO_INICIAL_MS = 420;
 const ATRASO_ENTRE_LINHAS_MS = 300;
 
 const elementos = {};
+const contexto = { info: null, infoBanco: null };
+let jogadorAtual = null;
+let modoEdicao = false;
 
 function consultar(id) {
   const elemento = document.getElementById(id);
@@ -29,6 +36,15 @@ function consultar(id) {
 }
 
 function mapearElementos() {
+  elementos.visaoConfiguracao = consultar('visao-configuracao');
+  elementos.visaoBoot = consultar('visao-boot');
+  elementos.formulario = consultar('formulario-jogador');
+  elementos.campoNome = consultar('campo-nome');
+  elementos.campoCodinome = consultar('campo-codinome');
+  elementos.avisoConfiguracao = consultar('aviso-configuracao');
+  elementos.botaoInicializar = consultar('botao-inicializar');
+  elementos.botaoCancelar = consultar('botao-cancelar');
+  elementos.botaoEditar = consultar('botao-editar');
   elementos.versao = consultar('versao');
   elementos.estado = consultar('estado');
   elementos.estadoTexto = consultar('estado-texto');
@@ -100,27 +116,113 @@ async function carregarInformacoesBanco() {
   return window.pulso.infoBanco();
 }
 
+/** Lê o estado do jogador pela ponte segura (existe? quem é?). */
+async function carregarEstadoJogador() {
+  if (!window.pulso || typeof window.pulso.jogador?.estado !== 'function') {
+    throw new Error('A ponte window.pulso.jogador não está disponível.');
+  }
+  return window.pulso.jogador.estado();
+}
+
+/** Alterna a visão visível (configuração ↔ boot). */
+function exibirVisao(nomeVisao) {
+  elementos.visaoConfiguracao.classList.toggle('oculto', nomeVisao !== 'visao-configuracao');
+  elementos.visaoBoot.classList.toggle('oculto', nomeVisao !== 'visao-boot');
+}
+
+function setAviso(texto) {
+  elementos.avisoConfiguracao.textContent = texto;
+}
+
+/** Mostra o formulário no modo pedido (criação no 1º acesso; edição depois). */
+function exibirConfiguracao({ modo, jogador = null }) {
+  modoEdicao = modo === 'edicao';
+  if (jogador) jogadorAtual = jogador;
+  setAviso('');
+  elementos.campoNome.value = modoEdicao && jogadorAtual ? jogadorAtual.nome : '';
+  elementos.campoCodinome.value = modoEdicao && jogadorAtual?.codinome ? jogadorAtual.codinome : '';
+  elementos.botaoInicializar.textContent = modoEdicao ? 'SALVAR' : 'INICIALIZAR';
+  elementos.botaoCancelar.classList.toggle('oculto', !modoEdicao);
+  exibirVisao('visao-configuracao');
+}
+
+/** Linhas do terminal de inicialização: base + memória + operador. */
+function linhasDoBoot() {
+  const linhas = [
+    ...LINHAS_BASE,
+    { texto: 'memória local (sqlite)', valor: `SCHEMA v${contexto.infoBanco.versaoSchema}` },
+  ];
+  if (jogadorAtual) {
+    linhas.push({
+      texto: 'operador',
+      valor: jogadorAtual.codinome
+        ? `${jogadorAtual.nome} · ${jogadorAtual.codinome}`
+        : jogadorAtual.nome,
+    });
+  }
+  return linhas;
+}
+
+/** Executa a sequência de inicialização na visão principal. */
+function executarBoot() {
+  exibirVisao('visao-boot');
+  elementos.botaoEditar.disabled = true;
+  definirEstado('INICIANDO…');
+  const linhas = linhasDoBoot();
+  montarLinhasBoot(linhas, false);
+  agendarLinhasBoot();
+
+  const atrasoConclusao = ATRASO_INICIAL_MS + linhas.length * ATRASO_ENTRE_LINHAS_MS;
+  setTimeout(() => {
+    definirEstado('SISTEMA ONLINE');
+    elementos.botaoEditar.disabled = false;
+    elementos.mensagem.textContent = 'Operador identificado. Aguardando módulos…';
+  }, atrasoConclusao);
+}
+
+/** Envia a identidade ao núcleo (criação no 1º acesso; atualização na edição). */
+async function submeterIdentidade(evento) {
+  evento.preventDefault();
+  elementos.botaoInicializar.disabled = true;
+  setAviso('');
+  try {
+    const dados = {
+      nome: elementos.campoNome.value,
+      codinome: elementos.campoCodinome.value,
+    };
+    const resultado = modoEdicao
+      ? await window.pulso.jogador.atualizar({ id: jogadorAtual.id, ...dados })
+      : await window.pulso.jogador.criar(dados);
+
+    if (!resultado.ok) {
+      setAviso(resultado.mensagem ?? 'Não foi possível salvar a identidade.');
+      return;
+    }
+    jogadorAtual = resultado.jogador;
+    executarBoot(); // reexecuta o boot exibindo a identidade confirmada
+  } catch (erro) {
+    setAviso('Falha de comunicação com o núcleo.');
+    console.error(`PULSO: falha ao salvar a identidade — ${erro.message}`, erro);
+  } finally {
+    elementos.botaoInicializar.disabled = false;
+  }
+}
+
 async function iniciar() {
   try {
-    const info = await carregarInformacoesSistema();
-    const infoBanco = await carregarInformacoesBanco();
+    contexto.info = await carregarInformacoesSistema();
+    contexto.infoBanco = await carregarInformacoesBanco();
+    preencherRodape(contexto.info, contexto.infoBanco);
 
-    preencherRodape(info, infoBanco);
-    const linhas = [
-      ...LINHAS_BOOT,
-      { texto: 'memória local (sqlite)', valor: `SCHEMA v${infoBanco.versaoSchema}` },
-    ];
-    montarLinhasBoot(linhas, false);
-    agendarLinhasBoot();
-
-    const atrasoConclusao = ATRASO_INICIAL_MS + linhas.length * ATRASO_ENTRE_LINHAS_MS;
-    setTimeout(() => {
-      definirEstado('SISTEMA ONLINE');
-      elementos.mensagem.textContent = 'Fundação carregada. Memória online. Aguardando módulos…';
-    }, atrasoConclusao);
+    const estadoJogador = await carregarEstadoJogador();
+    if (estadoJogador.existe && estadoJogador.jogador) {
+      jogadorAtual = estadoJogador.jogador;
+      executarBoot();
+    } else {
+      exibirConfiguracao({ modo: 'criacao' });
+    }
   } catch (erro) {
-    montarLinhasBoot([...LINHAS_BOOT, { texto: 'memória local (sqlite)', valor: '—' }], true);
-    agendarLinhasBoot();
+    exibirVisao('visao-boot');
     definirEstado('FALHA DE COMUNICAÇÃO', true);
     elementos.mensagem.textContent = 'Não foi possível falar com o núcleo. Detalhes no console.';
     console.error(`PULSO: falha na comunicação com o processo principal — ${erro.message}`, erro);
@@ -132,5 +234,9 @@ async function iniciar() {
 
 document.addEventListener('DOMContentLoaded', () => {
   mapearElementos();
+  elementos.formulario.addEventListener('submit', submeterIdentidade);
+  elementos.botaoEditar.addEventListener('click', () =>
+    exibirConfiguracao({ modo: 'edicao', jogador: jogadorAtual }));
+  elementos.botaoCancelar.addEventListener('click', () => exibirVisao('visao-boot'));
   iniciar();
 });

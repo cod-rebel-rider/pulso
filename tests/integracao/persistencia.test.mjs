@@ -22,7 +22,7 @@ function criarDiretorioTemporario() {
   return mkdtempSync(join(tmpdir(), 'pulso-persistencia-'));
 }
 
-test('aplicação inicia sem banco existente → banco criado com schema v1', () => {
+test('aplicação inicia sem banco existente → banco criado com schema atual', () => {
   const diretorio = criarDiretorioTemporario();
   try {
     const estado = inicializarBanco({ diretorioDados: diretorio });
@@ -30,10 +30,13 @@ test('aplicação inicia sem banco existente → banco criado com schema v1', ()
       assert.equal(estado.criado, true, 'o banco deveria ter sido criado agora');
       assert.ok(existsSync(estado.caminho), 'arquivo do banco não encontrado');
       assert.equal(basename(estado.caminho), NOME_ARQUIVO_BANCO);
-      assert.equal(estado.versaoSchema, 1);
+      assert.equal(estado.versaoSchema, 2, 'TODO o schema oficial (infraestrutura + jogador) é aplicado');
       assert.deepEqual(
         estado.migracoesAplicadas,
-        [{ versao: 1, nome: 'criar-infraestrutura-base' }],
+        [
+          { versao: 1, nome: 'criar-infraestrutura-base' },
+          { versao: 2, nome: 'criar-tabela-jogador' },
+        ],
       );
     } finally {
       estado.fechar();
@@ -54,7 +57,7 @@ test('persistência completa: salvar → fechar → reabrir → ler (banco reuti
     const segundaExecucao = inicializarBanco({ diretorioDados: diretorio });
     try {
       assert.equal(segundaExecucao.criado, false, 'banco existente deve ser reutilizado');
-      assert.equal(segundaExecucao.versaoSchema, 1, 'nenhuma migração deve rodar de novo');
+      assert.equal(segundaExecucao.versaoSchema, 2, 'nenhuma migração deve rodar de novo');
       assert.deepEqual(segundaExecucao.migracoesAplicadas, []);
 
       const repositorioSegundo = new RepositorioMeta(segundaExecucao.banco);
