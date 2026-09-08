@@ -90,8 +90,39 @@ const MIGRACAO_003 = Object.freeze({
   },
 });
 
+/** Migração 004 — sistema de missões (Fase 05). */
+const MIGRACAO_004 = Object.freeze({
+  versao: 4,
+  nome: 'criar-tabela-missoes',
+  cima(banco) {
+    // Unidade de ação do PULSO. Toda missão pertence a um jogador (FK).
+    // `estado` e `prioridade` são TEXT validados pelo domínio (src/core/dominio/missao.js).
+    // `prazo` é opcional; `iniciada_em`/`concluida_em`/`cancelada_em` registram timestamps.
+    // Índices: jogador_id (filtros por jogador), estado (filtros), prioridade (ordenação).
+    banco.exec(`
+      CREATE TABLE missao (
+        id              INTEGER PRIMARY KEY,
+        jogador_id      INTEGER NOT NULL REFERENCES jogador(id) ON DELETE CASCADE,
+        titulo          TEXT NOT NULL,
+        descricao       TEXT,
+        estado          TEXT NOT NULL DEFAULT 'pendente',
+        prioridade      TEXT NOT NULL DEFAULT 'normal',
+        prazo           TEXT,
+        criado_em       TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        iniciada_em     TEXT,
+        concluida_em    TEXT,
+        cancelada_em    TEXT
+      ) STRICT
+    `);
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_missao_jogador ON missao(jogador_id)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_missao_estado ON missao(estado)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_missao_prioridade ON missao(prioridade)');
+  },
+});
+
 /** Lista oficial de migrações — fases futuras ACRESCENTAM ao final. */
-export const MIGRACOES = Object.freeze([MIGRACAO_001, MIGRACAO_002, MIGRACAO_003]);
+export const MIGRACOES = Object.freeze([MIGRACAO_001, MIGRACAO_002, MIGRACAO_003, MIGRACAO_004]);
 
 function validarLista(migracoes) {
   migracoes.forEach((migracao, indice) => {

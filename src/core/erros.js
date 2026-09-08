@@ -25,3 +25,11 @@ export class ErroConflito extends Error {
     this.name = 'ErroConflito';
   }
 }
+
+/** Transição de estado não permitida pela máquina de estados (Fase 05). */
+export class ErroTransicao extends Error {
+  constructor(mensagem) {
+    super(mensagem);
+    this.name = 'ErroTransicao';
+  }
+}
