@@ -104,8 +104,8 @@ for (const diretorio of DIRETORIOS_ESPERADOS) {
 console.log(separador);
 
 if (!estruturaOk) {
-  console.error('✖ Estrutura da Fase 00 incompleta. Consulte docs/arquitetura.md.');
+  console.error('✖ Estrutura do projeto incompleta. Consulte docs/arquitetura.md.');
   process.exitCode = 1;
 } else {
-  console.log('✔ Ambiente verificado. A aplicação gráfica será implementada na Fase 01 — Fundação.');
+  console.log('✔ Ambiente verificado. Fundação concluída (Fase 01) — use `npm start` para abrir o PULSO.');
 }

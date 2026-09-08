@@ -40,3 +40,7 @@ O PULSO se parece com um terminal de netrunner: superfícies escuras, sinais ver
 
 - contraste mínimo AA; vermelho sobre preto sempre acompanhado de texto/ícone;
 - animações discretas, com respeito a preferências de movimento reduzido.
+
+## 6. Aplicação atual
+
+A paleta acima já está aplicada na tela de fundação (Fase 01) como tokens CSS em `src/renderer/css/base.css` (`--pulso-*`). Os valores podem ser refinados nas próximas fases — os tokens centralizam o ajuste.

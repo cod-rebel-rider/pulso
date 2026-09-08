@@ -5,7 +5,7 @@ Fases conhecidas do projeto. Nenhuma fase antecipa o conteúdo da seguinte; o de
 | Fase | Nome | Objetivo (resumo) | Status |
 | --- | --- | --- | --- |
 | 00 | Preparação | Ambiente, stack, arquitetura, estrutura, Git e documentação | ✅ Concluída |
-| 01 | Fundação | Núcleo mínimo da aplicação: janela, shell da interface, ciclo de vida | ⬜ Pendente |
+| 01 | Fundação | Núcleo mínimo da aplicação: janela, shell da interface, ciclo de vida | ✅ Concluída |
 | 02 | Banco de Dados | SQLite, esquema inicial, migrações, camada de persistência | ⬜ Pendente |
 | 03 | Jogador | Personagem / identidade do usuário no sistema | ⬜ Pendente |
 | 04 | Status | Atributos e estados vitais | ⬜ Pendente |

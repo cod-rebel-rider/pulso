@@ -30,9 +30,12 @@ npm install                      # Fase 00: nenhuma dependência externa
 
 | Comando | O que faz |
 | --- | --- |
-| `npm start` | Nesta fase: relatório de verificação do ambiente. A partir da Fase 01: inicia o aplicativo |
-| `npm test` | Executa a suíte de testes (`node --test tests/`) |
-| `npm run verificar-ambiente` | Relatório do ambiente (Node, npm, Git, estrutura) |
+| `npm start` | Inicia a aplicação desktop (janela do PULSO) |
+| `npm test` | Testes unitários + teste de fumaça do Electron (inicia/encerra a app 2×) |
+| `npx electron . --teste-fumaca` | Teste de fumaça direto: valida inicialização e imprime relatório JSON |
+| `npm run verificar-ambiente` | Relatório do ambiente (Node, npm, Git, Electron, estrutura) |
+
+**Requisito dos testes de integração:** sessão gráfica ativa (X11/Wayland) ou `xvfb-run` (`sudo apt install xvfb`).
 
 ## 4. Fluxo de trabalho (branches)
 
@@ -96,4 +99,7 @@ pulso/
 | --- | --- |
 | Node antigo ou ausente | instalar via nvm: `curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh \| bash && nvm install 20` |
 | Git sem identidade | `git config --global user.name "Seu Nome"` e `git config --global user.email "voce@exemplo.com"` |
-| `sqlite3` ausente | opcional nesta fase: `sudo apt install sqlite3` |
+| `sqlite3` ausente | opcional até a Fase 02: `sudo apt install sqlite3` |
+| Testes de integração falham sem display | instalar `xvfb` (`sudo apt install xvfb`) ou executar em sessão gráfica |
+| Electron 39/41+ quebra com SIGSEGV neste sistema | manter Electron 37.x (fixado) — ver ADR-008; retestar upgrades com `npm test` |
+| "Outra instância do PULSO já está em execução" | fechar a janela aberta anteriormente e iniciar de novo |

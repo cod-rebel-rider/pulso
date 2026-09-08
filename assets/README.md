@@ -2,6 +2,14 @@
 
 Destinado aos recursos estáticos do PULSO: ícones, fontes locais, logotipo e demais elementos da identidade visual (Cyberpunk/Netrunner).
 
-A identidade visual está documentada em `docs/identidade-visual.md` e `docs/interface.md`. Os arquivos serão adicionados quando a interface começar a ser construída (a partir da Fase 01).
+Estrutura planejada (as subpastas serão criadas quando os primeiros arquivos existirem):
 
-**Regra offline-first:** preferir sempre fontes e recursos **locais**, nunca carregados da internet em tempo de execução.
+```text
+assets/
+├── icons/   → ícones do aplicativo (janela, instalador)
+├── fonts/   → fontes locais (mono + sans) — nunca CDN
+├── images/  → logotipo e imagens
+└── ui/      → elementos de interface reutilizáveis
+```
+
+**Estado atual (Fase 01):** nenhum asset externo foi necessário — a tela de fundação usa apenas CSS (grade, scanlines, nós em SVG inline) e um favicon em data-URI. A escolha de fontes locais está registrada em `docs/pendencias.md` (P-011).
