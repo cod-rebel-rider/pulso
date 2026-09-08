@@ -30,13 +30,14 @@ test('aplicação inicia sem banco existente → banco criado com schema atual',
       assert.equal(estado.criado, true, 'o banco deveria ter sido criado agora');
       assert.ok(existsSync(estado.caminho), 'arquivo do banco não encontrado');
       assert.equal(basename(estado.caminho), NOME_ARQUIVO_BANCO);
-      assert.equal(estado.versaoSchema, 3, 'TODO o schema oficial (infraestrutura + jogador + status) é aplicado');
+      assert.equal(estado.versaoSchema, 4, 'TODO o schema oficial (infraestrutura + jogador + status + missões) é aplicado');
       assert.deepEqual(
         estado.migracoesAplicadas,
         [
           { versao: 1, nome: 'criar-infraestrutura-base' },
           { versao: 2, nome: 'criar-tabela-jogador' },
           { versao: 3, nome: 'criar-tabela-status' },
+          { versao: 4, nome: 'criar-tabela-missoes' },
         ],
       );
     } finally {
@@ -58,7 +59,7 @@ test('persistência completa: salvar → fechar → reabrir → ler (banco reuti
     const segundaExecucao = inicializarBanco({ diretorioDados: diretorio });
     try {
       assert.equal(segundaExecucao.criado, false, 'banco existente deve ser reutilizado');
-      assert.equal(segundaExecucao.versaoSchema, 3, 'nenhuma migração deve rodar de novo');
+      assert.equal(segundaExecucao.versaoSchema, 4, 'nenhuma migração deve rodar de novo');
       assert.deepEqual(segundaExecucao.migracoesAplicadas, []);
 
       const repositorioSegundo = new RepositorioMeta(segundaExecucao.banco);

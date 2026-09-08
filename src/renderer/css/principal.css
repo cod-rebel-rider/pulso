@@ -431,3 +431,244 @@
 #botao-teste-status {
   margin-top: 0;
 }
+
+/* ── Missões (Fase 05) ─────────────────────────────────────────────── */
+
+/* Visão de detalhes da missão */
+.missao-meta {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 24px;
+  margin: 16px 0;
+  padding: 14px 0;
+  border-top: 1px solid var(--pulso-cinza-escuro);
+  border-bottom: 1px solid var(--pulso-cinza-escuro);
+}
+
+.meta-linha {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meta-linha dt {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--pulso-cinza);
+}
+
+.meta-linha dd {
+  font-size: 13px;
+  color: var(--pulso-branco);
+  margin: 0;
+}
+
+.acoes-missao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* Lista de missões */
+.toolbar-missoes {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 12px;
+  flex-wrap: wrap;
+}
+
+.filtros {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filtro {
+  background: transparent;
+  border: 1px solid var(--pulso-cinza-escuro);
+  color: var(--pulso-cinza);
+  padding: 6px 12px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filtro:hover {
+  border-color: var(--pulso-cinza);
+  color: var(--pulso-branco);
+}
+
+.filtro.ativo {
+  background: var(--pulso-vermelho);
+  border-color: var(--pulso-vermelho);
+  color: var(--pulso-branco);
+}
+
+.lista-missoes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.missao-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 14px;
+  background: var(--pulso-superficie);
+  border: 1px solid var(--pulso-cinza-escuro);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.missao-card:hover {
+  border-color: var(--pulso-cinza);
+}
+
+.missao-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.missao-card-titulo {
+  font-size: 14px;
+  color: var(--pulso-branco);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.missao-card-descricao {
+  font-size: 12px;
+  color: var(--pulso-cinza);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.missao-card-detalhes {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.missao-estado {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  padding: 3px 8px;
+  border: 1px solid;
+}
+
+.missao-estado.pendente {
+  color: var(--pulso-cinza);
+  border-color: var(--pulso-cinza);
+}
+
+.missao-estado.em_andamento {
+  color: var(--pulso-branco);
+  border-color: var(--pulso-branco);
+}
+
+.missao-estado.concluida {
+  color: var(--pulso-sucesso);
+  border-color: var(--pulso-sucesso);
+}
+
+.missao-estado.cancelada {
+  color: var(--pulso-perigo);
+  border-color: var(--pulso-perigo);
+}
+
+.missao-prioridade {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  padding: 3px 8px;
+  border: 1px solid var(--pulso-cinza-escuro);
+  color: var(--pulso-cinza);
+}
+
+.missao-prioridade.baixa {
+  color: var(--pulso-cinza);
+}
+
+.missao-prioridade.normal {
+  color: var(--pulso-branco);
+}
+
+.missao-prioridade.alta {
+  color: var(--pulso-alerta);
+  border-color: var(--pulso-alerta);
+}
+
+.missao-prioridade.critica {
+  color: var(--pulso-perigo);
+  border-color: var(--pulso-perigo);
+}
+
+.missao-prazo {
+  font-size: 11px;
+  color: var(--pulso-cinza);
+}
+
+.missao-prazo.atrasada {
+  color: var(--pulso-perigo);
+}
+
+.missoes-vazio {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--pulso-cinza);
+  font-size: 13px;
+}
+
+/* Formulário de missão */
+#formulario-missao textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+#formulario-missao select {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--pulso-superficie);
+  border: 1px solid var(--pulso-cinza-escuro);
+  color: var(--pulso-branco);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+#formulario-missao select:focus {
+  outline: none;
+  border-color: var(--pulso-vermelho);
+}
+
+.obrigatorio {
+  color: var(--pulso-perigo);
+}
+
+/* Botão de perigo */
+.botao-perigo {
+  background: transparent;
+  border: 1px solid var(--pulso-perigo);
+  color: var(--pulso-perigo);
+  padding: 10px 18px;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.botao-perigo:hover {
+  background: var(--pulso-perigo);
+  color: var(--pulso-branco);
+}

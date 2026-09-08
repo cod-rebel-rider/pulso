@@ -9,7 +9,7 @@ Fases conhecidas do projeto. Nenhuma fase antecipa o conteúdo da seguinte; o de
 | 02 | Banco de Dados | SQLite, esquema inicial, migrações, camada de persistência | ✅ Concluída |
 | 03 | Jogador | Personagem / identidade do usuário no sistema | ✅ Concluída |
 | 04 | Status | Estado operacional do jogador (energia, foco, estresse, criatividade) | ✅ Concluída |
-| 05 | Missões | Sistema de missões e tarefas | ⬜ Pendente |
+| 05 | Missões | Sistema de missões e tarefas | ✅ Concluída |
 | 06 | Progressão | XP, níveis e evolução | ⬜ Pendente |
 | 07 | Projetos | Gestão de projetos | ⬜ Pendente |
 | 08 | Finanças | Transações, carteira, orçamento | ⬜ Pendente |

@@ -24,6 +24,7 @@ Registro de necessidades identificadas durante as fases que **serão resolvidas 
 | P-018 | Criptografia do banco (ex.: SQLCipher) | avaliar quando houver ameaça real | decisão exigirá novo ADR (`banco-de-dados.md`, seção 10) |
 | P-019 | Migrações de reversão (down) e checksum de migrações aplicadas | fase futura | hoje: reversão = restaurar backup |
 | P-021 | Adicionar CHECK constraints no banco (ex.: `energia BETWEEN 0 AND 100`) | fase de polimento | hoje: a aplicação garante os limites antes de persistir |
+| P-022 | Recompensas de missões (XP, dinheiro, itens, efeitos sobre status) | Fase 06 — Progressão | missões atualmente não concedem recompensas |
 
 ## Pendências resolvidas
 
