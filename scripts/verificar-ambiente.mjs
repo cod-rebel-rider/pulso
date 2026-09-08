@@ -81,6 +81,16 @@ console.log(
   }`,
 );
 
+const versaoElectron = (() => {
+  try {
+    const pacote = JSON.parse(readFileSync(join(raiz, 'node_modules', 'electron', 'package.json'), 'utf-8'));
+    return pacote.version;
+  } catch {
+    return null;
+  }
+})();
+console.log(`Electron       : ${versaoElectron ?? 'não instalado (npm install adiciona a devDependency)'}`);
+
 console.log(separador);
 console.log('Estrutura de diretórios da Fase 00:');
 

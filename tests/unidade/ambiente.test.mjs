@@ -56,3 +56,12 @@ test('package.json declara o projeto PULSO e os scripts básicos', () => {
   assert.ok(pacote.scripts.test, 'script "test" ausente');
   assert.ok(pacote.scripts.start, 'script "start" ausente');
 });
+
+test('ponto de entrada do Electron existe (package.json → main)', () => {
+  const pacote = JSON.parse(readFileSync(join(raiz, 'package.json'), 'utf-8'));
+  assert.equal(pacote.main, 'src/main/main.js', '"main" deve apontar para o processo principal');
+  assert.ok(existsSync(join(raiz, pacote.main)), 'arquivo do processo principal ausente');
+  assert.ok(existsSync(join(raiz, 'src', 'main', 'preload.cjs')), 'preload ausente');
+  assert.ok(existsSync(join(raiz, 'src', 'renderer', 'index.html')), 'index.html do renderer ausente');
+  assert.ok(existsSync(join(raiz, 'node_modules', 'electron')), 'Electron não está instalado (npm install)');
+});
