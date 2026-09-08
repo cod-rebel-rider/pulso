@@ -1,0 +1,6 @@
+{
+  "ambiente": "desenvolvimento",
+  "idioma": "pt-BR",
+  "depuracao": true,
+  "descricao": "Configuração do ambiente de desenvolvimento. Nunca colocar dados pessoais, senhas, tokens ou caminhos pessoais neste arquivo."
+}

@@ -1,0 +1,6 @@
+{
+  "ambiente": "producao",
+  "idioma": "pt-BR",
+  "depuracao": false,
+  "descricao": "Configuração do aplicativo empacotado. Dados do usuário ficam no diretório de dados do sistema operacional, fora do repositório."
+}
