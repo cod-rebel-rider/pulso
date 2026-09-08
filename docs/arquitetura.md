@@ -39,14 +39,14 @@ Regras estruturais:
 | Processo principal | `src/main` | Ciclo de vida do aplicativo, janela, ponte IPC, integração com o SO |
 | Aplicação | `src/core/aplicacao` | Casos de uso ("criar missão", "registrar transação"), orquestração |
 | Domínio | `src/core/dominio` | Entidades e regras (jogador, atributos, XP, missões, finanças) |
-| Persistência | `src/core/persistencia` | Repositórios, acesso ao SQLite, migrações |
+| Persistência | `src/core/database` | **Implementada (Fase 02)**: conexão SQLite, migrações, repositórios |
 | Módulos | `src/modules` | Funcionalidades independentes com contrato público documentado |
 
 ## 3. Comunicação
 
 - **Interface ↔ núcleo:** via IPC do Electron (a partir da Fase 01), com canais nomeados por módulo e mensagens estruturadas (ex.: canal `missao:listar`). O renderer recebe apenas dados já processados.
 - **Módulo ↔ módulo:** preferencialmente indireto, por meio da camada de aplicação. Acoplamento direto entre módulos deve ser evitado; quando necessário, deve estar explícito no contrato do módulo.
-- **Núcleo ↔ banco:** exclusivamente pela camada de persistência, por meio de repositórios (interfaces definidas na Fase 02).
+- **Núcleo ↔ banco:** exclusivamente pela camada de persistência (`src/core/database/`), por meio de repositórios — **implementado na Fase 02** (conexão, migrações e `RepositorioMeta` como padrão de referência).
 
 ## 4. Módulos previstos (apenas planejados — nenhum implementado)
 
@@ -119,6 +119,14 @@ Quando implementados, cada módulo deverá ter: domínio próprio, casos de uso 
 **Problema encontrado:** o Electron 41.7.1 (e 39.x) sofre **SIGSEGV** no início da execução neste ambiente (Ubuntu 26.04, glibc 2.43, kernel 7.0) — confirmado com um aplicativo mínimo de 10 linhas, com e sem `--no-sandbox`/`--disable-gpu`/Wayland nativo; o registro do kernel aponta falha consistente no binário (`segfault at 0`). O Electron 37.10.3 funciona sem contornos.
 
 **Consequência:** upgrade do Electron maior requer reteste neste sistema (o teste de fumaça automatizado serve exatamente para isso). Registrado em `pendencias.md` (P-016).
+
+### ADR-009 — Persistência com `node:sqlite` nativo (Fase 02)
+
+**Decisão:** camada de persistência com o módulo **`node:sqlite`** do Node embutido no Electron (SQLite 3.50.4), sem dependências externas.
+
+**Motivos:** `better-sqlite3` (principal alternativa) exige rebuild nativo para a ABI do Electron a cada versão — atrito constante de manutenção; `node:sqlite` é síncrono, suficiente para o perfil local-first de aplicação pessoal, e roda identicamente na aplicação e na suíte de testes. Comparação completa em `banco-de-dados.md`. Risco aceito e documentado: módulo experimental no Node 22 (impacto confinado a `conexao.js`; `better-sqlite3` permanece o plano B).
+
+**Consequências:** suíte de testes roda com o runtime do Electron (`ELECTRON_RUN_AS_NODE=1 electron --test`); tabelas `STRICT` habilitadas; repositórios isolam o SQL das demais camadas.
 
 ## 6. Fundação implementada (Fase 01)
 

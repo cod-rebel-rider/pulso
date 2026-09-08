@@ -2,7 +2,7 @@
 
 > Sistema pessoal de gestão da vida que transforma atividades, projetos, objetivos, finanças, aprendizado e música em uma experiência de progressão inspirada em RPG e Cyberpunk/Netrunner.
 
-**Status:** FASE 01 — FUNDAÇÃO (concluída). A aplicação desktop mínima está funcional: abre, carrega a interface, funciona, fecha e reabre. Os sistemas de jogo/gerenciamento vêm nas próximas fases.
+**Status:** FASE 02 — BANCO DE DADOS (concluída). A aplicação abre, funciona, fecha e reabre — e agora possui **memória local persistente** (SQLite): criada automaticamente, versionada por migrações, isolada da interface.
 
 ## Princípios
 
@@ -19,7 +19,7 @@
 
 - **Electron 37.x** — aplicação desktop (fixado por compatibilidade; ver `docs/arquitetura.md`, ADR-008)
 - **HTML + CSS + JavaScript (vanilla, ESM)** — interface e lógica
-- **SQLite** — persistência local (a partir da Fase 02)
+- **SQLite 3.50.4 (via `node:sqlite` nativo)** — persistência local, sem dependências externas (ADR-009)
 - **Node.js ≥ 20** e **npm ≥ 10** — ferramentas de desenvolvimento
 - Idioma do projeto: **Português do Brasil (pt-BR)**
 
@@ -39,7 +39,7 @@ pulso/
 ├── src/
 │   ├── main/       → processo principal Electron (janela, IPC, configuração, registro)
 │   ├── renderer/   → interface (tela de fundação Cyberpunk/Netrunner)
-│   ├── core/       → núcleo: aplicação, domínio, persistência (Fase 02+)
+│   ├── core/       → núcleo: database (SQLite, migrações, repositórios), aplicação e domínio (fases futuras)
 │   └── modules/    → módulos futuros (missões, finanças, música…)
 ├── database/       → esquemas e migrações (Fase 02)
 ├── assets/         → recursos visuais e fontes locais
@@ -71,4 +71,4 @@ pulso/
 
 ## Próxima etapa
 
-**FASE 02 — BANCO DE DADOS** (não implementada — ver `docs/roadmap.md`).
+**FASE 03 — JOGADOR** (não implementada — ver `docs/roadmap.md`).
