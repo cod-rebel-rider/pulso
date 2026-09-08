@@ -85,6 +85,103 @@
       </div>
     </section>
 
+    <!-- Missões (Fase 05) -->
+    <section class="nucleo visao oculto" id="visao-missao">
+      <p class="rotulo-secao">MISSÃO</p>
+      <h1 class="titulo-secao" id="missao-título">—</h1>
+      <p class="descricao-secao" id="missao-descricao">—</p>
+
+      <dl class="missao-meta" id="missao-meta">
+        <div class="meta-linha">
+          <dt>ESTADO</dt>
+          <dd id="missao-estado">—</dd>
+        </div>
+        <div class="meta-linha">
+          <dt>PRIORIDADE</dt>
+          <dd id="missao-prioridade">—</dd>
+        </div>
+        <div class="meta-linha">
+          <dt>CRIADA EM</dt>
+          <dd id="missao-criada">—</dd>
+        </div>
+        <div class="meta-linha">
+          <dt>INICIADA EM</dt>
+          <dd id="missao-iniciada">—</dd>
+        </div>
+        <div class="meta-linha">
+          <dt>CONCLUÍDA EM</dt>
+          <dd id="missao-concluida">—</dd>
+        </div>
+        <div class="meta-linha">
+          <dt>PRAZO</dt>
+          <dd id="missao-prazo">—</dd>
+        </div>
+      </dl>
+
+      <p class="aviso" id="aviso-missao" role="alert"></p>
+
+      <div class="acoes-missao" id="acoes-missao">
+        <button type="button" id="missao-iniciar" class="botao-primario oculto">INICIAR</button>
+        <button type="button" id="missao-concluir" class="botao-primario oculto">CONCLUIR</button>
+        <button type="button" id="missao-cancelar" class="botao-secundario oculto">CANCELAR</button>
+        <button type="button" id="missao-excluir" class="botao-perigo oculto">EXCLUIR</button>
+        <button type="button" id="missao-voltar" class="botao-secundario">VOLTAR</button>
+      </div>
+    </section>
+
+    <!-- Lista de missões (Fase 05) -->
+    <section class="nucleo visao oculto" id="visao-missoes">
+      <p class="rotulo-secao">MISSÕES</p>
+      <h1 class="titulo-secao">REGISTROS DE AÇÃO</h1>
+
+      <div class="toolbar-missoes">
+        <div class="filtros" id="filtros-missao" role="tablist" aria-label="Filtros de missão">
+          <button type="button" class="filtro ativo" data-filtro="todas">TODAS</button>
+          <button type="button" class="filtro" data-filtro="pendente">PENDENTES</button>
+          <button type="button" class="filtro" data-filtro="em_andamento">EM ANDAMENTO</button>
+          <button type="button" class="filtro" data-filtro="concluida">CONCLUÍDAS</button>
+          <button type="button" class="filtro" data-filtro="cancelada">CANCELADAS</button>
+        </div>
+        <button type="button" id="botao-nova-missao" class="botao-primario">NOVA MISSÃO</button>
+      </div>
+
+      <p class="aviso" id="aviso-missoes" role="alert"></p>
+
+      <div class="lista-missoes" id="lista-missoes"></div>
+    </section>
+
+    <!-- Formulário de missão (Fase 05) -->
+    <section class="nucleo visao oculto" id="visao-formulario-missao">
+      <p class="rotulo-secao" id="formulario-missao-titulo-secao">NOVA MISSÃO</p>
+      <h1 class="titulo-secao" id="formulario-missao-titulo">REGISTRAR AÇÃO</h1>
+
+      <form id="formulario-missao" novalidate>
+        <label for="campo-missao-titulo">TÍTULO <span class="obrigatorio">*</span></label>
+        <input id="campo-missao-titulo" name="titulo" maxlength="120" autocomplete="off" spellcheck="false" />
+
+        <label for="campo-missao-descricao">DESCRIÇÃO <span class="opcional">(opcional)</span></label>
+        <textarea id="campo-missao-descricao" name="descricao" maxlength="2000" rows="4"></textarea>
+
+        <label for="campo-missao-prioridade">PRIORIDADE</label>
+        <select id="campo-missao-prioridade" name="prioridade">
+          <option value="baixa">Baixa</option>
+          <option value="normal" selected>Normal</option>
+          <option value="alta">Alta</option>
+          <option value="critica">Crítica</option>
+        </select>
+
+        <label for="campo-missao-prazo">PRAZO <span class="opcional">(opcional)</span></label>
+        <input id="campo-missao-prazo" name="prazo" type="datetime-local" />
+
+        <p class="aviso" id="aviso-formulario-missao" role="alert"></p>
+
+        <div class="acoes-formulario">
+          <button type="submit" id="botao-salvar-missao">SALVAR MISSÃO</button>
+          <button type="button" id="botao-cancelar-missao" class="botao-secundario">CANCELAR</button>
+        </div>
+      </form>
+    </section>
+
     <footer class="rodape">
       <span id="rodape-ambiente">AMBIENTE: —</span>
       <span class="separador" aria-hidden="true">·</span>

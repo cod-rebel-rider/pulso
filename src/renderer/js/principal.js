@@ -27,6 +27,11 @@ const contexto = { info: null, infoBanco: null };
 let jogadorAtual = null;
 let modoEdicao = false;
 const STATUS_ORDEM = ['energia', 'foco', 'estresse', 'criatividade'];
+// Missões (Fase 05)
+let missoesCarregadas = [];
+let filtroAtual = 'todas';
+let missaoAtualId = null;
+let modoEdicaoMissao = false;
 
 function consultar(id) {
   const elemento = document.getElementById(id);
@@ -49,6 +54,39 @@ function mapearElementos() {
   elementos.botaoTesteStatus = consultar('botao-teste-status');
   elementos.statusPainel = consultar('status-painel');
   elementos.statusLista = consultar('status-lista');
+  // Missões (Fase 05)
+  elementos.visaoMissao = consultar('visao-missao');
+  elementos.visaoMissoes = consultar('visao-missoes');
+  elementos.visaoFormularioMissao = consultar('visao-formulario-missao');
+  elementos.missaoTitulo = consultar('missao-título');
+  elementos.missaoDescricao = consultar('missao-descricao');
+  elementos.missaoEstado = consultar('missao-estado');
+  elementos.missaoPrioridade = consultar('missao-prioridade');
+  elementos.missaoCriada = consultar('missao-criada');
+  elementos.missaoIniciada = consultar('missao-iniciada');
+  elementos.missaoConcluida = consultar('missao-concluida');
+  elementos.missaoPrazo = consultar('missao-prazo');
+  elementos.avisoMissao = consultar('aviso-missao');
+  elementos.acoesMissao = consultar('acoes-missao');
+  elementos.missaoIniciar = consultar('missao-iniciar');
+  elementos.missaoConcluir = consultar('missao-concluir');
+  elementos.missaoCancelar = consultar('missao-cancelar');
+  elementos.missaoExcluir = consultar('missao-excluir');
+  elementos.missaoVoltar = consultar('missao-voltar');
+  elementos.filtrosMissao = consultar('filtros-missao');
+  elementos.botaoNovaMissao = consultar('botao-nova-missao');
+  elementos.avisoMissoes = consultar('aviso-missoes');
+  elementos.listaMissoes = consultar('lista-missoes');
+  elementos.formularioMissao = consultar('formulario-missao');
+  elementos.formularioMissaoTituloSecao = consultar('formulario-missao-titulo-secao');
+  elementos.formularioMissaoTitulo = consultar('formulario-missao-titulo');
+  elementos.campoMissaoTitulo = consultar('campo-missao-titulo');
+  elementos.campoMissaoDescricao = consultar('campo-missao-descricao');
+  elementos.campoMissaoPrioridade = consultar('campo-missao-prioridade');
+  elementos.campoMissaoPrazo = consultar('campo-missao-prazo');
+  elementos.avisoFormularioMissao = consultar('aviso-formulario-missao');
+  elementos.botaoSalvarMissao = consultar('botao-salvar-missao');
+  elementos.botaoCancelarMissao = consultar('botao-cancelar-missao');
   elementos.versao = consultar('versao');
   elementos.estado = consultar('estado');
   elementos.estadoTexto = consultar('estado-texto');
@@ -151,6 +189,226 @@ async function alterarStatus(nome, delta) {
     }
   } catch (erro) {
     console.error(`PULSO: falha ao alterar status — ${erro.message}`, erro);
+  }
+}
+
+// ── Missões (Fase 05) ─────────────────────────────────────────────────
+
+/** Carrega as missões do jogador via IPC e renderiza a lista. */
+async function carregarMissoes() {
+  if (!jogadorAtual) return;
+  try {
+    const resultado = await window.pulso.missao.listar();
+    if (resultado.ok) {
+      missoesCarregadas = resultado.missoes || [];
+      renderizarMissoes();
+    }
+  } catch (erro) {
+    console.error(`PULSO: falha ao carregar missões — ${erro.message}`, erro);
+  }
+}
+
+/** Renderiza a lista de missões conforme o filtro ativo. */
+function renderizarMissoes() {
+  const filtradas = filtrarMissoes(missoesCarregadas, filtroAtual);
+  elementos.listaMissoes.replaceChildren();
+
+  if (filtradas.length === 0) {
+    elementos.avisoMissoes.textContent = 'Nenhuma missão registrada.';
+    elementos.avisoMissoes.classList.remove('oculto');
+    return;
+  }
+
+  elementos.avisoMissoes.classList.add('oculto');
+  for (const missao of filtradas) {
+    elementos.listaMissoes.append(criarItemMissao(missao));
+  }
+}
+
+/** Aplica o filtro por estado. */
+function filtrarMissoes(missoes, filtro) {
+  if (filtro === 'todas') return missoes;
+  return missoes.filter((m) => m.estado === filtro);
+}
+
+/** Cria o elemento de uma missão na lista. */
+function criarItemMissao(missao) {
+  const item = document.createElement('button');
+  item.className = 'missao-item';
+  item.dataset.id = String(missao.id);
+  item.onclick = () => visualizarMissao(missao.id);
+
+  const titulo = document.createElement('span');
+  titulo.className = 'missao-item-titulo';
+  titulo.textContent = missao.titulo;
+
+  const estado = document.createElement('span');
+  estado.className = `missao-item-estado estado-${missao.estado}`;
+  estado.textContent = rotuloEstado(missao.estado);
+
+  const prioridade = document.createElement('span');
+  prioridade.className = `missao-item-prioridade prioridade-${missao.prioridade}`;
+  prioridade.textContent = rotuloPrioridade(missao.prioridade);
+
+  item.append(titulo, estado, prioridade);
+  return item;
+}
+
+/** Retorna o rótulo legível do estado. */
+function rotuloEstado(estado) {
+  const rotulos = {
+    pendente: 'Pendente',
+    em_andamento: 'Em andamento',
+    concluida: 'Concluída',
+    cancelada: 'Cancelada',
+  };
+  return rotulos[estado] ?? estado;
+}
+
+/** Retorna o rótulo legível da prioridade. */
+function rotuloPrioridade(prioridade) {
+  const rotulos = {
+    baixa: 'Baixa',
+    normal: 'Normal',
+    alta: 'Alta',
+    critica: 'Crítica',
+  };
+  return rotulos[prioridade] ?? prioridade;
+}
+
+/** Exibe os detalhes de uma missão. */
+async function visualizarMissao(id) {
+  if (!jogadorAtual) return;
+  try {
+    const resultado = await window.pulso.missao.obter(jogadorAtual.id, id);
+    if (!resultado.ok) {
+      console.warn(`PULSO: missão ${id} não encontrada`);
+      return;
+    }
+    missaoAtualId = id;
+    exibirDetalhesMissao(resultado.missao);
+  } catch (erro) {
+    console.error(`PULSO: falha ao obter missão — ${erro.message}`, erro);
+  }
+}
+
+/** Renderiza os detalhes da missão na tela. */
+function exibirDetalhesMissao(missao) {
+  elementos.missaoTitulo.textContent = missao.titulo;
+  elementos.missaoDescricao.textContent = missao.descricao || '—';
+  elementos.missaoEstado.textContent = rotuloEstado(missao.estado);
+  elementos.missaoEstado.className = `missao-detalhe-valor estado-${missao.estado}`;
+  elementos.missaoPrioridade.textContent = rotuloPrioridade(missao.prioridade);
+  elementos.missaoPrioridade.className = `missao-detalhe-valor prioridade-${missao.prioridade}`;
+  elementos.missaoCriada.textContent = formatarData(missao.criadoEm);
+  elementos.missaoIniciada.textContent = missao.iniciadaEm ? formatarData(missao.iniciadaEm) : '—';
+  elementos.missaoConcluida.textContent = missao.concluidaEm ? formatarData(missao.concluidaEm) : '—';
+  elementos.missaoPrazo.textContent = missao.prazo ? formatarData(missao.prazo) : '—';
+
+  const ehTerminal = missao.estado === 'concluida' || missao.estado === 'cancelada';
+  elementos.missaoIniciar.classList.toggle('oculto', missao.estado !== 'pendente');
+  elementos.missaoConcluir.classList.toggle('oculto', missao.estado !== 'em_andamento');
+  elementos.missaoCancelar.classList.toggle('oculto', ehTerminal);
+  elementos.missaoExcluir.classList.toggle('oculto', ehTerminal);
+
+  exibirVisaoMissao('visao-missao');
+}
+
+/** Formata uma data ISO para exibição. */
+function formatarData(iso) {
+  try {
+    return new Date(iso).toLocaleString('pt-BR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+/** Alterna entre as visões de missões (lista ↔ detalhe ↔ formulário). */
+function exibirVisaoMissao(nome) {
+  elementos.visaoMissoes.classList.toggle('oculto', nome !== 'visao-missoes');
+  elementos.visaoMissao.classList.toggle('oculto', nome !== 'visao-missao');
+  elementos.visaoFormularioMissao.classList.toggle('oculto', nome !== 'visao-formulario-missao');
+}
+
+/** Exibe o formulário de criação/edição de missão. */
+function exibirFormularioMissao(missao = null) {
+  modoEdicaoMissao = !!missao;
+  elementos.formularioMissaoTituloSecao.textContent = missao ? 'EDITAR MISSÃO' : 'NOVA MISSÃO';
+  elementos.formularioMissaoTitulo.value = missao?.titulo || '';
+  elementos.campoMissaoDescricao.value = missao?.descricao || '';
+  elementos.campoMissaoPrioridade.value = missao?.prioridade || 'normal';
+  elementos.campoMissaoPrazo.value = missao?.prazo ? missao.prazo.slice(0, 16) : '';
+  elementos.avisoFormularioMissao.textContent = '';
+  exibirVisaoMissao('visao-formulario-missao');
+}
+
+/** Salva uma missão (criação ou edição) via IPC. */
+async function salvarMissao(evento) {
+  evento.preventDefault();
+  if (!jogadorAtual) return;
+  const dados = {
+    titulo: elementos.formularioMissaoTitulo.value,
+    descricao: elementos.campoMissaoDescricao.value,
+    prioridade: elementos.campoMissaoPrioridade.value,
+    prazo: elementos.campoMissaoPrazo.value || null,
+  };
+  try {
+    const resultado = modoEdicaoMissao && missaoAtualId
+      ? await window.pulso.missao.atualizar({ id: missaoAtualId, ...dados })
+      : await window.pulso.missao.criar(dados);
+    if (!resultado.ok) {
+      elementos.avisoFormularioMissao.textContent = resultado.mensagem ?? 'Não foi possível salvar a missão.';
+      return;
+    }
+    await carregarMissoes();
+    exibirVisaoMissao('visao-missoes');
+  } catch (erro) {
+    elementos.avisoFormularioMissao.textContent = 'Falha de comunicação com o núcleo.';
+    console.error(`PULSO: falha ao salvar missão — ${erro.message}`, erro);
+  }
+}
+
+/** Inicia uma missão via IPC. */
+async function iniciarMissao() {
+  if (!jogadorAtual || !missaoAtualId) return;
+  const resultado = await window.pulso.missao.iniciar(missaoAtualId);
+  if (resultado.ok) {
+    await carregarMissoes();
+    exibirDetalhesMissao(resultado.missao);
+  }
+}
+
+/** Conclui uma missão via IPC. */
+async function concluirMissao() {
+  if (!jogadorAtual || !missaoAtualId) return;
+  const resultado = await window.pulso.missao.concluir(missaoAtualId);
+  if (resultado.ok) {
+    await carregarMissoes();
+    exibirDetalhesMissao(resultado.missao);
+  }
+}
+
+/** Cancela uma missão via IPC. */
+async function cancelarMissao() {
+  if (!jogadorAtual || !missaoAtualId) return;
+  const resultado = await window.pulso.missao.cancelar(missaoAtualId);
+  if (resultado.ok) {
+    await carregarMissoes();
+    exibirDetalhesMissao(resultado.missao);
+  }
+}
+
+/** Exclui uma missão via IPC. */
+async function excluirMissao() {
+  if (!jogadorAtual || !missaoAtualId) return;
+  const resultado = await window.pulso.missao.excluir(missaoAtualId);
+  if (resultado.ok) {
+    missaoAtualId = null;
+    await carregarMissoes();
+    exibirVisaoMissao('visao-missoes');
   }
 }
 
@@ -315,12 +573,35 @@ document.addEventListener('DOMContentLoaded', () => {
     exibirConfiguracao({ modo: 'edicao', jogador: jogadorAtual }));
   elementos.botaoCancelar.addEventListener('click', () => exibirVisao('visao-boot'));
   elementos.botaoTesteStatus.addEventListener('click', () => {
-    // Teste rápido: aplica deltas variados para validar a infraestrura.
-    // Em fases futuras, missões/eventos alterarão os status.
     alterarStatus('energia', -10);
     alterarStatus('foco', -5);
     alterarStatus('estresse', 8);
     alterarStatus('criatividade', -3);
   });
+  // Missões (Fase 05)
+  elementos.botaoNovaMissao.addEventListener('click', () => exibirFormularioMissao());
+  elementos.filtrosMissao.addEventListener('click', (evento) => {
+    const botao = evento.target.closest('[data-filtro]');
+    if (!botao) return;
+    filtroAtual = botao.dataset.filtro;
+    for (const b of elementos.filtrosMissao.querySelectorAll('[data-filtro]')) {
+      b.classList.toggle('ativo', b === botao);
+    }
+    renderizarMissoes();
+  });
+  elementos.botaoSalvarMissao.addEventListener('click', salvarMissao);
+  elementos.formularioMissao.addEventListener('submit', salvarMissao);
+  elementos.botaoCancelarMissao.addEventListener('click', () => {
+    if (missaoAtualId) {
+      visualizarMissao(missaoAtualId);
+    } else {
+      exibirVisaoMissao('visao-missoes');
+    }
+  });
+  elementos.missaoVoltar.addEventListener('click', () => exibirVisaoMissao('visao-missoes'));
+  elementos.missaoIniciar.addEventListener('click', iniciarMissao);
+  elementos.missaoConcluir.addEventListener('click', concluirMissao);
+  elementos.missaoCancelar.addEventListener('click', cancelarMissao);
+  elementos.missaoExcluir.addEventListener('click', excluirMissao);
   iniciar();
 });
