@@ -128,6 +128,7 @@ test('progresso: calculado das missões; conclusão do projeto explícita', () =
   assert.equal(pronto.progresso, 100);
   assert.equal(pronto.estado, 'planejado');
   assert.equal(pronto.prontaParaEncerrar, true);
+  servicoProjeto.iniciar(p.id); // conclusão do projeto exige fluxo: → em andamento → concluído
   const concluido = servicoProjeto.concluir(p.id);
   assert.equal(concluido.estado, 'concluido');
 });
