@@ -24,11 +24,13 @@ import { inicializarBanco } from '../core/database/inicializar.js';
 import { RepositorioJogador } from '../core/database/repositorios/jogador.js';
 import { RepositorioStatus } from '../core/database/repositorios/status.js';
 import { RepositorioMissao } from '../core/database/repositorios/missao.js';
+import { RepositorioProjeto } from '../core/database/repositorios/projeto.js';
 import { RepositorioProgressao } from '../core/database/repositorios/progressao.js';
 import { RepositorioAtributos } from '../core/database/repositorios/atributos.js';
 import { ServicoJogador } from '../core/aplicacao/servico-jogador.js';
 import { ServicoStatus } from '../core/aplicacao/servico-status.js';
 import { ServicoMissao } from '../core/aplicacao/servico-missao.js';
+import { ServicoProjeto } from '../core/aplicacao/servico-projeto.js';
 import { ServicoProgressao } from '../core/aplicacao/servico-progressao.js';
 import { ErroValidacao, ErroConflito, ErroTransicao } from '../core/erros.js';
 import canais from './canais.cjs';
@@ -54,6 +56,7 @@ let estadoBanco = null;
 let servicoJogador = null;
 let servicoStatus = null;
 let servicoMissao = null;
+let servicoProjeto = null;
 let servicoProgressao = null;
 
 // ── Teste de fumaça ─────────────────────────────────────────────────────
@@ -325,6 +328,69 @@ function registrarIpc() {
       registro.info(`Atributo aumentado: ${atributo} +${quantidade ?? 1}.`);
       return { ok: true, progressao };
     }));
+
+  // ── Projetos (Fase 07) ─────────────────────────────────────────────
+  ipcMain.handle(canais.PROJETO_CRIAR, (_evento, { jogadorId, ...dados } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const projeto = servicoProjeto.criar(Number(jogadorId ?? 0), dados ?? {});
+      registro.info(`Projeto criado: "${projeto.titulo}" (id=${projeto.id}).`);
+      return { ok: true, projeto };
+    }));
+
+  ipcMain.handle(canais.PROJETO_LISTAR, (_evento, { jogadorId } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      projetos: servicoProjeto.listar(Number(jogadorId ?? 0)),
+    })));
+
+  ipcMain.handle(canais.PROJETO_OBTER, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      projeto: servicoProjeto.obter(Number(id ?? 0)),
+    })));
+
+  ipcMain.handle(canais.PROJETO_ATUALIZAR, (_evento, { id, ...dados } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const projeto = servicoProjeto.atualizar(Number(id ?? 0), dados ?? {});
+      registro.info(`Projeto atualizado: id=${projeto.id}.`);
+      return { ok: true, projeto };
+    }));
+
+  ipcMain.handle(canais.PROJETO_INICIAR, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      projeto: servicoProjeto.iniciar(Number(id ?? 0)),
+    })));
+
+  ipcMain.handle(canais.PROJETO_CONCLUIR, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      projeto: servicoProjeto.concluir(Number(id ?? 0)),
+    })));
+
+  ipcMain.handle(canais.PROJETO_CANCELAR, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      projeto: servicoProjeto.cancelar(Number(id ?? 0)),
+    })));
+
+  ipcMain.handle(canais.PROJETO_ARQUIVAR, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      projeto: servicoProjeto.arquivar(Number(id ?? 0)),
+    })));
+
+  ipcMain.handle(canais.PROJETO_ASSOCIAR_MISSAO, (_evento, { projetoId, missaoId } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      projeto: servicoProjeto.associarMissao(Number(projetoId ?? 0), Number(missaoId ?? 0)),
+    })));
+
+  ipcMain.handle(canais.PROJETO_REMOVER_MISSAO, (_evento, { projetoId, missaoId } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      projeto: servicoProjeto.removerMissao(Number(projetoId ?? 0), Number(missaoId ?? 0)),
+    })));
 }
 
 /**
@@ -401,6 +467,7 @@ async function aoIniciar() {
   const repositorioMissao = new RepositorioMissao(estadoBanco.banco);
   const repositorioProgressao = new RepositorioProgressao(estadoBanco.banco);
   const repositorioAtributos = new RepositorioAtributos(estadoBanco.banco);
+  const repositorioProjeto = new RepositorioProjeto(estadoBanco.banco);
 
   // Criação atômica: jogador + status + progressão iniciais em uma transação.
   servicoStatus = new ServicoStatus({ repositorio: repositorioStatus, repositorioJogador });
@@ -423,6 +490,11 @@ async function aoIniciar() {
     },
   });
   servicoMissao = new ServicoMissao({ repositorio: repositorioMissao });
+  servicoProjeto = new ServicoProjeto({
+    repositorio: repositorioProjeto,
+    repositorioMissao,
+    repositorioJogador,
+  });
 
   registrarIpc();
   janelaPrincipal = criarJanela(configuracao, { exibir: !MODO_TESTE_FUMACA });
