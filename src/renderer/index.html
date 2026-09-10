@@ -79,9 +79,28 @@
         <div class="status-lista" id="status-lista"></div>
       </section>
 
+      <section class="progressao-painel" id="progressao-painel" aria-label="Progressão do personagem">
+        <p class="rotulo-secao">PERSONAGEM</p>
+        <div class="progressao-topo">
+          <span class="progressao-nivel" id="progressao-nivel">NÍVEL 1</span>
+          <span class="progressao-xp-texto" id="progressao-xp-texto">0 / 100 XP</span>
+        </div>
+        <div class="progressao-barra" role="progressbar" aria-label="Progresso de XP">
+          <span class="progressao-preenchimento" id="progressao-preenchimento"></span>
+        </div>
+        <p class="progressao-proximo" id="progressao-proximo">Próximo nível: 100 XP</p>
+        <p class="progressao-pontos" id="progressao-pontos">Pontos de atributo disponíveis: 0</p>
+        <div class="atributos-lista" id="atributos-lista"></div>
+        <div class="progressao-acoes">
+          <button type="button" id="botao-teste-xp" class="botao-secundario oculto">SIMULAR XP +50</button>
+        </div>
+        <p class="aviso" id="aviso-progressao" role="alert"></p>
+      </section>
+
       <div class="acoes-boot">
         <button type="button" id="botao-editar" class="botao-secundario" disabled>EDITAR IDENTIDADE</button>
         <button type="button" id="botao-teste-status" class="botao-secundario oculto">AJUSTAR STATUS</button>
+        <button type="button" id="botao-ver-missoes" class="botao-secundario" disabled>VER MISSÕES</button>
       </div>
     </section>
 
@@ -126,6 +145,7 @@
         <button type="button" id="missao-cancelar" class="botao-secundario oculto">CANCELAR</button>
         <button type="button" id="missao-excluir" class="botao-perigo oculto">EXCLUIR</button>
         <button type="button" id="missao-voltar" class="botao-secundario">VOLTAR</button>
+        <button type="button" id="missao-painel" class="botao-secundario">PAINEL</button>
       </div>
     </section>
 
@@ -148,6 +168,10 @@
       <p class="aviso" id="aviso-missoes" role="alert"></p>
 
       <div class="lista-missoes" id="lista-missoes"></div>
+
+      <div class="acoes-missao">
+        <button type="button" id="missoes-painel" class="botao-secundario">VOLTAR AO PAINEL</button>
+      </div>
     </section>
 
     <!-- Formulário de missão (Fase 05) -->

@@ -27,6 +27,18 @@ const contexto = { info: null, infoBanco: null };
 let jogadorAtual = null;
 let modoEdicao = false;
 const STATUS_ORDEM = ['energia', 'foco', 'estresse', 'criatividade'];
+// Progressão (Fase 06)
+const ATRIBUTOS_ORDEM = ['tecnologia', 'criatividade', 'musica', 'social', 'energia', 'foco', 'disciplina'];
+const ATRIBUTOS_ROTULOS = {
+  tecnologia: 'TECNOLOGIA',
+  criatividade: 'CRIATIVIDADE',
+  musica: 'MÚSICA',
+  social: 'SOCIAL',
+  energia: 'ENERGIA',
+  foco: 'FOCO',
+  disciplina: 'DISCIPLINA',
+};
+let progressaoAtual = null;
 // Missões (Fase 05)
 let missoesCarregadas = [];
 let filtroAtual = 'todas';
@@ -73,6 +85,8 @@ function mapearElementos() {
   elementos.missaoCancelar = consultar('missao-cancelar');
   elementos.missaoExcluir = consultar('missao-excluir');
   elementos.missaoVoltar = consultar('missao-voltar');
+  elementos.missaoPainel = consultar('missao-painel');
+  elementos.missoesPainel = consultar('missoes-painel');
   elementos.filtrosMissao = consultar('filtros-missao');
   elementos.botaoNovaMissao = consultar('botao-nova-missao');
   elementos.avisoMissoes = consultar('aviso-missoes');
@@ -87,6 +101,16 @@ function mapearElementos() {
   elementos.avisoFormularioMissao = consultar('aviso-formulario-missao');
   elementos.botaoSalvarMissao = consultar('botao-salvar-missao');
   elementos.botaoCancelarMissao = consultar('botao-cancelar-missao');
+  elementos.progressaoPainel = consultar('progressao-painel');
+  elementos.progressaoNivel = consultar('progressao-nivel');
+  elementos.progressaoXpTexto = consultar('progressao-xp-texto');
+  elementos.progressaoPreenchimento = consultar('progressao-preenchimento');
+  elementos.progressaoProximo = consultar('progressao-proximo');
+  elementos.progressaoPontos = consultar('progressao-pontos');
+  elementos.atributosLista = consultar('atributos-lista');
+  elementos.botaoTesteXp = consultar('botao-teste-xp');
+  elementos.avisoProgressao = consultar('aviso-progressao');
+  elementos.botaoVerMissoes = consultar('botao-ver-missoes');
   elementos.versao = consultar('versao');
   elementos.estado = consultar('estado');
   elementos.estadoTexto = consultar('estado-texto');
@@ -190,6 +214,115 @@ async function alterarStatus(nome, delta) {
   } catch (erro) {
     console.error(`PULSO: falha ao alterar status — ${erro.message}`, erro);
   }
+}
+
+// ── Progressão (Fase 06) ────────────────────────────────────────────
+
+async function carregarProgressao() {
+  if (!jogadorAtual) return;
+  try {
+    const resultado = await window.pulso.progressao.obter(jogadorAtual.id);
+    if (resultado.ok && resultado.progressao) {
+      progressaoAtual = resultado.progressao;
+      renderizarProgressao(progressaoAtual);
+    }
+  } catch (erro) {
+    console.error(`PULSO: falha ao carregar progressão — ${erro.message}`, erro);
+  }
+}
+
+function renderizarProgressao(progressao) {
+  elementos.progressaoNivel.textContent = `NÍVEL ${progressao.nivel}`;
+  elementos.progressaoXpTexto.textContent = `${progressao.xpNoNivel} / ${progressao.xpNecessario} XP`;
+  elementos.progressaoPreenchimento.style.width = `${Math.round(progressao.progresso * 100)}%`;
+  elementos.progressaoProximo.textContent = `Próximo nível: ${progressao.xpNecessario - progressao.xpNoNivel} XP`;
+  elementos.progressaoPontos.textContent = `Pontos de atributo disponíveis: ${progressao.pontosDisponiveis}`;
+  elementos.atributosLista.replaceChildren();
+  for (const nome of ATRIBUTOS_ORDEM) {
+    elementos.atributosLista.append(criarLinhaAtributo(nome, progressao));
+  }
+}
+
+function criarLinhaAtributo(nome, progressao) {
+  const linha = document.createElement('div');
+  linha.className = 'atributo-linha';
+  const rotulo = document.createElement('span');
+  rotulo.className = 'atributo-nome';
+  rotulo.textContent = ATRIBUTOS_ROTULOS[nome] ?? nome;
+  const valor = document.createElement('span');
+  valor.className = 'atributo-valor';
+  valor.textContent = String(progressao.atributos[nome]);
+  const botao = document.createElement('button');
+  botao.type = 'button';
+  botao.className = 'botao-atributo';
+  botao.textContent = '+1';
+  botao.disabled = progressao.pontosDisponiveis <= 0;
+  botao.setAttribute('aria-label', `Aumentar ${ATRIBUTOS_ROTULOS[nome] ?? nome}`);
+  botao.addEventListener('click', () => aumentarAtributo(nome));
+  linha.append(rotulo, valor, botao);
+  return linha;
+}
+
+async function simularXp() {
+  if (!jogadorAtual) return;
+  elementos.avisoProgressao.textContent = '';
+  try {
+    const resultado = await window.pulso.progressao.adicionarXp(jogadorAtual.id, 50);
+    if (!resultado.ok) {
+      elementos.avisoProgressao.textContent = resultado.mensagem ?? 'Não foi possível adicionar XP.';
+      return;
+    }
+    progressaoAtual = resultado.progressao;
+    renderizarProgressao(progressaoAtual);
+    if (resultado.progressao.subiuNivel) {
+      exibirLevelUp(resultado.progressao);
+    }
+  } catch (erro) {
+    elementos.avisoProgressao.textContent = 'Falha de comunicação com o núcleo.';
+    console.error(`PULSO: falha ao simular XP — ${erro.message}`, erro);
+  }
+}
+
+async function aumentarAtributo(nome) {
+  if (!jogadorAtual) return;
+  elementos.avisoProgressao.textContent = '';
+  try {
+    const resultado = await window.pulso.progressao.aumentarAtributo(jogadorAtual.id, nome, 1);
+    if (!resultado.ok) {
+      elementos.avisoProgressao.textContent = resultado.mensagem ?? 'Não foi possível aumentar o atributo.';
+      return;
+    }
+    progressaoAtual = resultado.progressao;
+    renderizarProgressao(progressaoAtual);
+  } catch (erro) {
+    elementos.avisoProgressao.textContent = 'Falha de comunicação com o núcleo.';
+    console.error(`PULSO: falha ao aumentar atributo — ${erro.message}`, erro);
+  }
+}
+
+function exibirLevelUp(progressao) {
+  const fundo = document.createElement('div');
+  fundo.className = 'levelup-fundo';
+  fundo.setAttribute('role', 'alertdialog');
+  const painel = document.createElement('div');
+  painel.className = 'levelup-painel';
+  const titulo = document.createElement('p');
+  titulo.className = 'levelup-titulo';
+  titulo.textContent = 'LEVEL UP';
+  const nivel = document.createElement('p');
+  nivel.className = 'levelup-nivel';
+  nivel.textContent = `NÍVEL ${progressao.nivel}`;
+  const pontos = document.createElement('p');
+  pontos.className = 'levelup-pontos';
+  pontos.textContent = `+${progressao.niveisGanhos} PONTO(S) DE ATRIBUTO`;
+  const botao = document.createElement('button');
+  botao.type = 'button';
+  botao.textContent = 'CONTINUAR';
+  botao.addEventListener('click', () => fundo.remove());
+  painel.append(titulo, nivel, pontos, botao);
+  fundo.append(painel);
+  document.body.append(fundo);
+  botao.focus();
 }
 
 // ── Missões (Fase 05) ─────────────────────────────────────────────────
@@ -328,6 +461,7 @@ function formatarData(iso) {
 
 /** Alterna entre as visões de missões (lista ↔ detalhe ↔ formulário). */
 function exibirVisaoMissao(nome) {
+  exibirVisao(nome);
   elementos.visaoMissoes.classList.toggle('oculto', nome !== 'visao-missoes');
   elementos.visaoMissao.classList.toggle('oculto', nome !== 'visao-missao');
   elementos.visaoFormularioMissao.classList.toggle('oculto', nome !== 'visao-formulario-missao');
@@ -456,10 +590,33 @@ async function carregarEstadoJogador() {
   return window.pulso.jogador.estado();
 }
 
-/** Alterna a visão visível (configuração ↔ boot). */
+/** Alterna a visão visível (configuração ↔ boot ↔ missões). */
 function exibirVisao(nomeVisao) {
   elementos.visaoConfiguracao.classList.toggle('oculto', nomeVisao !== 'visao-configuracao');
   elementos.visaoBoot.classList.toggle('oculto', nomeVisao !== 'visao-boot');
+  const emMissoes = nomeVisao === 'visao-missoes'
+    || nomeVisao === 'visao-missao'
+    || nomeVisao === 'visao-formulario-missao';
+  if (!emMissoes) {
+    elementos.visaoMissoes.classList.add('oculto');
+    elementos.visaoMissao.classList.add('oculto');
+    elementos.visaoFormularioMissao.classList.add('oculto');
+  } else {
+    elementos.visaoConfiguracao.classList.add('oculto');
+    elementos.visaoBoot.classList.add('oculto');
+  }
+}
+
+/** Vai para a lista de missões (esconde o painel principal). */
+function irParaMissoes() {
+  exibirVisao('visao-missoes');
+  exibirVisaoMissao('visao-missoes');
+  carregarMissoes();
+}
+
+/** Volta ao painel principal (boot com status + progressão). */
+function voltarAoPainel() {
+  exibirVisao('visao-boot');
 }
 
 function setAviso(texto) {
@@ -499,6 +656,7 @@ function linhasDoBoot() {
 function executarBoot() {
   exibirVisao('visao-boot');
   elementos.botaoEditar.disabled = true;
+  elementos.botaoVerMissoes.disabled = true;
   definirEstado('INICIANDO…');
   const linhas = linhasDoBoot();
   montarLinhasBoot(linhas, false);
@@ -509,8 +667,11 @@ function executarBoot() {
   setTimeout(() => {
     definirEstado('SISTEMA ONLINE');
     elementos.botaoEditar.disabled = false;
+    elementos.botaoVerMissoes.disabled = false;
     elementos.mensagem.textContent = 'Operador identificado. Aguardando módulos…';
     carregarStatus();
+    carregarProgressao();
+    carregarMissoes();
   }, atrasoConclusao);
 }
 
@@ -578,6 +739,9 @@ document.addEventListener('DOMContentLoaded', () => {
     alterarStatus('estresse', 8);
     alterarStatus('criatividade', -3);
   });
+  elementos.botaoTesteXp.classList.remove('oculto');
+  elementos.botaoTesteXp.addEventListener('click', simularXp);
+  elementos.botaoVerMissoes.addEventListener('click', irParaMissoes);
   // Missões (Fase 05)
   elementos.botaoNovaMissao.addEventListener('click', () => exibirFormularioMissao());
   elementos.filtrosMissao.addEventListener('click', (evento) => {
@@ -599,6 +763,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   elementos.missaoVoltar.addEventListener('click', () => exibirVisaoMissao('visao-missoes'));
+  elementos.missaoPainel.addEventListener('click', voltarAoPainel);
+  elementos.missoesPainel.addEventListener('click', voltarAoPainel);
   elementos.missaoIniciar.addEventListener('click', iniciarMissao);
   elementos.missaoConcluir.addEventListener('click', concluirMissao);
   elementos.missaoCancelar.addEventListener('click', cancelarMissao);

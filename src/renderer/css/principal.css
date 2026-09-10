@@ -432,6 +432,156 @@
   margin-top: 0;
 }
 
+/* ── Progressão (Fase 06) ──────────────────────────────────────────── */
+.progressao-painel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 460px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px;
+  background: var(--pulso-superficie);
+  border: 1px solid var(--pulso-cinza-escuro);
+}
+
+.progressao-topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.progressao-nivel {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--pulso-branco);
+}
+
+.progressao-xp-texto {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--pulso-cinza);
+}
+
+.progressao-barra {
+  height: 12px;
+  background: var(--pulso-preto);
+  border: 1px solid var(--pulso-cinza-escuro);
+  overflow: hidden;
+}
+
+.progressao-preenchimento {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--pulso-vermelho-escuro), var(--pulso-vermelho));
+  transition: width 0.3s ease;
+}
+
+.progressao-proximo,
+.progressao-pontos {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--pulso-cinza);
+}
+
+.atributos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.atributo-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--pulso-cinza);
+  padding: 5px 0;
+  border-bottom: 1px dashed var(--pulso-cinza-escuro);
+}
+
+.atributo-nome {
+  color: var(--pulso-branco);
+}
+
+.atributo-valor {
+  min-width: 28px;
+  text-align: right;
+  color: var(--pulso-branco);
+}
+
+.botao-atributo {
+  background: transparent;
+  border: 1px solid var(--pulso-cinza-escuro);
+  color: var(--pulso-cinza);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 2px 10px;
+  cursor: pointer;
+}
+
+.botao-atributo:not(:disabled):hover {
+  border-color: var(--pulso-vermelho);
+  color: var(--pulso-vermelho);
+}
+
+.botao-atributo:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.progressao-acoes {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.levelup-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 11, 13, 0.8);
+}
+
+.levelup-painel {
+  padding: 28px 36px;
+  text-align: center;
+  background: var(--pulso-superficie);
+  border: 1px solid var(--pulso-vermelho);
+  box-shadow: 0 0 32px rgba(229, 72, 77, 0.25);
+}
+
+.levelup-titulo {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: var(--pulso-vermelho);
+  margin-bottom: 10px;
+}
+
+.levelup-nivel {
+  font-size: 15px;
+  letter-spacing: 0.2em;
+  color: var(--pulso-branco);
+  margin-bottom: 6px;
+}
+
+.levelup-pontos {
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: var(--pulso-cinza);
+  margin-bottom: 16px;
+}
+
 /* ── Missões (Fase 05) ─────────────────────────────────────────────── */
 
 /* Visão de detalhes da missão */
