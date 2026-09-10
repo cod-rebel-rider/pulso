@@ -26,6 +26,8 @@ Registro de necessidades identificadas durante as fases que **serão resolvidas 
 | P-021 | Adicionar CHECK constraints no banco (ex.: `energia BETWEEN 0 AND 100`) | fase de polimento | hoje: a aplicação garante os limites antes de persistir |
 | P-022 | Recompensas de missões (XP, dinheiro, itens, efeitos sobre status) | fase futura (integração) | Fase 06 entregou o motor de XP; concluir missão ainda não concede XP automaticamente |
 | P-023 | Reset de atributos (respec/redistribuição) | fase futura a definir | Fase 06 não implementa rebuild de build (documentado em `progressao.md`) |
+| P-024 | Recompensas por conclusão de projeto (XP/dinheiro/atributos/status) | fase futura a definir | Fase 07: projeto organiza e acompanha, não concede nada; requisito registrado em `projeto.md` |
+| P-025 | Regra explícita de reativação de projeto arquivado | fase futura a definir | Fase 07: arquivado é terminal (não volta ao fluxo); se necessário no futuro, exigirá regra de domínio |
 
 ## Pendências resolvidas
 

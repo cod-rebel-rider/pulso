@@ -2,7 +2,7 @@
 
 > Sistema pessoal de gestão da vida que transforma atividades, projetos, objetivos, finanças, aprendizado e música em uma experiência de progressão inspirada em RPG e Cyberpunk/Netrunner.
 
-**Status:** FASE 06 — PROGRESSÃO (concluída). O PULSO agora tem **evolução**: XP com curva centralizada (100 × nível), níveis automáticos, pontos de atributo por nível e 7 atributos persistentes, com painel PERSONAGEM e feedback de LEVEL UP.
+**Status:** FASE 07 — PROJETOS (concluída). O PULSO agora tem **direção**: projetos com máquina de estados própria (planejado/em andamento/concluído/cancelado/arquivado), prioridade, prazo com indicador de atraso, progresso derivado das missões associadas (1:N via `missao.projeto_id`), listagem com filtros e detalhes reutilizando a visão de missões.
 
 ## Princípios
 
@@ -63,6 +63,7 @@ pulso/
 | [`docs/desenvolvimento.md`](docs/desenvolvimento.md) | Guia de desenvolvimento e contribuição |
 | [`docs/pendencias.md`](docs/pendencias.md) | Pendências registradas para fases futuras |
 | [`docs/progressao.md`](docs/progressao.md) | Sistema de progressão: XP, níveis, atributos (Fase 06) |
+| [`docs/projeto.md`](docs/projeto.md) | Sistema de projetos: estados, missões, progresso (Fase 07) |
 
 ## Git
 
@@ -72,4 +73,4 @@ pulso/
 
 ## Próxima etapa
 
-**FASE 07 — PROJETOS** (não implementada — ver `docs/roadmap.md`).
+**FASE 08 — FINANÇAS** (não implementada — ver `docs/roadmap.md`).
