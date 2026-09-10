@@ -118,11 +118,36 @@ CREATE TABLE missao (
 
 CREATE INDEX IF NOT EXISTS idx_missao_jogador ON missao(jogador_id);
 CREATE INDEX IF NOT EXISTS idx_missao_estado ON missao(estado);
+
+-- migração 005 "criar-tabelas-progressao" — Fase 06 (ver docs/progressao.md)
+CREATE TABLE jogador_progressao (
+  id                 INTEGER PRIMARY KEY,
+  jogador_id         INTEGER NOT NULL UNIQUE REFERENCES jogador(id) ON DELETE CASCADE,
+  xp_total           INTEGER NOT NULL CHECK (xp_total >= 0),
+  nivel              INTEGER NOT NULL CHECK (nivel >= 1),
+  pontos_disponiveis INTEGER NOT NULL CHECK (pontos_disponiveis >= 0),
+  criado_em          TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  atualizado_em      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+) STRICT;
+
+CREATE TABLE jogador_atributos (
+  id             INTEGER PRIMARY KEY,
+  jogador_id     INTEGER NOT NULL UNIQUE REFERENCES jogador(id) ON DELETE CASCADE,
+  tecnologia     INTEGER NOT NULL CHECK (tecnologia >= 1),
+  criatividade   INTEGER NOT NULL CHECK (criatividade >= 1),
+  musica         INTEGER NOT NULL CHECK (musica >= 1),
+  social         INTEGER NOT NULL CHECK (social >= 1),
+  energia        INTEGER NOT NULL CHECK (energia >= 1),
+  foco           INTEGER NOT NULL CHECK (foco >= 1),
+  disciplina     INTEGER NOT NULL CHECK (disciplina >= 1),
+  criado_em      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  atualizado_em  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+) STRICT;
 ```
 
 
 
-- `schema_migrations` responde "qual é a versão atual do banco?" (`SELECT MAX(versao)` . Atual: **v4**..
+- `schema_migrations` responde "qual é a versão atual do banco?" (`SELECT MAX(versao)` . Atual: **v5**..
 - `meta` guarda metadados técnico-operacionais(chave/valor. **Não** é configuração de ambiente(,isso vive em `config/*.json`) nem dado de sistema de jogo..
 
 - `jogador` (ver `docs/jogador.md`): identidade do operador — entidade central do PULSO; single-player imposta pelo Serviço,, com schema aberto a evolução futura.

@@ -30,6 +30,9 @@ const CANAL_MISSAO_INICIAR = 'missao:iniciar'; // igual a canais.cjs → MISSAO_
 const CANAL_MISSAO_CONCLUIR = 'missao:concluir'; // igual a canais.cjs → MISSAO_CONCLUIR
 const CANAL_MISSAO_CANCELAR = 'missao:cancelar'; // igual a canais.cjs → MISSAO_CANCELAR
 const CANAL_MISSAO_EXCLUIR = 'missao:excluir'; // igual a canais.cjs → MISSAO_EXCLUIR
+const CANAL_PROGRESSAO_OBTER = 'progressao:obter'; // igual a canais.cjs → PROGRESSAO_OBTER
+const CANAL_PROGRESSAO_ADICIONAR_XP = 'progressao:adicionar-xp'; // igual a canais.cjs → PROGRESSAO_ADICIONAR_XP
+const CANAL_PROGRESSAO_AUMENTAR_ATRIBUTO = 'progressao:aumentar-atributo'; // igual a canais.cjs → PROGRESSAO_AUMENTAR_ATRIBUTO
 
 const { contextBridge, ipcRenderer } = require('electron');
 
@@ -148,6 +151,12 @@ contextBridge.exposeInMainWorld(
        * @returns {Promise<{ok: boolean, erro?: string, mensagem?: string}>}
        */
       excluir: (id) => ipcRenderer.invoke(CANAL_MISSAO_EXCLUIR, { id }),
+    }),
+
+    progressao: Object.freeze({
+      obter: (jogadorId) => ipcRenderer.invoke(CANAL_PROGRESSAO_OBTER, { jogadorId }),
+      adicionarXp: (jogadorId, quantidade) => ipcRenderer.invoke(CANAL_PROGRESSAO_ADICIONAR_XP, { jogadorId, quantidade }),
+      aumentarAtributo: (jogadorId, atributo, quantidade = 1) => ipcRenderer.invoke(CANAL_PROGRESSAO_AUMENTAR_ATRIBUTO, { jogadorId, atributo, quantidade }),
     }),
   }),
 );
