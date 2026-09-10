@@ -121,8 +121,45 @@ const MIGRACAO_004 = Object.freeze({
   },
 });
 
+/** Migração 005 — progressão do jogador (Fase 06). */
+const MIGRACAO_005 = Object.freeze({
+  versao: 5,
+  nome: 'criar-tabelas-progressao',
+  cima(banco) {
+    // XP/nível/pontos: um registro por jogador (UNIQUE + CASCADE).
+    // CHECKs impedem estados inconsistentes no próprio banco.
+    banco.exec(`
+      CREATE TABLE jogador_progressao (
+        id                 INTEGER PRIMARY KEY,
+        jogador_id         INTEGER NOT NULL UNIQUE REFERENCES jogador(id) ON DELETE CASCADE,
+        xp_total           INTEGER NOT NULL CHECK (xp_total >= 0),
+        nivel              INTEGER NOT NULL CHECK (nivel >= 1),
+        pontos_disponiveis INTEGER NOT NULL CHECK (pontos_disponiveis >= 0),
+        criado_em          TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+      ) STRICT
+    `);
+    // Atributos: um registro por jogador; mínimo 1 por atributo.
+    banco.exec(`
+      CREATE TABLE jogador_atributos (
+        id             INTEGER PRIMARY KEY,
+        jogador_id     INTEGER NOT NULL UNIQUE REFERENCES jogador(id) ON DELETE CASCADE,
+        tecnologia     INTEGER NOT NULL CHECK (tecnologia >= 1),
+        criatividade   INTEGER NOT NULL CHECK (criatividade >= 1),
+        musica         INTEGER NOT NULL CHECK (musica >= 1),
+        social         INTEGER NOT NULL CHECK (social >= 1),
+        energia        INTEGER NOT NULL CHECK (energia >= 1),
+        foco           INTEGER NOT NULL CHECK (foco >= 1),
+        disciplina     INTEGER NOT NULL CHECK (disciplina >= 1),
+        criado_em      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+      ) STRICT
+    `);
+  },
+});
+
 /** Lista oficial de migrações — fases futuras ACRESCENTAM ao final. */
-export const MIGRACOES = Object.freeze([MIGRACAO_001, MIGRACAO_002, MIGRACAO_003, MIGRACAO_004]);
+export const MIGRACOES = Object.freeze([MIGRACAO_001, MIGRACAO_002, MIGRACAO_003, MIGRACAO_004, MIGRACAO_005]);
 
 function validarLista(migracoes) {
   migracoes.forEach((migracao, indice) => {
