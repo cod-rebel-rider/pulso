@@ -582,6 +582,77 @@
   margin-bottom: 16px;
 }
 
+/* ── Projetos (Fase 07) ─────────────────────────────────────────────── */
+.projeto-barra {
+  margin: 4px 0;
+}
+
+.projeto-progresso-texto {
+  font-size: 11px;
+  color: var(--pulso-cinza);
+  letter-spacing: 0.12em;
+}
+
+.projeto-estado-atrasado,
+.projeto-estado.atrasado {
+  color: var(--pulso-perigo);
+  border-color: var(--pulso-perigo);
+}
+
+.missao-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--pulso-superficie);
+  border: 1px solid var(--pulso-cinza-escuro);
+  color: var(--pulso-branco);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.missao-item:hover {
+  border-color: var(--pulso-cinza);
+}
+
+.missao-item-estado {
+  margin-left: auto;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--pulso-cinza);
+}
+
+.projeto-missao-marcador {
+  color: var(--pulso-vermelho);
+}
+
+#projeto-missao-picker {
+  margin-top: 10px;
+  border: 1px solid var(--pulso-cinza-escuro);
+  padding: 10px;
+  background: var(--pulso-preto);
+}
+
+#projeto-missao-picker .missao-item {
+  margin-bottom: 6px;
+}
+
+#projeto-missao-picker .rotulo-secao {
+  margin-bottom: 8px;
+}
+
+#projeto-missao-picker .botao-secundario {
+  margin-top: 4px;
+}
+
+.meta-linha dd.atrasado {
+  color: var(--pulso-perigo);
+}
+
 /* ── Missões (Fase 05) ─────────────────────────────────────────────── */
 
 /* Visão de detalhes da missão */

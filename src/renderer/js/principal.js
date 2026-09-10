@@ -44,6 +44,11 @@ let missoesCarregadas = [];
 let filtroAtual = 'todas';
 let missaoAtualId = null;
 let modoEdicaoMissao = false;
+// Projetos (Fase 07)
+let projetosCarregados = [];
+let filtroProjetoAtual = 'todos';
+let projetoAtualId = null;
+let modoEdicaoProjeto = false;
 
 function consultar(id) {
   const elemento = document.getElementById(id);
@@ -111,6 +116,45 @@ function mapearElementos() {
   elementos.botaoTesteXp = consultar('botao-teste-xp');
   elementos.avisoProgressao = consultar('aviso-progressao');
   elementos.botaoVerMissoes = consultar('botao-ver-missoes');
+  // Projetos (Fase 07)
+  elementos.visaoProjetos = consultar('visao-projetos');
+  elementos.visaoProjeto = consultar('visao-projeto');
+  elementos.visaoFormularioProjeto = consultar('visao-formulario-projeto');
+  elementos.filtrosProjeto = consultar('filtros-projeto');
+  elementos.botaoNovoProjeto = consultar('botao-novo-projeto');
+  elementos.avisoProjetos = consultar('aviso-projetos');
+  elementos.listaProjetos = consultar('lista-projetos');
+  elementos.projetosPainel = consultar('projetos-painel');
+  elementos.botaoVerProjetos = consultar('botao-ver-projetos');
+  elementos.projetoTitulo = consultar('projeto-titulo');
+  elementos.projetoDescricao = consultar('projeto-descricao');
+  elementos.projetoEstado = consultar('projeto-estado');
+  elementos.projetoPrioridade = consultar('projeto-prioridade');
+  elementos.projetoPrazo = consultar('projeto-prazo');
+  elementos.projetoProgresso = consultar('projeto-progresso');
+  elementos.avisoProjeto = consultar('aviso-projeto');
+  elementos.projetoPronta = consultar('projeto-pronta');
+  elementos.projetoMissoes = consultar('projeto-missoes');
+  elementos.acoesProjeto = consultar('acoes-projeto');
+  elementos.projetoAssociar = consultar('projeto-associar-missao');
+  elementos.projetoEditar = consultar('projeto-editar');
+  elementos.projetoIniciar = consultar('projeto-iniciar');
+  elementos.projetoConcluir = consultar('projeto-concluir');
+  elementos.projetoCancelar = consultar('projeto-cancelar');
+  elementos.projetoArquivar = consultar('projeto-arquivar');
+  elementos.projetoVoltar = consultar('projeto-voltar');
+  elementos.projetoPicker = consultar('projeto-missao-picker');
+  elementos.projetoPickerOpcoes = consultar('projeto-missao-opcoes');
+  elementos.projetoFecharPicker = consultar('projeto-fechar-picker');
+  elementos.formularioProjeto = consultar('formulario-projeto');
+  elementos.formularioProjetoTitulo = consultar('formulario-projeto-titulo');
+  elementos.campoProjetoTitulo = consultar('campo-projeto-titulo');
+  elementos.campoProjetoDescricao = consultar('campo-projeto-descricao');
+  elementos.campoProjetoPrioridade = consultar('campo-projeto-prioridade');
+  elementos.campoProjetoPrazo = consultar('campo-projeto-prazo');
+  elementos.avisoFormularioProjeto = consultar('aviso-formulario-projeto');
+  elementos.botaoSalvarProjeto = consultar('botao-salvar-projeto');
+  elementos.botaoCancelarProjeto = consultar('botao-cancelar-projeto');
   elementos.versao = consultar('versao');
   elementos.estado = consultar('estado');
   elementos.estadoTexto = consultar('estado-texto');
@@ -325,7 +369,305 @@ function exibirLevelUp(progressao) {
   botao.focus();
 }
 
+// ── Projetos (Fase 07) ───────────────────────────────────────────────
+
+/** Carrega os projetos do jogador via IPC e renderiza a lista. */
+async function carregarProjetos() {
+  if (!jogadorAtual) return;
+  try {
+    const resultado = await window.pulso.projeto.listar(jogadorAtual.id);
+    if (resultado.ok) {
+      projetosCarregados = resultado.projetos || [];
+      renderizarProjetos();
+    }
+  } catch (erro) {
+    console.error(`PULSO: falha ao carregar projetos — ${erro.message}`, erro);
+  }
+}
+
+/** Renderiza a lista de projetos conforme o filtro ativo. */
+function renderizarProjetos() {
+  const filtrados = filtrarProjetos(projetosCarregados, filtroProjetoAtual);
+  elementos.listaProjetos.replaceChildren();
+
+  if (filtrados.length === 0) {
+    elementos.avisoProjetos.textContent = 'Nenhum projeto encontrado.';
+    elementos.avisoProjetos.classList.remove('oculto');
+    return;
+  }
+
+  elementos.avisoProjetos.classList.add('oculto');
+  for (const projeto of filtrados) {
+    elementos.listaProjetos.append(criarItemProjeto(projeto));
+  }
+}
+
+function filtrarProjetos(projetos, filtro) {
+  if (filtro === 'todos') return projetos;
+  return projetos.filter((p) => p.estado === filtro);
+}
+
+/** Cria o cartão de projeto na lista. */
+function criarItemProjeto(projeto) {
+  const card = document.createElement('button');
+  card.className = 'missao-card';
+  card.dataset.id = String(projeto.id);
+  card.onclick = () => visualizarProjeto(projeto.id);
+
+  const info = document.createElement('div');
+  info.className = 'missao-info';
+
+  const titulo = document.createElement('span');
+  titulo.className = 'missao-card-titulo';
+  titulo.textContent = projeto.titulo;
+
+  const barra = document.createElement('div');
+  barra.className = 'progressao-barra projeto-barra';
+  const preenchimento = document.createElement('span');
+  preenchimento.className = 'progressao-preenchimento';
+  preenchimento.style.width = `${projeto.progresso}%`;
+  barra.append(preenchimento);
+
+  const detalhes = document.createElement('div');
+  detalhes.className = 'missao-card-detalhes';
+
+  const estado = document.createElement('span');
+  estado.className = `missao-estado projeto-estado-${projeto.estado}`;
+  estado.textContent = rotuloEstadoProjeto(projeto.estado);
+
+  const prioridade = document.createElement('span');
+  prioridade.className = `missao-prioridade prioridade-${projeto.prioridade}`;
+  prioridade.textContent = rotuloPrioridade(projeto.prioridade);
+
+  const progressoTexto = document.createElement('span');
+  progressoTexto.className = 'projeto-progresso-texto';
+  progressoTexto.textContent = `${projeto.progresso}%`;
+
+  detalhes.append(estado, prioridade, progressoTexto);
+  info.append(titulo, barra, detalhes);
+  card.append(info);
+  return card;
+}
+
+function rotuloEstadoProjeto(estado) {
+  const rotulos = {
+    planejado: 'Planejado',
+    em_andamento: 'Em andamento',
+    concluido: 'Concluído',
+    cancelado: 'Cancelado',
+    arquivado: 'Arquivado',
+  };
+  return rotulos[estado] ?? estado;
+}
+
+/** Abre os detalhes de um projeto. */
+async function visualizarProjeto(id) {
+  try {
+    const resultado = await window.pulso.projeto.obter(id);
+    if (!resultado.ok || !resultado.projeto) {
+      console.warn(`PULSO: projeto ${id} não encontrado`);
+      return;
+    }
+    projetoAtualId = id;
+    exibirDetalhesProjeto(resultado.projeto);
+  } catch (erro) {
+    console.error(`PULSO: falha ao obter projeto — ${erro.message}`, erro);
+  }
+}
+
+/** Renderiza os detalhes de um projeto. */
+function exibirDetalhesProjeto(projeto) {
+  elementos.projetoTitulo.textContent = projeto.titulo;
+  elementos.projetoDescricao.textContent = projeto.descricao || '—';
+  elementos.projetoEstado.textContent = rotuloEstadoProjeto(projeto.estado);
+  if (projeto.atrasado) {
+    elementos.projetoPrazo.textContent = `${projeto.prazo ? formatarData(projeto.prazo) : '—'} — ATRASADO`;
+    elementos.projetoEstado.classList.add('atrasado');
+  } else {
+    elementos.projetoPrazo.textContent = projeto.prazo ? formatarData(projeto.prazo) : 'Sem prazo';
+    elementos.projetoEstado.classList.remove('atrasado');
+  }
+  elementos.projetoPrioridade.textContent = rotuloPrioridade(projeto.prioridade);
+  elementos.projetoProgresso.textContent = `${projeto.progresso}%`;
+
+  elementos.projetoPronta.classList.toggle('oculto', !projeto.prontaParaEncerrar);
+
+  elementos.projetoMissoes.replaceChildren();
+  if (projeto.missoes.length === 0) {
+    const vazio = document.createElement('p');
+    vazio.className = 'missoes-vazio';
+    vazio.textContent = 'Nenhuma missão associada.';
+    elementos.projetoMissoes.append(vazio);
+  } else {
+    for (const missao of projeto.missoes) {
+      elementos.projetoMissoes.append(criarItemMissaoProjeto(missao));
+    }
+  }
+
+  atualizarAcoesProjeto(projeto.estado);
+  exibirVisaoProjeto('visao-projeto');
+}
+
+/** Cria o item de missão dentro do projeto. */
+function criarItemMissaoProjeto(missao) {
+  const item = document.createElement('button');
+  item.className = `missao-item missao-item-projeto estado-${missao.estado}`;
+  item.onclick = () => abrirMissaoNoProjeto(missao.id);
+
+  const marcador = document.createElement('span');
+  marcador.className = 'projeto-missao-marcador';
+  marcador.textContent = missao.estado === 'concluida' ? '[✓]' : '[ ]';
+
+  const titulo = document.createElement('span');
+  titulo.className = 'missao-item-titulo';
+  titulo.textContent = missao.titulo;
+
+  const estado = document.createElement('span');
+  estado.className = 'missao-item-estado';
+  estado.textContent = rotuloEstado(missao.estado);
+
+  item.append(marcador, titulo, estado);
+  return item;
+}
+
+/** Exibe a missão (reutiliza a visão de detalhes da FASE 05). */
+function abrirMissaoNoProjeto(id) {
+  visualizarMissao(id);
+}
+
+/** Configura os botões de ação conforme o estado. */
+function atualizarAcoesProjeto(estado) {
+  const ativo = ['planejado', 'em_andamento'].includes(estado);
+  elementos.projetoAssociar.disabled = !ativo;
+  elementos.projetoEditar.disabled = !ativo;
+  elementos.projetoIniciar.classList.toggle('oculto', estado !== 'planejado');
+  elementos.projetoConcluir.classList.toggle('oculto', estado !== 'em_andamento');
+  elementos.projetoCancelar.classList.toggle('oculto', !ativo);
+  elementos.projetoArquivar.classList.toggle('oculto', estado === 'arquivado');
+}
+
+/** Exibe o formulário de projeto (criação ou edição). */
+function exibirFormularioProjeto({ modo, projeto = null } = {}) {
+  modoEdicaoProjeto = modo === 'edicao';
+  elementos.formularioProjetoTitulo.textContent = modoEdicaoProjeto ? 'EDITAR PROJETO' : 'NOVO PROJETO';
+  elementos.campoProjetoTitulo.value = modoEdicaoProjeto ? projeto.titulo : '';
+  elementos.campoProjetoDescricao.value = modoEdicaoProjeto ? (projeto.descricao || '') : '';
+  elementos.campoProjetoPrioridade.value = modoEdicaoProjeto ? projeto.prioridade : 'normal';
+  elementos.campoProjetoPrazo.value = modoEdicaoProjeto && projeto.prazo ? projeto.prazo.slice(0, 16) : '';
+  elementos.avisoFormularioProjeto.textContent = '';
+  exibirVisaoProjeto('visao-formulario-projeto');
+}
+
+/** Alterna entre as visões de projetos (lista ↔ detalhe ↔ formulário). */
+function exibirVisaoProjeto(nome) {
+  exibirVisao(nome);
+  elementos.visaoProjetos.classList.toggle('oculto', nome !== 'visao-projetos');
+  elementos.visaoProjeto.classList.toggle('oculto', nome !== 'visao-projeto');
+  elementos.visaoFormularioProjeto.classList.toggle('oculto', nome !== 'visao-formulario-projeto');
+}
+
+/** Exibe o seletor de missões (apenas missões sem projeto). */
+async function abrirPickerMissao() {
+  if (!projetoAtualId) return;
+  elementos.projetoPickerOpcoes.replaceChildren();
+  const resultado = await window.pulso.missao.listar(jogadorAtual.id);
+  if (!resultado.ok) return;
+  const disponiveis = (resultado.missoes || []).filter((m) => !m.projetoId);
+  if (disponiveis.length === 0) {
+    const vazio = document.createElement('p');
+    vazio.className = 'missoes-vazio';
+    vazio.textContent = 'Nenhuma missão disponível (sem projeto).';
+    elementos.projetoPickerOpcoes.append(vazio);
+  } else {
+    for (const missao of disponiveis) {
+      const opcao = document.createElement('button');
+      opcao.className = 'missao-item';
+      opcao.textContent = missao.titulo;
+      opcao.onclick = () => associarMissao(projetoAtualId, missao.id);
+      elementos.projetoPickerOpcoes.append(opcao);
+    }
+  }
+  elementos.projetoPicker.classList.remove('oculto');
+}
+
+function fecharPickerMissao() {
+  elementos.projetoPicker.classList.add('oculto');
+}
+
+async function associarMissao(projetoId, missaoId) {
+  elementos.avisoProjeto.textContent = '';
+  try {
+    const res = await window.pulso.projeto.associarMissao(projetoId, missaoId);
+    if (!res.ok || !res.projeto) {
+      elementos.avisoProjeto.textContent = res.mensagem ?? 'Não foi possível associar a missão.';
+      return;
+    }
+    fecharPickerMissao();
+    exibirDetalhesProjeto(res.projeto);
+  } catch (erro) {
+    elementos.avisoProjeto.textContent = 'Falha de comunicação com o núcleo.';
+    console.error(`PULSO: falha ao associar missão — ${erro.message}`, erro);
+  }
+}
+
+/** Executa uma ação de estado do projeto. */
+async function acaoProjeto(acao) {
+  if (!projetoAtualId) return;
+  elementos.avisoProjeto.textContent = '';
+  const chamadas = {
+    iniciar: () => window.pulso.projeto.iniciar(projetoAtualId),
+    concluir: () => window.pulso.projeto.concluir(projetoAtualId),
+    cancelar: () => window.pulso.projeto.cancelar(projetoAtualId),
+    arquivar: () => window.pulso.projeto.arquivar(projetoAtualId),
+  };
+  try {
+    const resultado = await chamadas[acao]();
+    if (!resultado.ok) {
+      elementos.avisoProjeto.textContent = resultado.mensagem ?? 'Operação não permitida.';
+      return;
+    }
+    exibirDetalhesProjeto(resultado.projeto);
+    await carregarProjetos();
+  } catch (erro) {
+    elementos.avisoProjeto.textContent = 'Falha de comunicação com o núcleo.';
+    console.error(`PULSO: falha em ação de projeto — ${erro.message}`, erro);
+  }
+}
+
+/** Salva (cria ou edita) o projeto. */
+async function salvarProjeto() {
+  const dados = {
+    titulo: elementos.campoProjetoTitulo.value,
+    descricao: elementos.campoProjetoDescricao.value,
+    prioridade: elementos.campoProjetoPrioridade.value,
+    prazo: converterPrazoLocal(elementos.campoProjetoPrazo.value),
+  };
+  elementos.avisoFormularioProjeto.textContent = '';
+  try {
+    const resultado = modoEdicaoProjeto
+      ? await window.pulso.projeto.atualizar({ id: projetoAtualId, ...dados })
+      : await window.pulso.projeto.criar({ jogadorId: jogadorAtual.id, ...dados });
+    if (!resultado.ok) {
+      elementos.avisoFormularioProjeto.textContent = resultado.mensagem ?? 'Não foi possível salvar o projeto.';
+      return;
+    }
+    projetoAtualId = resultado.projeto.id;
+    await carregarProjetos();
+    exibirDetalhesProjeto(resultado.projeto);
+  } catch (erro) {
+    elementos.avisoFormularioProjeto.textContent = 'Falha de comunicação com o núcleo.';
+    console.error(`PULSO: falha ao salvar projeto — ${erro.message}`, erro);
+  }
+}
+
+/** Converte valor datetime-local para ISO ou null. */
+function converterPrazoLocal(valor) {
+  if (!valor) return null;
+  return new Date(valor).toISOString();
+}
+
 // ── Missões (Fase 05) ─────────────────────────────────────────────────
+
 
 /** Carrega as missões do jogador via IPC e renderiza a lista. */
 async function carregarMissoes() {
@@ -590,28 +932,40 @@ async function carregarEstadoJogador() {
   return window.pulso.jogador.estado();
 }
 
-/** Alterna a visão visível (configuração ↔ boot ↔ missões). */
+/** Alterna a visão visível (configuração ↔ boot ↔ missões ↔ projetos). */
 function exibirVisao(nomeVisao) {
   elementos.visaoConfiguracao.classList.toggle('oculto', nomeVisao !== 'visao-configuracao');
   elementos.visaoBoot.classList.toggle('oculto', nomeVisao !== 'visao-boot');
+
   const emMissoes = nomeVisao === 'visao-missoes'
     || nomeVisao === 'visao-missao'
     || nomeVisao === 'visao-formulario-missao';
-  if (!emMissoes) {
+  if (emMissoes) {
+    elementos.visaoConfiguracao.classList.add('oculto');
+    elementos.visaoBoot.classList.add('oculto');
+  } else {
     elementos.visaoMissoes.classList.add('oculto');
     elementos.visaoMissao.classList.add('oculto');
     elementos.visaoFormularioMissao.classList.add('oculto');
-  } else {
+  }
+
+  const emProjetos = nomeVisao === 'visao-projetos'
+    || nomeVisao === 'visao-projeto'
+    || nomeVisao === 'visao-formulario-projeto';
+  if (emProjetos) {
     elementos.visaoConfiguracao.classList.add('oculto');
     elementos.visaoBoot.classList.add('oculto');
+  } else {
+    elementos.visaoProjetos.classList.add('oculto');
+    elementos.visaoProjeto.classList.add('oculto');
+    elementos.visaoFormularioProjeto.classList.add('oculto');
   }
 }
 
-/** Vai para a lista de missões (esconde o painel principal). */
-function irParaMissoes() {
-  exibirVisao('visao-missoes');
-  exibirVisaoMissao('visao-missoes');
-  carregarMissoes();
+/** Vai para a lista de projetos (esconde o painel principal). */
+function irParaProjetos() {
+  exibirVisaoProjeto('visao-projetos');
+  carregarProjetos();
 }
 
 /** Volta ao painel principal (boot com status + progressão). */
@@ -657,6 +1011,7 @@ function executarBoot() {
   exibirVisao('visao-boot');
   elementos.botaoEditar.disabled = true;
   elementos.botaoVerMissoes.disabled = true;
+  elementos.botaoVerProjetos.disabled = true;
   definirEstado('INICIANDO…');
   const linhas = linhasDoBoot();
   montarLinhasBoot(linhas, false);
@@ -668,10 +1023,12 @@ function executarBoot() {
     definirEstado('SISTEMA ONLINE');
     elementos.botaoEditar.disabled = false;
     elementos.botaoVerMissoes.disabled = false;
+    elementos.botaoVerProjetos.disabled = false;
     elementos.mensagem.textContent = 'Operador identificado. Aguardando módulos…';
     carregarStatus();
     carregarProgressao();
     carregarMissoes();
+    carregarProjetos();
   }, atrasoConclusao);
 }
 
@@ -769,5 +1126,51 @@ document.addEventListener('DOMContentLoaded', () => {
   elementos.missaoConcluir.addEventListener('click', concluirMissao);
   elementos.missaoCancelar.addEventListener('click', cancelarMissao);
   elementos.missaoExcluir.addEventListener('click', excluirMissao);
+  // Projetos (Fase 07)
+  elementos.botaoVerProjetos.addEventListener('click', irParaProjetos);
+  elementos.botaoNovoProjeto.addEventListener('click', () => exibirFormularioProjeto());
+  elementos.projetosPainel.addEventListener('click', voltarAoPainel);
+  elementos.filtrosProjeto.addEventListener('click', (evento) => {
+    const botao = evento.target.closest('[data-filtro]');
+    if (!botao) return;
+    filtroProjetoAtual = botao.dataset.filtro;
+    for (const b of elementos.filtrosProjeto.querySelectorAll('[data-filtro]')) {
+      b.classList.toggle('ativo', b === botao);
+    }
+    renderizarProjetos();
+  });
+  elementos.projetoVoltar.addEventListener('click', () => {
+    if (projetoAtualId) {
+      exibirVisaoProjeto('visao-projetos');
+      carregarProjetos();
+    } else {
+      voltarAoPainel();
+    }
+  });
+  elementos.projetoAssociar.addEventListener('click', abrirPickerMissao);
+  elementos.projetoFecharPicker.addEventListener('click', fecharPickerMissao);
+  elementos.projetoEditar.addEventListener('click', () => {
+    const projeto = projetosCarregados.find((p) => p.id === projetoAtualId);
+    if (projeto) exibirFormularioProjeto({ modo: 'edicao', projeto });
+  });
+  elementos.projetoIniciar.addEventListener('click', () => acaoProjeto('iniciar'));
+  elementos.projetoConcluir.addEventListener('click', () => acaoProjeto('concluir'));
+  elementos.projetoCancelar.addEventListener('click', () => acaoProjeto('cancelar'));
+  elementos.projetoArquivar.addEventListener('click', () => acaoProjeto('arquivar'));
+  elementos.formularioProjeto.addEventListener('submit', (e) => {
+    e.preventDefault();
+    salvarProjeto();
+  });
+  elementos.botaoSalvarProjeto.addEventListener('click', (e) => {
+    e.preventDefault();
+    salvarProjeto();
+  });
+  elementos.botaoCancelarProjeto.addEventListener('click', () => {
+    if (projetoAtualId) {
+      visualizarProjeto(projetoAtualId);
+    } else {
+      exibirVisaoProjeto('visao-projetos');
+    }
+  });
   iniciar();
 });
