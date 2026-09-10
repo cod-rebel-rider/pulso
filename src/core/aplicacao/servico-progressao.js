@@ -85,7 +85,12 @@ export class ServicoProgressao {
         : this._atributos.criar(jogadorId, atributosIniciais());
       return this._montarVisao(prog, atr);
     };
-    return this._banco ? comTransacao(this._banco, criar) : criar();
+    // Sem transação própria: o caminho principal é chamado DENTRO da
+    // transação de criação do jogador (ServicoJogador.aoCriar — Fase 04/06),
+    // e transações aninhadas são rejeitadas pelo SQLite. No caminho de
+    // auto-inicialização (obter → jogador legado), as verificações `existe`
+    // tornam a operação idempotente e reparável em chamadas seguintes.
+    return criar();
   }
 
   /** Obtém a progressão; inicializa se o jogador veio de banco antigo. */
