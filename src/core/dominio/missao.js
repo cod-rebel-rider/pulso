@@ -211,6 +211,8 @@ export function paraMissao(linha) {
     estado: linha.estado,
     prioridade: linha.prioridade,
     prazo: linha.prazo ?? null,
+    // Fase 07: projeto a que a missão pertence (null = sem projeto).
+    projetoId: linha.projeto_id ?? null,
     criadoEm: linha.criado_em,
     atualizadoEm: linha.atualizado_em,
     iniciadaEm: linha.iniciada_em ?? null,
