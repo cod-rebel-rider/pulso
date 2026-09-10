@@ -968,6 +968,12 @@ function irParaProjetos() {
   carregarProjetos();
 }
 
+/** Vai para a lista de missões (esconde o painel principal). */
+function irParaMissoes() {
+  exibirVisaoMissao('visao-missoes');
+  carregarMissoes();
+}
+
 /** Volta ao painel principal (boot com status + progressão). */
 function voltarAoPainel() {
   exibirVisao('visao-boot');
