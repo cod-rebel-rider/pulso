@@ -22,4 +22,7 @@ module.exports = Object.freeze({
   MISSAO_CONCLUIR: 'missao:concluir',
   MISSAO_CANCELAR: 'missao:cancelar',
   MISSAO_EXCLUIR: 'missao:excluir',
+  PROGRESSAO_OBTER: 'progressao:obter',
+  PROGRESSAO_ADICIONAR_XP: 'progressao:adicionar-xp',
+  PROGRESSAO_AUMENTAR_ATRIBUTO: 'progressao:aumentar-atributo',
 });

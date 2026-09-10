@@ -24,9 +24,12 @@ import { inicializarBanco } from '../core/database/inicializar.js';
 import { RepositorioJogador } from '../core/database/repositorios/jogador.js';
 import { RepositorioStatus } from '../core/database/repositorios/status.js';
 import { RepositorioMissao } from '../core/database/repositorios/missao.js';
+import { RepositorioProgressao } from '../core/database/repositorios/progressao.js';
+import { RepositorioAtributos } from '../core/database/repositorios/atributos.js';
 import { ServicoJogador } from '../core/aplicacao/servico-jogador.js';
 import { ServicoStatus } from '../core/aplicacao/servico-status.js';
 import { ServicoMissao } from '../core/aplicacao/servico-missao.js';
+import { ServicoProgressao } from '../core/aplicacao/servico-progressao.js';
 import { ErroValidacao, ErroConflito, ErroTransicao } from '../core/erros.js';
 import canais from './canais.cjs';
 
@@ -51,6 +54,7 @@ let estadoBanco = null;
 let servicoJogador = null;
 let servicoStatus = null;
 let servicoMissao = null;
+let servicoProgressao = null;
 
 // ── Teste de fumaça ─────────────────────────────────────────────────────
 const resultadosFumaca = {
@@ -294,6 +298,33 @@ function registrarIpc() {
       registro.info(`Missão excluída: id=${id}`);
       return { ok: true };
     }));
+
+  // ── Progressão (Fase 06) ────────────────────────────────────────────
+  ipcMain.handle(canais.PROGRESSAO_OBTER, (_evento, { jogadorId } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const progressao = servicoProgressao.obter(Number(jogadorId ?? 0));
+      return { ok: true, progressao };
+    }));
+
+  ipcMain.handle(canais.PROGRESSAO_ADICIONAR_XP, (_evento, { jogadorId, quantidade } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const progressao = servicoProgressao.adicionarXp(Number(jogadorId ?? 0), Number(quantidade));
+      if (progressao.subiuNivel) {
+        registro.info(`Level up: nível ${progressao.nivel} (+${progressao.niveisGanhos} ponto(s)).`);
+      }
+      return { ok: true, progressao };
+    }));
+
+  ipcMain.handle(canais.PROGRESSAO_AUMENTAR_ATRIBUTO, (_evento, { jogadorId, atributo, quantidade } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const progressao = servicoProgressao.aumentarAtributo(
+        Number(jogadorId ?? 0),
+        atributo,
+        Number(quantidade ?? 1),
+      );
+      registro.info(`Atributo aumentado: ${atributo} +${quantidade ?? 1}.`);
+      return { ok: true, progressao };
+    }));
 }
 
 /**
@@ -368,9 +399,17 @@ async function aoIniciar() {
   const repositorioJogador = new RepositorioJogador(estadoBanco.banco);
   const repositorioStatus = new RepositorioStatus(estadoBanco.banco);
   const repositorioMissao = new RepositorioMissao(estadoBanco.banco);
+  const repositorioProgressao = new RepositorioProgressao(estadoBanco.banco);
+  const repositorioAtributos = new RepositorioAtributos(estadoBanco.banco);
 
-  // Criação atômica: jogador + status inicial em uma única transação.
+  // Criação atômica: jogador + status + progressão iniciais em uma transação.
   servicoStatus = new ServicoStatus({ repositorio: repositorioStatus, repositorioJogador });
+  servicoProgressao = new ServicoProgressao({
+    repositorioProgressao,
+    repositorioAtributos,
+    repositorioJogador,
+    banco: estadoBanco.banco,
+  });
   servicoJogador = new ServicoJogador({
     repositorio: repositorioJogador,
     banco: estadoBanco.banco,
@@ -379,6 +418,8 @@ async function aoIniciar() {
       registro.info(
         `Status inicial criado: energia=${status.energia}, foco=${status.foco}, estresse=${status.estresse}, criatividade=${status.criatividade}`,
       );
+      servicoProgressao.criarInicial(jogador.id);
+      registro.info('Progressão inicial criada: nível 1, 0 XP, atributos em 1.');
     },
   });
   servicoMissao = new ServicoMissao({ repositorio: repositorioMissao });
