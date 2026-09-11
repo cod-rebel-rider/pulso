@@ -101,7 +101,114 @@
         <button type="button" id="botao-editar" class="botao-secundario" disabled>EDITAR IDENTIDADE</button>
         <button type="button" id="botao-teste-status" class="botao-secundario oculto">AJUSTAR STATUS</button>
         <button type="button" id="botao-ver-missoes" class="botao-secundario" disabled>VER MISSÕES</button>
+        <button type="button" id="botao-ver-projetos" class="botao-secundario" disabled>VER PROJETOS</button>
       </div>
+    </section>
+
+    <!-- Lista de projetos (Fase 07) -->
+    <section class="nucleo visao oculto" id="visao-projetos">
+      <p class="rotulo-secao">PROJETOS</p>
+      <h1 class="titulo-secao">DIREÇÕES</h1>
+
+      <div class="toolbar-missoes">
+        <div class="filtros" id="filtros-projeto" role="tablist" aria-label="Filtros de projeto">
+          <button type="button" class="filtro ativo" data-filtro="todos">TODOS</button>
+          <button type="button" class="filtro" data-filtro="planejado">PLANEJADOS</button>
+          <button type="button" class="filtro" data-filtro="em_andamento">EM ANDAMENTO</button>
+          <button type="button" class="filtro" data-filtro="concluido">CONCLUÍDOS</button>
+          <button type="button" class="filtro" data-filtro="cancelado">CANCELADOS</button>
+          <button type="button" class="filtro" data-filtro="arquivado">ARQUIVADOS</button>
+        </div>
+        <button type="button" id="botao-novo-projeto" class="botao-primario">CRIAR PROJETO</button>
+      </div>
+
+      <p class="aviso" id="aviso-projetos" role="alert"></p>
+
+      <div class="lista-missoes" id="lista-projetos"></div>
+
+      <div class="acoes-missao">
+        <button type="button" id="projetos-painel" class="botao-secundario">VOLTAR AO PAINEL</button>
+      </div>
+    </section>
+
+    <!-- Detalhes de um projeto (Fase 07) -->
+    <section class="nucleo visao oculto" id="visao-projeto">
+      <p class="rotulo-secao">PROJETO</p>
+      <h1 class="titulo-secao" id="projeto-titulo">—</h1>
+      <p class="descricao-secao" id="projeto-descricao">—</p>
+
+      <dl class="missao-meta" id="projeto-meta">
+        <div class="meta-linha">
+          <dt>ESTADO</dt>
+          <dd id="projeto-estado">—</dd>
+        </div>
+        <div class="meta-linha">
+          <dt>PRIORIDADE</dt>
+          <dd id="projeto-prioridade">—</dd>
+        </div>
+        <div class="meta-linha">
+          <dt>PRAZO</dt>
+          <dd id="projeto-prazo">—</dd>
+        </div>
+        <div class="meta-linha">
+          <dt>PROGRESSO</dt>
+          <dd id="projeto-progresso">—</dd>
+        </div>
+      </dl>
+
+      <p class="aviso" id="aviso-projeto" role="alert"></p>
+
+      <p class="rotulo-secao">MISSÕES</p>
+      <p class="aviso oculto" id="projeto-pronta" role="status">Todas as missões concluídas. Projeto pronto para encerramento.</p>
+      <div class="lista-missoes" id="projeto-missoes"></div>
+
+      <div class="acoes-missao" id="acoes-projeto">
+        <button type="button" id="projeto-associar-missao" class="botao-secundario">+ ADICIONAR MISSÃO</button>
+        <button type="button" id="projeto-editar" class="botao-secundario" disabled>EDITAR</button>
+        <button type="button" id="projeto-iniciar" class="botao-primario oculto">INICIAR</button>
+        <button type="button" id="projeto-concluir" class="botao-primario oculto">CONCLUIR</button>
+        <button type="button" id="projeto-cancelar" class="botao-secundario oculto">CANCELAR</button>
+        <button type="button" id="projeto-arquivar" class="botao-secundario oculto">ARQUIVAR</button>
+        <button type="button" id="projeto-voltar" class="botao-secundario">VOLTAR</button>
+      </div>
+
+      <div class="lista-missoes oculto" id="projeto-missao-picker">
+        <p class="rotulo-secao">SELECIONAR MISSÃO</p>
+        <div id="projeto-missao-opcoes"></div>
+        <button type="button" id="projeto-fechar-picker" class="botao-secundario">FECHAR</button>
+      </div>
+    </section>
+
+    <!-- Formulário de projeto (Fase 07) -->
+    <section class="nucleo visao oculto" id="visao-formulario-projeto">
+      <p class="rotulo-secao">PROJETO</p>
+      <h1 class="titulo-secao" id="formulario-projeto-titulo">NOVO PROJETO</h1>
+
+      <form id="formulario-projeto" novalidate>
+        <label for="campo-projeto-titulo">TÍTULO <span class="obrigatorio">*</span></label>
+        <input id="campo-projeto-titulo" name="titulo" maxlength="120" autocomplete="off" spellcheck="false" />
+
+        <label for="campo-projeto-descricao">DESCRIÇÃO <span class="opcional">(opcional)</span></label>
+        <textarea id="campo-projeto-descricao" name="descricao" maxlength="2000" rows="4"></textarea>
+
+        <label for="campo-projeto-prioridade">PRIORIDADE</label>
+        <select id="campo-projeto-prioridade" name="prioridade">
+          <option value="baixa">Baixa</option>
+          <option value="normal" selected>Normal</option>
+          <option value="alta">Alta</option>
+          <option value="critica">Crítica</option>
+        </select>
+
+        <label for="campo-projeto-prazo">PRAZO <span class="opcional">(opcional)</span></label>
+        <input id="campo-projeto-prazo" name="prazo" type="datetime-local" />
+
+        <p class="aviso" id="aviso-formulario-projeto" role="alert"></p>
+
+        <div class="acoes-formulario">
+          <button type="submit" id="botao-salvar-projeto">SALVAR PROJETO</button>
+          <button type="button" id="botao-cancelar-projeto" class="botao-secundario">CANCELAR</button>
+        </div>
+      </form>
     </section>
 
     <!-- Missões (Fase 05) -->

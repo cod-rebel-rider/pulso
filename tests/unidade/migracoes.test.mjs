@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { abrirConexao, fecharConexao } from '../../src/core/database/conexao.js';
 import { aplicarMigracoes, versaoAtual, MIGRACOES } from '../../src/core/database/migracoes.js';
 
-test('banco vazio recebe as migrações oficiais: schema v5 com infraestrutura, jogador, status, missões e progressão', () => {
+test('banco vazio recebe as migrações oficiais: schema v6 com infraestrutura, jogador, status, missões, progressão e projetos', () => {
   const banco = abrirConexao({ caminho: ':memory:' });
   try {
     const resultado = aplicarMigracoes(banco);
@@ -17,9 +17,10 @@ test('banco vazio recebe as migrações oficiais: schema v5 com infraestrutura, 
       { versao: 3, nome: 'criar-tabela-status' },
       { versao: 4, nome: 'criar-tabela-missoes' },
       { versao: 5, nome: 'criar-tabelas-progressao' },
+      { versao: 6, nome: 'criar-tabela-projetos' },
     ]);
-    assert.equal(resultado.versaoAtual, 5);
-    assert.equal(versaoAtual(banco), 5);
+    assert.equal(resultado.versaoAtual, 6);
+    assert.equal(versaoAtual(banco), 6);
 
     assert.equal(banco.prepare("SELECT valor FROM meta WHERE chave = 'aplicacao'").get().valor, 'PULSO');
     // a tabela do jogador existe e aceita inserção mínima
@@ -28,14 +29,18 @@ test('banco vazio recebe as migrações oficiais: schema v5 com infraestrutura, 
     // a tabela de status existe e aceita inserção mínima
     banco.prepare("INSERT INTO jogador_status (jogador_id, energia, foco, estresse, criatividade) VALUES (1, 100, 100, 0, 100)").run();
     assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM jogador_status').get().n, 1);
-    // a tabela de missões existe e aceita inserção mínima
+    // a tabela de missões existe e aceita inserção mínima (com projeto_id NULL)
     banco.prepare("INSERT INTO missao (jogador_id, titulo, estado, prioridade) VALUES (1, 'Teste', 'pendente', 'normal')").run();
     assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM missao').get().n, 1);
+    assert.equal(banco.prepare('SELECT projeto_id FROM missao WHERE id = 1').get().projeto_id, null);
     // as tabelas de progressão existem e aceitam inserção mínima
     banco.prepare('INSERT INTO jogador_progressao (jogador_id, xp_total, nivel, pontos_disponiveis) VALUES (1, 0, 1, 0)').run();
     assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM jogador_progressao').get().n, 1);
     banco.prepare('INSERT INTO jogador_atributos (jogador_id, tecnologia, criatividade, musica, social, energia, foco, disciplina) VALUES (1, 1, 1, 1, 1, 1, 1, 1)').run();
     assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM jogador_atributos').get().n, 1);
+    // a tabela de projetos existe, aceita inserção mínima e vincula missão
+    banco.prepare("INSERT INTO projeto (jogador_id, titulo) VALUES (1, 'Projeto')").run();
+    assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM projeto').get().n, 1);
   } finally {
     fecharConexao(banco);
   }
@@ -58,7 +63,7 @@ test('migrações já aplicadas não são executadas novamente', () => {
     assert.equal(registroDepois.aplicada_em, registroOriginal.aplicada_em, 'registro inalterado');
     assert.equal(
       banco.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get().n,
-      5,
+      6,
       'todas as migrações oficiais registradas uma única vez',
     );
   } finally {

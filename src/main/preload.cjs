@@ -33,6 +33,16 @@ const CANAL_MISSAO_EXCLUIR = 'missao:excluir'; // igual a canais.cjs → MISSAO_
 const CANAL_PROGRESSAO_OBTER = 'progressao:obter'; // igual a canais.cjs → PROGRESSAO_OBTER
 const CANAL_PROGRESSAO_ADICIONAR_XP = 'progressao:adicionar-xp'; // igual a canais.cjs → PROGRESSAO_ADICIONAR_XP
 const CANAL_PROGRESSAO_AUMENTAR_ATRIBUTO = 'progressao:aumentar-atributo'; // igual a canais.cjs → PROGRESSAO_AUMENTAR_ATRIBUTO
+const CANAL_PROJETO_CRIAR = 'projeto:criar'; // igual a canais.cjs → PROJETO_CRIAR
+const CANAL_PROJETO_LISTAR = 'projeto:listar'; // igual a canais.cjs → PROJETO_LISTAR
+const CANAL_PROJETO_OBTER = 'projeto:obter'; // igual a canais.cjs → PROJETO_OBTER
+const CANAL_PROJETO_ATUALIZAR = 'projeto:atualizar'; // igual a canais.cjs → PROJETO_ATUALIZAR
+const CANAL_PROJETO_INICIAR = 'projeto:iniciar'; // igual a canais.cjs → PROJETO_INICIAR
+const CANAL_PROJETO_CONCLUIR = 'projeto:concluir'; // igual a canais.cjs → PROJETO_CONCLUIR
+const CANAL_PROJETO_CANCELAR = 'projeto:cancelar'; // igual a canais.cjs → PROJETO_CANCELAR
+const CANAL_PROJETO_ARQUIVAR = 'projeto:arquivar'; // igual a canais.cjs → PROJETO_ARQUIVAR
+const CANAL_PROJETO_ASSOCIAR_MISSAO = 'projeto:associar-missao'; // igual a canais.cjs → PROJETO_ASSOCIAR_MISSAO
+const CANAL_PROJETO_REMOVER_MISSAO = 'projeto:remover-missao'; // igual a canais.cjs → PROJETO_REMOVER_MISSAO
 
 const { contextBridge, ipcRenderer } = require('electron');
 
@@ -157,6 +167,24 @@ contextBridge.exposeInMainWorld(
       obter: (jogadorId) => ipcRenderer.invoke(CANAL_PROGRESSAO_OBTER, { jogadorId }),
       adicionarXp: (jogadorId, quantidade) => ipcRenderer.invoke(CANAL_PROGRESSAO_ADICIONAR_XP, { jogadorId, quantidade }),
       aumentarAtributo: (jogadorId, atributo, quantidade = 1) => ipcRenderer.invoke(CANAL_PROGRESSAO_AUMENTAR_ATRIBUTO, { jogadorId, atributo, quantidade }),
+    }),
+
+    /**
+     * Operações específicas de projetos (Fase 07) — nunca acesso genérico.
+     */
+    projeto: Object.freeze({
+      criar: (dados) => ipcRenderer.invoke(CANAL_PROJETO_CRIAR, dados),
+      listar: (jogadorId) => ipcRenderer.invoke(CANAL_PROJETO_LISTAR, { jogadorId }),
+      obter: (id) => ipcRenderer.invoke(CANAL_PROJETO_OBTER, { id }),
+      atualizar: (dados) => ipcRenderer.invoke(CANAL_PROJETO_ATUALIZAR, dados),
+      iniciar: (id) => ipcRenderer.invoke(CANAL_PROJETO_INICIAR, { id }),
+      concluir: (id) => ipcRenderer.invoke(CANAL_PROJETO_CONCLUIR, { id }),
+      cancelar: (id) => ipcRenderer.invoke(CANAL_PROJETO_CANCELAR, { id }),
+      arquivar: (id) => ipcRenderer.invoke(CANAL_PROJETO_ARQUIVAR, { id }),
+      associarMissao: (projetoId, missaoId) =>
+        ipcRenderer.invoke(CANAL_PROJETO_ASSOCIAR_MISSAO, { projetoId, missaoId }),
+      removerMissao: (projetoId, missaoId) =>
+        ipcRenderer.invoke(CANAL_PROJETO_REMOVER_MISSAO, { projetoId, missaoId }),
     }),
   }),
 );

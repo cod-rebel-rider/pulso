@@ -158,8 +158,47 @@ const MIGRACAO_005 = Object.freeze({
   },
 });
 
+/** Migração 006 — projetos + vínculo missão→projeto (Fase 07). */
+const MIGRACAO_006 = Object.freeze({
+  versao: 6,
+  nome: 'criar-tabela-projetos',
+  cima(banco) {
+    // Projeto: direção que organiza missões. Sem exclusão física como
+    // operação principal — arquivar/cancelar preservam o histórico.
+    banco.exec(`
+      CREATE TABLE projeto (
+        id             INTEGER PRIMARY KEY,
+        jogador_id     INTEGER NOT NULL REFERENCES jogador(id) ON DELETE CASCADE,
+        titulo         TEXT NOT NULL,
+        descricao      TEXT,
+        estado         TEXT NOT NULL DEFAULT 'planejado',
+        prioridade     TEXT NOT NULL DEFAULT 'normal',
+        prazo          TEXT,
+        iniciada_em    TEXT,
+        concluida_em   TEXT,
+        cancelada_em   TEXT,
+        criado_em      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+      ) STRICT
+    `);
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_projeto_jogador ON projeto(jogador_id)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_projeto_estado ON projeto(estado)');
+    // Missão pertence a no máximo UM projeto (1:N simples, sem N:N).
+    // SET NULL preserva missões se o projeto for removido tecnicamente.
+    banco.exec('ALTER TABLE missao ADD COLUMN projeto_id INTEGER REFERENCES projeto(id) ON DELETE SET NULL');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_missao_projeto ON missao(projeto_id)');
+  },
+});
+
 /** Lista oficial de migrações — fases futuras ACRESCENTAM ao final. */
-export const MIGRACOES = Object.freeze([MIGRACAO_001, MIGRACAO_002, MIGRACAO_003, MIGRACAO_004, MIGRACAO_005]);
+export const MIGRACOES = Object.freeze([
+  MIGRACAO_001,
+  MIGRACAO_002,
+  MIGRACAO_003,
+  MIGRACAO_004,
+  MIGRACAO_005,
+  MIGRACAO_006,
+]);
 
 function validarLista(migracoes) {
   migracoes.forEach((migracao, indice) => {

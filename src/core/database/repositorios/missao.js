@@ -17,12 +17,12 @@ const INSERIR_MISSAO = `
   VALUES (?, ?, ?, ?, ?, ?)
 `;
 const BUSCAR_POR_ID = `
-  SELECT id, jogador_id, titulo, descricao, estado, prioridade, prazo,
+  SELECT id, jogador_id, titulo, descricao, estado, prioridade, prazo, projeto_id,
          criado_em, atualizado_em, iniciada_em, concluida_em, cancelada_em
   FROM missao WHERE id = ?
 `;
 const LISTAR_POR_JOGADOR = `
-  SELECT id, jogador_id, titulo, descricao, estado, prioridade, prazo,
+  SELECT id, jogador_id, titulo, descricao, estado, prioridade, prazo, projeto_id,
          criado_em, atualizado_em, iniciada_em, concluida_em, cancelada_em
   FROM missao WHERE jogador_id = ?
   ORDER BY
