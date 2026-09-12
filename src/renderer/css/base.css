@@ -22,6 +22,7 @@
 html,
 body {
   height: 100%;
+  min-width: 0;
 }
 
 body {
@@ -29,7 +30,10 @@ body {
   color: var(--pulso-branco);
   font-family: var(--pulso-mono);
   overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: hidden;
   position: relative;
+  min-width: 0;
 }
 
 /* linhas de varredura discretas (textura de terminal) */

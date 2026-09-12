@@ -51,9 +51,13 @@
   position: relative;
   z-index: 1;
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-  padding: 26px 36px;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  padding: clamp(14px, 2.5vh + 6px, 26px) clamp(14px, 3.5vw, 36px);
 }
 
 /* filete vermelho superior (acento HUD) */
@@ -70,8 +74,12 @@
 
 .cabecalho {
   display: flex;
+  flex-shrink: 0;
+  min-width: 0;
   align-items: baseline;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
   border-bottom: 1px solid var(--pulso-cinza-escuro);
   padding-bottom: 12px;
 }
@@ -97,13 +105,41 @@
 
 /* ── núcleo da tela ──────────────────────────────────────────────────── */
 .nucleo {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: flex-start;
+  align-content: flex-start;
   gap: 14px;
-  max-width: 660px;
+  max-width: min(660px, 100%);
+  width: 100%;
+  margin-inline: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding-block: 4px max(4px, env(safe-area-inset-bottom));
+  padding-right: 8px;
+}
+
+/* Centraliza verticalmente quando o conteúdo cabe, sem cortar o topo
+   quando há overflow: as margens automáticas absorvem o espaço livre e
+   colapsam para zero quando o conteúdo ultrapassa a altura disponível. */
+.nucleo > :first-child {
+  margin-top: auto;
+}
+
+.nucleo > :last-child {
+  margin-bottom: auto;
+}
+
+.nucleo > * {
+  flex-shrink: 0;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .estado {
@@ -147,7 +183,7 @@
 }
 
 .titulo {
-  font-size: clamp(54px, 9vw, 92px);
+  font-size: clamp(42px, min(9vw, 11vh + 24px), 92px);
   font-weight: 700;
   letter-spacing: 0.16em;
   line-height: 1;
@@ -182,6 +218,9 @@
 /* ── sequência de inicialização (terminal) ───────────────────────────── */
 .boot {
   list-style: none;
+  min-width: 0;
+  width: 100%;
+  max-width: 430px;
   display: flex;
   flex-direction: column;
   gap: 7px;
@@ -235,10 +274,13 @@
 }
 
 .rodape {
+  flex-shrink: 0;
   display: flex;
-  align-items: baseline;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px 16px;
   border-top: 1px solid var(--pulso-cinza-escuro);
   padding-top: 12px;
   font-size: 12px;
@@ -248,6 +290,11 @@
 
 .rodape .separador {
   color: var(--pulso-vermelho);
+}
+
+.rodape > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* ── visões e formulário do operador (Fase 03) ───────────────────────── */
@@ -280,6 +327,7 @@
   gap: 6px;
   max-width: 460px;
   width: 100%;
+  min-width: 0;
   margin-top: 10px;
 }
 
@@ -296,6 +344,9 @@
 }
 
 #formulario-jogador input {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   background: var(--pulso-superficie);
   border: 1px solid var(--pulso-cinza-escuro);
   color: var(--pulso-branco);
@@ -317,6 +368,7 @@
 }
 
 .acoes-formulario {
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -371,6 +423,7 @@
 
 /* ── Status do operador (Fase 04) ──────────────────────────────────── */
 .status-painel {
+  min-width: 0;
   width: 100%;
   max-width: 460px;
   margin-top: 18px;
@@ -423,6 +476,7 @@
 }
 
 .acoes-boot {
+  flex-wrap: wrap;
   display: flex;
   gap: 10px;
   margin-top: 14px;
@@ -434,6 +488,7 @@
 
 /* ── Progressão (Fase 06) ──────────────────────────────────────────── */
 .progressao-painel {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -537,6 +592,7 @@
 }
 
 .progressao-acoes {
+  flex-wrap: wrap;
   display: flex;
   gap: 10px;
   margin-top: 4px;
@@ -730,12 +786,15 @@
 }
 
 .lista-missoes {
+  min-width: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
 .missao-card {
+  min-width: 0;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
@@ -852,12 +911,17 @@
 
 /* Formulário de missão */
 #formulario-missao textarea {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   resize: vertical;
   min-height: 80px;
 }
 
 #formulario-missao select {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: 10px 12px;
   background: var(--pulso-superficie);
   border: 1px solid var(--pulso-cinza-escuro);
