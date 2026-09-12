@@ -957,3 +957,179 @@
   background: var(--pulso-perigo);
   color: var(--pulso-branco);
 }
+
+/* ── Finanças (Fase 08) ─────────────────────────────────────────────── */
+
+/* Resumo: saldo + receitas + despesas do mês */
+.financa-resumo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin: 16px 0 24px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.financa-cartao {
+  border: 1px solid var(--pulso-cinza-escuro);
+  background: var(--pulso-superficie);
+  padding: 14px 16px;
+  min-width: 0;
+}
+
+.financa-cartao-saldo {
+  border-color: var(--pulso-vermelho-escuro);
+}
+
+.financa-saldo {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--pulso-branco);
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+
+.financa-saldo.financa-negativo {
+  color: var(--pulso-perigo);
+}
+
+.financa-metrica {
+  font-size: 18px;
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+
+.financa-metrica-receita {
+  color: var(--pulso-sucesso);
+}
+
+.financa-metrica-despesa {
+  color: var(--pulso-perigo);
+}
+
+/* Orçamentos */
+.lista-orcamentos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin: 12px 0 24px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.orcamento-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  background: var(--pulso-superficie);
+  border: 1px solid var(--pulso-cinza-escuro);
+  padding: 12px 14px;
+  color: var(--pulso-branco);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+  min-width: 0;
+}
+
+.orcamento-item:hover {
+  border-color: var(--pulso-vermelho);
+}
+
+.orcamento-categoria {
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--pulso-vermelho);
+}
+
+.orcamento-valores {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.orcamento-situacao {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.orcamento-situacao.ok {
+  color: var(--pulso-cinza);
+}
+
+.orcamento-situacao.estourado {
+  color: var(--pulso-perigo);
+}
+
+.orcamento-barra {
+  display: block;
+  height: 4px;
+  background: var(--pulso-cinza-escuro);
+  width: 100%;
+}
+
+.orcamento-barra-preenchimento {
+  display: block;
+  height: 100%;
+  background: var(--pulso-cinza);
+  transition: width 0.2s ease;
+}
+
+.orcamento-barra-preenchimento.estourado {
+  background: var(--pulso-perigo);
+}
+
+/* Filtro de categoria do histórico */
+#filtro-categoria-financa {
+  padding: 8px 10px;
+  background: var(--pulso-superficie);
+  border: 1px solid var(--pulso-cinza-escuro);
+  color: var(--pulso-branco);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  max-width: 100%;
+  min-width: 0;
+}
+
+#filtro-categoria-financa:focus {
+  outline: none;
+  border-color: var(--pulso-vermelho);
+}
+
+/* Histórico de transações */
+.transacao-item {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  gap: 10px;
+  align-items: baseline;
+  text-align: left;
+}
+
+.transacao-valor {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.transacao-valor.receita {
+  color: var(--pulso-sucesso);
+}
+
+.transacao-valor.despesa {
+  color: var(--pulso-perigo);
+}
+
+.transacao-item .missao-item-titulo {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Formulários financeiros */
+#formulario-transacao,
+#formulario-orcamento {
+  max-width: 460px;
+}

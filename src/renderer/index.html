@@ -102,6 +102,7 @@
         <button type="button" id="botao-teste-status" class="botao-secundario oculto">AJUSTAR STATUS</button>
         <button type="button" id="botao-ver-missoes" class="botao-secundario" disabled>VER MISSÕES</button>
         <button type="button" id="botao-ver-projetos" class="botao-secundario" disabled>VER PROJETOS</button>
+        <button type="button" id="botao-ver-financas" class="botao-secundario" disabled>VER FINANÇAS</button>
       </div>
     </section>
 
@@ -309,6 +310,118 @@
         <div class="acoes-formulario">
           <button type="submit" id="botao-salvar-missao">SALVAR MISSÃO</button>
           <button type="button" id="botao-cancelar-missao" class="botao-secundario">CANCELAR</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Finanças: carteira + resumo + orçamentos + histórico (Fase 08) -->
+    <section class="nucleo visao oculto" id="visao-financas">
+      <p class="rotulo-secao">FINANÇAS</p>
+      <h1 class="titulo-secao" id="financa-carteira-nome">CARTEIRA</h1>
+
+      <section class="financa-resumo" aria-label="Resumo financeiro">
+        <div class="financa-cartao financa-cartao-saldo">
+          <p class="rotulo-secao">SALDO ATUAL</p>
+          <p class="financa-saldo" id="financa-saldo">R$ 0,00</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">RECEITAS DO MÊS</p>
+          <p class="financa-metrica financa-metrica-receita" id="financa-receitas">R$ 0,00</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">DESPESAS DO MÊS</p>
+          <p class="financa-metrica financa-metrica-despesa" id="financa-despesas">R$ 0,00</p>
+        </div>
+      </section>
+
+      <p class="aviso" id="aviso-financas" role="alert"></p>
+
+      <p class="rotulo-secao">ORÇAMENTOS</p>
+      <div class="lista-orcamentos" id="lista-orcamentos"></div>
+
+      <p class="rotulo-secao">HISTÓRICO</p>
+      <div class="toolbar-missoes">
+        <div class="filtros" id="filtros-financa" role="tablist" aria-label="Filtros do histórico">
+          <button type="button" class="filtro ativo" data-filtro="todas">TODAS</button>
+          <button type="button" class="filtro" data-filtro="receita">RECEITAS</button>
+          <button type="button" class="filtro" data-filtro="despesa">DESPESAS</button>
+        </div>
+        <select id="filtro-categoria-financa" aria-label="Filtrar por categoria">
+          <option value="">TODAS AS CATEGORIAS</option>
+        </select>
+      </div>
+      <div class="lista-missoes" id="lista-transacoes"></div>
+
+      <div class="acoes-missao">
+        <button type="button" id="botao-nova-transacao" class="botao-primario">NOVA TRANSAÇÃO</button>
+        <button type="button" id="botao-novo-orcamento" class="botao-secundario">NOVO ORÇAMENTO</button>
+        <button type="button" id="financas-painel" class="botao-secundario">VOLTAR AO PAINEL</button>
+      </div>
+    </section>
+
+    <!-- Formulário de transação: criação e edição (Fase 08) -->
+    <section class="nucleo visao oculto" id="visao-formulario-transacao">
+      <p class="rotulo-secao" id="formulario-transacao-titulo-secao">NOVA TRANSAÇÃO</p>
+      <h1 class="titulo-secao" id="formulario-transacao-titulo">REGISTRAR MOVIMENTAÇÃO</h1>
+
+      <form id="formulario-transacao" novalidate>
+        <label for="campo-transacao-tipo">TIPO</label>
+        <select id="campo-transacao-tipo" name="tipo">
+          <option value="receita">Receita</option>
+          <option value="despesa">Despesa</option>
+        </select>
+
+        <label for="campo-transacao-valor">VALOR <span class="obrigatorio">*</span></label>
+        <input id="campo-transacao-valor" name="valor" inputmode="decimal"
+               placeholder="0,00" autocomplete="off" spellcheck="false" maxlength="14" />
+
+        <label for="campo-transacao-categoria">CATEGORIA <span class="obrigatorio">*</span></label>
+        <select id="campo-transacao-categoria" name="categoria"></select>
+
+        <label for="campo-transacao-descricao">DESCRIÇÃO <span class="opcional">(opcional)</span></label>
+        <input id="campo-transacao-descricao" name="descricao" maxlength="140" autocomplete="off" spellcheck="false" />
+
+        <label for="campo-transacao-data">DATA <span class="obrigatorio">*</span></label>
+        <input id="campo-transacao-data" name="data" type="date" />
+
+        <p class="aviso" id="aviso-formulario-transacao" role="alert"></p>
+
+        <div class="acoes-formulario">
+          <button type="submit" id="botao-salvar-transacao">SALVAR</button>
+          <button type="button" id="botao-excluir-transacao" class="botao-perigo oculto">EXCLUIR</button>
+          <button type="button" id="botao-cancelar-transacao" class="botao-secundario">CANCELAR</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Formulário de orçamento: criação e edição (Fase 08) -->
+    <section class="nucleo visao oculto" id="visao-formulario-orcamento">
+      <p class="rotulo-secao" id="formulario-orcamento-titulo-secao">NOVO ORÇAMENTO</p>
+      <h1 class="titulo-secao" id="formulario-orcamento-titulo">PLANEJAR GASTOS</h1>
+
+      <form id="formulario-orcamento" novalidate>
+        <label for="campo-orcamento-categoria">CATEGORIA DE DESPESA <span class="obrigatorio">*</span></label>
+        <select id="campo-orcamento-categoria" name="categoria"></select>
+
+        <label for="campo-orcamento-nome">NOME <span class="opcional">(opcional)</span></label>
+        <input id="campo-orcamento-nome" name="nome" maxlength="60" autocomplete="off" spellcheck="false" />
+
+        <label for="campo-orcamento-valor">LIMITE <span class="obrigatorio">*</span></label>
+        <input id="campo-orcamento-valor" name="valor" inputmode="decimal"
+               placeholder="0,00" autocomplete="off" spellcheck="false" maxlength="14" />
+
+        <label for="campo-orcamento-inicio">INÍCIO <span class="obrigatorio">*</span></label>
+        <input id="campo-orcamento-inicio" name="inicio" type="date" />
+
+        <label for="campo-orcamento-fim">FIM <span class="obrigatorio">*</span></label>
+        <input id="campo-orcamento-fim" name="fim" type="date" />
+
+        <p class="aviso" id="aviso-formulario-orcamento" role="alert"></p>
+
+        <div class="acoes-formulario">
+          <button type="submit" id="botao-salvar-orcamento">SALVAR</button>
+          <button type="button" id="botao-excluir-orcamento" class="botao-perigo oculto">EXCLUIR</button>
+          <button type="button" id="botao-cancelar-orcamento" class="botao-secundario">CANCELAR</button>
         </div>
       </form>
     </section>

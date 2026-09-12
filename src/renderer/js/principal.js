@@ -49,6 +49,18 @@ let projetosCarregados = [];
 let filtroProjetoAtual = 'todos';
 let projetoAtualId = null;
 let modoEdicaoProjeto = false;
+// Finanças (Fase 08)
+let financaConfig = null;
+let transacoesCarregadas = [];
+let filtroFinancaAtual = 'todas';
+let categoriaFiltroFinanca = '';
+let transacaoAtualId = null;
+let modoEdicaoTransacao = false;
+let exclusaoTransacaoArmada = false;
+let orcamentoAtualId = null;
+let modoEdicaoOrcamento = false;
+let exclusaoOrcamentoArmada = false;
+let orcamentosCarregadosParaEdicao = [];
 
 function consultar(id) {
   const elemento = document.getElementById(id);
@@ -155,6 +167,47 @@ function mapearElementos() {
   elementos.avisoFormularioProjeto = consultar('aviso-formulario-projeto');
   elementos.botaoSalvarProjeto = consultar('botao-salvar-projeto');
   elementos.botaoCancelarProjeto = consultar('botao-cancelar-projeto');
+  // Finanças (Fase 08)
+  elementos.botaoVerFinancas = consultar('botao-ver-financas');
+  elementos.visaoFinancas = consultar('visao-financas');
+  elementos.visaoFormularioTransacao = consultar('visao-formulario-transacao');
+  elementos.visaoFormularioOrcamento = consultar('visao-formulario-orcamento');
+  elementos.financaCarteiraNome = consultar('financa-carteira-nome');
+  elementos.financaSaldo = consultar('financa-saldo');
+  elementos.financaReceitas = consultar('financa-receitas');
+  elementos.financaDespesas = consultar('financa-despesas');
+  elementos.avisoFinancas = consultar('aviso-financas');
+  elementos.listaOrcamentos = consultar('lista-orcamentos');
+  elementos.filtrosFinanca = consultar('filtros-financa');
+  elementos.filtroCategoriaFinanca = consultar('filtro-categoria-financa');
+  elementos.listaTransacoes = consultar('lista-transacoes');
+  elementos.botaoNovaTransacao = consultar('botao-nova-transacao');
+  elementos.botaoNovoOrcamento = consultar('botao-novo-orcamento');
+  elementos.financasPainel = consultar('financas-painel');
+  elementos.formularioTransacaoTituloSecao = consultar('formulario-transacao-titulo-secao');
+  elementos.formularioTransacaoTitulo = consultar('formulario-transacao-titulo');
+  elementos.campoTransacaoTipo = consultar('campo-transacao-tipo');
+  elementos.campoTransacaoValor = consultar('campo-transacao-valor');
+  elementos.campoTransacaoCategoria = consultar('campo-transacao-categoria');
+  elementos.campoTransacaoDescricao = consultar('campo-transacao-descricao');
+  elementos.campoTransacaoData = consultar('campo-transacao-data');
+  elementos.avisoFormularioTransacao = consultar('aviso-formulario-transacao');
+  elementos.formularioTransacao = consultar('formulario-transacao');
+  elementos.botaoSalvarTransacao = consultar('botao-salvar-transacao');
+  elementos.botaoExcluirTransacao = consultar('botao-excluir-transacao');
+  elementos.botaoCancelarTransacao = consultar('botao-cancelar-transacao');
+  elementos.formularioOrcamentoTituloSecao = consultar('formulario-orcamento-titulo-secao');
+  elementos.formularioOrcamentoTitulo = consultar('formulario-orcamento-titulo');
+  elementos.campoOrcamentoCategoria = consultar('campo-orcamento-categoria');
+  elementos.campoOrcamentoNome = consultar('campo-orcamento-nome');
+  elementos.campoOrcamentoValor = consultar('campo-orcamento-valor');
+  elementos.campoOrcamentoInicio = consultar('campo-orcamento-inicio');
+  elementos.campoOrcamentoFim = consultar('campo-orcamento-fim');
+  elementos.avisoFormularioOrcamento = consultar('aviso-formulario-orcamento');
+  elementos.formularioOrcamento = consultar('formulario-orcamento');
+  elementos.botaoSalvarOrcamento = consultar('botao-salvar-orcamento');
+  elementos.botaoExcluirOrcamento = consultar('botao-excluir-orcamento');
+  elementos.botaoCancelarOrcamento = consultar('botao-cancelar-orcamento');
   elementos.versao = consultar('versao');
   elementos.estado = consultar('estado');
   elementos.estadoTexto = consultar('estado-texto');
@@ -666,6 +719,501 @@ function converterPrazoLocal(valor) {
   return new Date(valor).toISOString();
 }
 
+// ── Finanças (Fase 08) ─────────────────────────────────────────────────
+
+/** Garante o acesso à ponte financeira (a UI nunca fala com o SQL). */
+function ponteFinanca() {
+  if (!window.pulso || typeof window.pulso.financa?.resumo !== 'function') {
+    throw new Error('A ponte window.pulso.financa não está disponível.');
+  }
+  return window.pulso.financa;
+}
+
+/** Formata centavos como moeda brasileira: 123456 → "R$ 1.234,56". */
+function formatarCentavos(centavos) {
+  return (Number(centavos ?? 0) / 100).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+}
+
+/** Formata uma data 'YYYY-MM-DD' (ou ISO) como dd/mm/aaaa. */
+function formatarDataSimples(data) {
+  if (!data) return '—';
+  const dia = String(data).slice(0, 10);
+  const [ano, mes, diaDoMes] = dia.split('-');
+  if (!ano || !mes || !diaDoMes) return dia;
+  return `${diaDoMes}/${mes}/${ano}`;
+}
+
+/** Data local de hoje no formato 'YYYY-MM-DD' (sem deslocamento de fuso). */
+function dataHojeIso() {
+  const agora = new Date();
+  const mes = String(agora.getMonth() + 1).padStart(2, '0');
+  const dia = String(agora.getDate()).padStart(2, '0');
+  return `${agora.getFullYear()}-${mes}-${dia}`;
+}
+
+/** Primeiro/último dia do mês corrente em 'YYYY-MM-DD' (resumo do mês). */
+function limitesDoMesCorrente() {
+  const agora = new Date();
+  const ano = agora.getFullYear();
+  const mes = String(agora.getMonth() + 1).padStart(2, '0');
+  const ultimoDia = new Date(ano, agora.getMonth() + 1, 0).getDate();
+  return {
+    inicio: `${ano}-${mes}-01`,
+    fim: `${ano}-${mes}-${String(ultimoDia).padStart(2, '0')}`,
+  };
+}
+
+/** Lê o campo de valor digitado ("1.250,75" / "1250.75") → centavos (inteiros). */
+function lerCentavos(texto) {
+  const limpo = String(texto ?? '').trim();
+  if (!limpo) return null;
+  const normalizado = limpo.includes(',') && limpo.includes('.')
+    ? limpo.replace(/\./g, '').replace(',', '.')
+    : limpo.replace(',', '.');
+  if (!/^\d+(\.\d{1,2})?$/.test(normalizado)) return null;
+  const [reais, centavos = ''] = normalizado.split('.');
+  return Number(reais) * 100 + Number((centavos + '00').slice(0, 2));
+}
+
+/** Rótulo da categoria via config carregada do núcleo (fonte única). */
+function rotuloCategoria(codigo) {
+  const todas = [
+    ...(financaConfig?.categoriasReceita ?? []),
+    ...(financaConfig?.categoriasDespesa ?? []),
+  ];
+  return todas.find((c) => c.valor === codigo)?.rotulo ?? codigo;
+}
+
+/** Alterna entre as visões de finanças (lista ↔ transação ↔ orçamento). */
+function exibirVisaoFinanca(nome) {
+  exibirVisao(nome);
+  elementos.visaoFinancas.classList.toggle('oculto', nome !== 'visao-financas');
+  elementos.visaoFormularioTransacao.classList.toggle('oculto', nome !== 'visao-formulario-transacao');
+  elementos.visaoFormularioOrcamento.classList.toggle('oculto', nome !== 'visao-formulario-orcamento');
+}
+
+/** Vai para a tela financeira (carrega resumo, orçamentos e histórico). */
+function irParaFinancas() {
+  exibirVisaoFinanca('visao-financas');
+  carregarFinancas();
+}
+
+/** Volta ao painel principal. */
+function voltarAoPainelFinancas() {
+  exibirVisao('visao-boot');
+}
+
+/** Popula um <select> de categorias de um tipo (fonte: config do núcleo). */
+function preencherCategorias(select, tipo, selecionada = '') {
+  const lista = tipo === 'receita'
+    ? (financaConfig?.categoriasReceita ?? [])
+    : (financaConfig?.categoriasDespesa ?? []);
+  select.replaceChildren(...lista.map((c) => {
+    const opcao = document.createElement('option');
+    opcao.value = c.valor;
+    opcao.textContent = c.rotulo;
+    return opcao;
+  }));
+  if (selecionada) select.value = selecionada;
+}
+
+/** Popula o filtro de categorias do histórico com TODAS as categorias. */
+function preencherFiltroCategoria() {
+  const todas = [
+    ...(financaConfig?.categoriasDespesa ?? []),
+    ...(financaConfig?.categoriasReceita ?? []),
+  ];
+  elementos.filtroCategoriaFinanca.replaceChildren(
+    ...[...todas].sort((a, b) => a.rotulo.localeCompare(b.rotulo, 'pt-BR')).map((c) => {
+      const opcao = document.createElement('option');
+      opcao.value = c.valor;
+      opcao.textContent = c.rotulo;
+      return opcao;
+    }),
+  );
+  elementos.filtroCategoriaFinanca.insertBefore(new Option('TODAS AS CATEGORIAS', ''), 0);
+  elementos.filtroCategoriaFinanca.value = categoriaFiltroFinanca;
+}
+
+/** Carrega resumo + orçamentos + histórico do jogador. */
+async function carregarFinancas() {
+  if (!jogadorAtual) return;
+  elementos.avisoFinancas.textContent = '';
+  try {
+    const ponte = ponteFinanca();
+    const limites = limitesDoMesCorrente();
+    const resumo = await ponte.resumo(jogadorAtual.id, limites);
+    if (!resumo.ok) {
+      elementos.avisoFinancas.textContent = resumo.mensagem ?? 'Não foi possível carregar as finanças.';
+      return;
+    }
+    financaConfig = resumo.config;
+    elementos.financaCarteiraNome.textContent = (resumo.carteira?.nome ?? 'CARTEIRA').toUpperCase();
+    const saldo = resumo.saldo ?? 0;
+    elementos.financaSaldo.textContent = formatarCentavos(saldo);
+    elementos.financaSaldo.classList.toggle('financa-negativo', saldo < 0);
+    elementos.financaReceitas.textContent = formatarCentavos(resumo.receitas ?? 0);
+    elementos.financaDespesas.textContent = formatarCentavos(resumo.despesas ?? 0);
+
+    orcamentosCarregadosParaEdicao = resumo.orcamentos ?? [];
+    renderizarOrcamentos(orcamentosCarregadosParaEdicao);
+    preencherFiltroCategoria();
+    await carregarTransacoes();
+  } catch (erro) {
+    elementos.avisoFinancas.textContent = 'Falha de comunicação com o núcleo.';
+    console.error(`PULSO: falha ao carregar finanças — ${erro.message}`, erro);
+  }
+}
+
+/** Renderiza a lista de orçamentos com a situação calculada pelo núcleo. */
+function renderizarOrcamentos(orcamentos) {
+  elementos.listaOrcamentos.replaceChildren();
+  if (orcamentos.length === 0) {
+    const vazio = document.createElement('p');
+    vazio.className = 'missoes-vazio';
+    vazio.textContent = 'Nenhum orçamento definido.';
+    elementos.listaOrcamentos.append(vazio);
+    return;
+  }
+  for (const orcamento of orcamentos) {
+    elementos.listaOrcamentos.append(criarItemOrcamento(orcamento));
+  }
+}
+
+/** Cria o cartão de um orçamento (limite, gasto, disponível, estado). */
+function criarItemOrcamento(orcamento) {
+  const item = document.createElement('button');
+  item.type = 'button';
+  item.className = 'orcamento-item';
+  item.onclick = () => editarOrcamento(orcamento.id);
+
+  const cabecalho = document.createElement('span');
+  cabecalho.className = 'orcamento-categoria';
+  cabecalho.textContent = rotuloCategoria(orcamento.categoria);
+
+  const valores = document.createElement('span');
+  valores.className = 'orcamento-valores';
+  valores.textContent = `${formatarCentavos(orcamento.situacao.gasto)} / ${formatarCentavos(orcamento.valorCentavos)}`;
+
+  const situacao = document.createElement('span');
+  situacao.className = `orcamento-situacao ${orcamento.situacao.estourado ? 'estourado' : 'ok'}`;
+  situacao.textContent = orcamento.situacao.estourado
+    ? `ESTOURADO ${formatarCentavos(orcamento.situacao.disponivel)}`
+    : `DISPONÍVEL ${formatarCentavos(orcamento.situacao.disponivel)}`;
+
+  const barra = document.createElement('span');
+  barra.className = 'orcamento-barra';
+  const preenchimento = document.createElement('span');
+  preenchimento.className = 'orcamento-barra-preenchimento';
+  if (orcamento.situacao.estourado) preenchimento.classList.add('estourado');
+  preenchimento.style.width = `${Math.min(100, Math.round(orcamento.situacao.percentual * 100))}%`;
+  barra.append(preenchimento);
+
+  const periodo = document.createElement('span');
+  periodo.className = 'missao-prazo';
+  periodo.textContent = `${formatarDataSimples(orcamento.inicio)} → ${formatarDataSimples(orcamento.fim)}`;
+
+  item.append(cabecalho, valores, situacao, barra, periodo);
+  return item;
+}
+
+/** Carrega o histórico conforme os filtros ativos (consulta no núcleo). */
+async function carregarTransacoes() {
+  if (!jogadorAtual) return;
+  try {
+    const ponte = ponteFinanca();
+    const resultado = await ponte.listarTransacoes(jogadorAtual.id, {
+      tipo: filtroFinancaAtual === 'todas' ? null : filtroFinancaAtual,
+      categoria: categoriaFiltroFinanca || null,
+    });
+    if (!resultado.ok) {
+      elementos.avisoFinancas.textContent = resultado.mensagem ?? 'Não foi possível carregar o histórico.';
+      return;
+    }
+    transacoesCarregadas = resultado.transacoes ?? [];
+    renderizarTransacoes();
+  } catch (erro) {
+    console.error(`PULSO: falha ao carregar transações — ${erro.message}`, erro);
+  }
+}
+
+/** Renderiza o histórico (mais recente primeiro — ordenado pelo núcleo). */
+function renderizarTransacoes() {
+  elementos.listaTransacoes.replaceChildren();
+  if (transacoesCarregadas.length === 0) {
+    const vazio = document.createElement('p');
+    vazio.className = 'missoes-vazio';
+    vazio.textContent = 'Nenhuma movimentação registrada.';
+    elementos.listaTransacoes.append(vazio);
+    return;
+  }
+  for (const transacao of transacoesCarregadas) {
+    elementos.listaTransacoes.append(criarItemTransacao(transacao));
+  }
+}
+
+/** Cria o item do histórico (data, valor com sinal, descrição, categoria). */
+function criarItemTransacao(transacao) {
+  const item = document.createElement('button');
+  item.type = 'button';
+  item.className = 'missao-item transacao-item';
+  item.dataset.id = String(transacao.id);
+  item.onclick = () => abrirEdicaoTransacao(transacao.id);
+
+  const data = document.createElement('span');
+  data.className = 'missao-prazo';
+  data.textContent = formatarDataSimples(transacao.ocorridaEm);
+
+  const valor = document.createElement('span');
+  valor.className = `transacao-valor ${transacao.tipo}`;
+  valor.textContent = `${transacao.tipo === 'receita' ? '+' : '-'} ${formatarCentavos(transacao.valorCentavos)}`;
+
+  const descricao = document.createElement('span');
+  descricao.className = 'missao-item-titulo';
+  descricao.textContent = transacao.descricao || '—';
+
+  const categoria = document.createElement('span');
+  categoria.className = 'missao-item-estado';
+  categoria.textContent = rotuloCategoria(transacao.categoria);
+
+  item.append(data, valor, descricao, categoria);
+  return item;
+}
+
+/** Aplica o filtro de tipo do histórico e recarrega a consulta. */
+function aplicarFiltroTipoFinanca(botao) {
+  filtroFinancaAtual = botao.dataset.filtro;
+  for (const b of elementos.filtrosFinanca.querySelectorAll('[data-filtro]')) {
+    b.classList.toggle('ativo', b === botao);
+  }
+  carregarTransacoes();
+}
+
+/** Exibe o formulário de transação (criação ou edição). */
+function exibirFormularioTransacao(transacao = null) {
+  modoEdicaoTransacao = !!transacao;
+  transacaoAtualId = transacao?.id ?? null;
+  exclusaoTransacaoArmada = false;
+  elementos.formularioTransacaoTituloSecao.textContent = modoEdicaoTransacao ? 'EDITAR TRANSAÇÃO' : 'NOVA TRANSAÇÃO';
+  elementos.formularioTransacaoTitulo.textContent = modoEdicaoTransacao ? 'MOVER DINHEIRO' : 'REGISTRAR MOVIMENTAÇÃO';
+  elementos.campoTransacaoTipo.value = modoEdicaoTransacao ? transacao.tipo : 'receita';
+  elementos.campoTransacaoValor.value = modoEdicaoTransacao
+    ? (transacao.valorCentavos / 100).toFixed(2).replace('.', ',')
+    : '';
+  preencherCategorias(
+    elementos.campoTransacaoCategoria,
+    elementos.campoTransacaoTipo.value,
+    modoEdicaoTransacao ? transacao.categoria : '',
+  );
+  elementos.campoTransacaoDescricao.value = modoEdicaoTransacao ? (transacao.descricao || '') : '';
+  elementos.campoTransacaoData.value = modoEdicaoTransacao ? transacao.ocorridaEm.slice(0, 10) : dataHojeIso();
+  elementos.botaoExcluirTransacao.classList.toggle('oculto', !modoEdicaoTransacao);
+  elementos.botaoExcluirTransacao.textContent = 'EXCLUIR';
+  elementos.avisoFormularioTransacao.textContent = '';
+  exibirVisaoFinanca('visao-formulario-transacao');
+}
+
+/** Troca a lista de categorias quando o tipo muda (receita ≠ despesa). */
+function trocarTipoTransacao() {
+  preencherCategorias(elementos.campoTransacaoCategoria, elementos.campoTransacaoTipo.value);
+}
+
+/** Salva (cria ou edita) a transação; o núcleo valida e recalcula o saldo. */
+async function salvarTransacao() {
+  elementos.avisoFormularioTransacao.textContent = '';
+  const centavos = lerCentavos(elementos.campoTransacaoValor.value);
+  if (centavos === null || centavos <= 0) {
+    elementos.avisoFormularioTransacao.textContent = 'Informe um valor maior que zero (ex.: 1.250,75).';
+    return;
+  }
+  if (!elementos.campoTransacaoData.value) {
+    elementos.avisoFormularioTransacao.textContent = 'Informe a data da movimentação.';
+    return;
+  }
+  const dados = {
+    tipo: elementos.campoTransacaoTipo.value,
+    valorCentavos: centavos,
+    categoria: elementos.campoTransacaoCategoria.value,
+    descricao: elementos.campoTransacaoDescricao.value.trim() || null,
+    data: elementos.campoTransacaoData.value,
+  };
+  try {
+    const resultado = modoEdicaoTransacao
+      ? await ponteFinanca().atualizarTransacao({ id: transacaoAtualId, ...dados })
+      : await ponteFinanca().criarTransacao({ jogadorId: jogadorAtual.id, ...dados });
+    if (!resultado.ok) {
+      elementos.avisoFormularioTransacao.textContent = resultado.mensagem ?? 'Não foi possível salvar a transação.';
+      return;
+    }
+    transacaoAtualId = resultado.transacao?.id ?? transacaoAtualId;
+    await carregarFinancas();
+    exibirVisaoFinanca('visao-financas');
+  } catch (erro) {
+    elementos.avisoFormularioTransacao.textContent = 'Falha de comunicação com o núcleo.';
+    console.error(`PULSO: falha ao salvar transação — ${erro.message}`, erro);
+  }
+}
+
+/** Abre a edição a partir do id (histórico → formulário). */
+function abrirEdicaoTransacao(id) {
+  const atual = transacoesCarregadas.find((t) => t.id === id);
+  if (atual) exibirFormularioTransacao(atual);
+}
+
+/** Exclusão controlada: primeiro clique arma, segundo confirma. */
+async function excluirTransacao() {
+  if (!transacaoAtualId) return;
+  elementos.avisoFormularioTransacao.textContent = '';
+  if (!exclusaoTransacaoArmada) {
+    exclusaoTransacaoArmada = true;
+    elementos.botaoExcluirTransacao.textContent = 'CONFIRMAR EXCLUSÃO';
+    elementos.avisoFormularioTransacao.textContent =
+      'Excluir esta transação? Ela deixará de participar do saldo. Clique novamente para confirmar.';
+    return;
+  }
+  try {
+    const resultado = await ponteFinanca().excluirTransacao({ id: transacaoAtualId });
+    if (!resultado.ok) {
+      armarExclusaoTransacao(false);
+      elementos.avisoFormularioTransacao.textContent = resultado.mensagem ?? 'Não foi possível excluir.';
+      return;
+    }
+    transacaoAtualId = null;
+    await carregarFinancas();
+    exibirVisaoFinanca('visao-financas');
+  } catch (erro) {
+    armarExclusaoTransacao(false);
+    elementos.avisoFormularioTransacao.textContent = 'Falha de comunicação com o núcleo.';
+    console.error(`PULSO: falha ao excluir transação — ${erro.message}`, erro);
+  }
+}
+
+/** Liga/desliga o estado armado do botão de exclusão de transação. */
+function armarExclusaoTransacao(armado) {
+  exclusaoTransacaoArmada = armado;
+  elementos.botaoExcluirTransacao.textContent = armado ? 'CONFIRMAR EXCLUSÃO' : 'EXCLUIR';
+}
+
+/** Exibe o formulário de orçamento (criação ou edição). */
+function exibirFormularioOrcamento(orcamento = null) {
+  modoEdicaoOrcamento = !!orcamento;
+  orcamentoAtualId = orcamento?.id ?? null;
+  exclusaoOrcamentoArmada = false;
+  elementos.formularioOrcamentoTituloSecao.textContent = modoEdicaoOrcamento ? 'EDITAR ORÇAMENTO' : 'NOVO ORÇAMENTO';
+  elementos.formularioOrcamentoTitulo.textContent = modoEdicaoOrcamento ? 'REPLANEJAR GASTOS' : 'PLANEJAR GASTOS';
+  preencherCategorias(
+    elementos.campoOrcamentoCategoria,
+    'despesa',
+    modoEdicaoOrcamento ? orcamento.categoria : '',
+  );
+  elementos.campoOrcamentoNome.value = modoEdicaoOrcamento ? (orcamento.nome || '') : '';
+  elementos.campoOrcamentoValor.value = modoEdicaoOrcamento
+    ? (orcamento.valorCentavos / 100).toFixed(2).replace('.', ',')
+    : '';
+  elementos.campoOrcamentoInicio.value = modoEdicaoOrcamento ? orcamento.inicio.slice(0, 10) : dataHojeIso();
+  elementos.campoOrcamentoFim.value = modoEdicaoOrcamento ? orcamento.fim.slice(0, 10) : '';
+  elementos.botaoExcluirOrcamento.classList.toggle('oculto', !modoEdicaoOrcamento);
+  elementos.botaoExcluirOrcamento.textContent = 'EXCLUIR';
+  elementos.avisoFormularioOrcamento.textContent = '';
+  exibirVisaoFinanca('visao-formulario-orcamento');
+}
+
+/** Abre a edição a partir do id (lista de orçamentos → formulário). */
+function editarOrcamento(id) {
+  const atual = (orcamentosCarregadosParaEdicao ?? []).find((o) => o.id === id)
+    ?? null;
+  if (atual) {
+    exibirFormularioOrcamento(atual);
+    return;
+  }
+  ponteFinanca().situacaoOrcamento({ id })
+    .then((resultado) => {
+      if (resultado.ok) exibirFormularioOrcamento(resultado.orcamento);
+    })
+    .catch((erro) => {
+      console.error(`PULSO: falha ao obter orçamento — ${erro.message}`, erro);
+    });
+}
+
+/** Salva (cria ou edita) o orçamento; o núcleo valida categoria e período. */
+async function salvarOrcamento() {
+  elementos.avisoFormularioOrcamento.textContent = '';
+  const centavos = lerCentavos(elementos.campoOrcamentoValor.value);
+  if (centavos === null || centavos <= 0) {
+    elementos.avisoFormularioOrcamento.textContent = 'Informe um limite maior que zero (ex.: 600,00).';
+    return;
+  }
+  const inicio = elementos.campoOrcamentoInicio.value;
+  const fim = elementos.campoOrcamentoFim.value;
+  if (!inicio || !fim) {
+    elementos.avisoFormularioOrcamento.textContent = 'Informe o período do orçamento (início e fim).';
+    return;
+  }
+  if (fim < inicio) {
+    elementos.avisoFormularioOrcamento.textContent = 'O fim do período deve ser igual ou posterior ao início.';
+    return;
+  }
+  const dados = {
+    categoria: elementos.campoOrcamentoCategoria.value,
+    nome: elementos.campoOrcamentoNome.value.trim() || null,
+    valorCentavos: centavos,
+    inicio,
+    fim,
+  };
+  try {
+    const resultado = modoEdicaoOrcamento
+      ? await ponteFinanca().atualizarOrcamento({ id: orcamentoAtualId, ...dados })
+      : await ponteFinanca().criarOrcamento({ jogadorId: jogadorAtual.id, ...dados });
+    if (!resultado.ok) {
+      elementos.avisoFormularioOrcamento.textContent = resultado.mensagem ?? 'Não foi possível salvar o orçamento.';
+      return;
+    }
+    orcamentoAtualId = resultado.orcamento?.id ?? orcamentoAtualId;
+    await carregarFinancas();
+    exibirVisaoFinanca('visao-financas');
+  } catch (erro) {
+    elementos.avisoFormularioOrcamento.textContent = 'Falha de comunicação com o núcleo.';
+    console.error(`PULSO: falha ao salvar orçamento — ${erro.message}`, erro);
+  }
+}
+
+/** Exclusão controlada de orçamento: armar → confirmar. */
+async function excluirOrcamento() {
+  if (!orcamentoAtualId) return;
+  elementos.avisoFormularioOrcamento.textContent = '';
+  if (!exclusaoOrcamentoArmada) {
+    exclusaoOrcamentoArmada = true;
+    elementos.botaoExcluirOrcamento.textContent = 'CONFIRMAR EXCLUSÃO';
+    elementos.avisoFormularioOrcamento.textContent =
+      'Excluir este orçamento? O planejamento deixará de ser acompanhado. Clique novamente para confirmar.';
+    return;
+  }
+  try {
+    const resultado = await ponteFinanca().excluirOrcamento({ id: orcamentoAtualId });
+    if (!resultado.ok) {
+      armarExclusaoOrcamento(false);
+      elementos.avisoFormularioOrcamento.textContent = resultado.mensagem ?? 'Não foi possível excluir.';
+      return;
+    }
+    orcamentoAtualId = null;
+    await carregarFinancas();
+    exibirVisaoFinanca('visao-financas');
+  } catch (erro) {
+    armarExclusaoOrcamento(false);
+    elementos.avisoFormularioOrcamento.textContent = 'Falha de comunicação com o núcleo.';
+    console.error(`PULSO: falha ao excluir orçamento — ${erro.message}`, erro);
+  }
+}
+
+/** Liga/desliga o estado armado do botão de exclusão de orçamento. */
+function armarExclusaoOrcamento(armado) {
+  exclusaoOrcamentoArmada = armado;
+  elementos.botaoExcluirOrcamento.textContent = armado ? 'CONFIRMAR EXCLUSÃO' : 'EXCLUIR';
+}
+
 // ── Missões (Fase 05) ─────────────────────────────────────────────────
 
 
@@ -932,7 +1480,7 @@ async function carregarEstadoJogador() {
   return window.pulso.jogador.estado();
 }
 
-/** Alterna a visão visível (configuração ↔ boot ↔ missões ↔ projetos). */
+/** Alterna a visão visível (configuração ↔ boot ↔ missões ↔ projetos ↔ finanças). */
 function exibirVisao(nomeVisao) {
   elementos.visaoConfiguracao.classList.toggle('oculto', nomeVisao !== 'visao-configuracao');
   elementos.visaoBoot.classList.toggle('oculto', nomeVisao !== 'visao-boot');
@@ -959,6 +1507,18 @@ function exibirVisao(nomeVisao) {
     elementos.visaoProjetos.classList.add('oculto');
     elementos.visaoProjeto.classList.add('oculto');
     elementos.visaoFormularioProjeto.classList.add('oculto');
+  }
+
+  const emFinancas = nomeVisao === 'visao-financas'
+    || nomeVisao === 'visao-formulario-transacao'
+    || nomeVisao === 'visao-formulario-orcamento';
+  if (emFinancas) {
+    elementos.visaoConfiguracao.classList.add('oculto');
+    elementos.visaoBoot.classList.add('oculto');
+  } else {
+    elementos.visaoFinancas.classList.add('oculto');
+    elementos.visaoFormularioTransacao.classList.add('oculto');
+    elementos.visaoFormularioOrcamento.classList.add('oculto');
   }
 }
 
@@ -1018,6 +1578,7 @@ function executarBoot() {
   elementos.botaoEditar.disabled = true;
   elementos.botaoVerMissoes.disabled = true;
   elementos.botaoVerProjetos.disabled = true;
+  elementos.botaoVerFinancas.disabled = true;
   definirEstado('INICIANDO…');
   const linhas = linhasDoBoot();
   montarLinhasBoot(linhas, false);
@@ -1030,6 +1591,7 @@ function executarBoot() {
     elementos.botaoEditar.disabled = false;
     elementos.botaoVerMissoes.disabled = false;
     elementos.botaoVerProjetos.disabled = false;
+    elementos.botaoVerFinancas.disabled = false;
     elementos.mensagem.textContent = 'Operador identificado. Aguardando módulos…';
     carregarStatus();
     carregarProgressao();
@@ -1178,5 +1740,40 @@ document.addEventListener('DOMContentLoaded', () => {
       exibirVisaoProjeto('visao-projetos');
     }
   });
+  // Finanças (Fase 08)
+  elementos.botaoVerFinancas.addEventListener('click', irParaFinancas);
+  elementos.financasPainel.addEventListener('click', voltarAoPainelFinancas);
+  elementos.filtrosFinanca.addEventListener('click', (evento) => {
+    const botao = evento.target.closest('[data-filtro]');
+    if (!botao) return;
+    aplicarFiltroTipoFinanca(botao);
+  });
+  elementos.filtroCategoriaFinanca.addEventListener('change', () => {
+    categoriaFiltroFinanca = elementos.filtroCategoriaFinanca.value;
+    carregarTransacoes();
+  });
+  elementos.botaoNovaTransacao.addEventListener('click', () => exibirFormularioTransacao());
+  elementos.botaoNovoOrcamento.addEventListener('click', () => exibirFormularioOrcamento());
+  elementos.campoTransacaoTipo.addEventListener('change', trocarTipoTransacao);
+  elementos.botaoSalvarTransacao.addEventListener('click', (e) => {
+    e.preventDefault();
+    salvarTransacao();
+  });
+  elementos.formularioTransacao.addEventListener('submit', (e) => {
+    e.preventDefault();
+    salvarTransacao();
+  });
+  elementos.botaoExcluirTransacao.addEventListener('click', excluirTransacao);
+  elementos.botaoCancelarTransacao.addEventListener('click', () => exibirVisaoFinanca('visao-financas'));
+  elementos.botaoSalvarOrcamento.addEventListener('click', (e) => {
+    e.preventDefault();
+    salvarOrcamento();
+  });
+  elementos.formularioOrcamento.addEventListener('submit', (e) => {
+    e.preventDefault();
+    salvarOrcamento();
+  });
+  elementos.botaoExcluirOrcamento.addEventListener('click', excluirOrcamento);
+  elementos.botaoCancelarOrcamento.addEventListener('click', () => exibirVisaoFinanca('visao-financas'));
   iniciar();
 });

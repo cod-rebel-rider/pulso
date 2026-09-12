@@ -9,6 +9,10 @@
   --pulso-cinza: #8a8a93;
   --pulso-cinza-escuro: #3a3a42;
   --pulso-branco: #f2f2f5;
+  /* semânticos: perigo = vermelho de alerta; sucesso = tom positivo (branco,
+     respeitando a paleta sem verdes — receitas/estados bons usam branco) */
+  --pulso-perigo: #e5484d;
+  --pulso-sucesso: #f2f2f5;
   --pulso-mono: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', ui-monospace,
     'DejaVu Sans Mono', Consolas, monospace;
 }
