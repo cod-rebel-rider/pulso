@@ -918,7 +918,9 @@
   min-height: 80px;
 }
 
-#formulario-missao select {
+#formulario-missao select,
+#formulario-transacao select,
+#formulario-orcamento select {
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -931,7 +933,9 @@
   cursor: pointer;
 }
 
-#formulario-missao select:focus {
+#formulario-missao select:focus,
+#formulario-transacao select:focus,
+#formulario-orcamento select:focus {
   outline: none;
   border-color: var(--pulso-vermelho);
 }
@@ -1132,4 +1136,187 @@
 #formulario-transacao,
 #formulario-orcamento {
   max-width: 460px;
+}
+
+/* ── Finanças (Fase 08) ─────────────────────────────────────────────── */
+
+/* Resumo: saldo em destaque + métricas do período */
+.financa-resumo {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.financa-cartao {
+  border: 1px solid var(--pulso-cinza-escuro);
+  background: rgba(19, 19, 24, 0.65);
+  padding: 14px 16px;
+}
+
+.financa-cartao-saldo {
+  border-color: var(--pulso-vermelho-escuro);
+}
+
+.financa-saldo {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--pulso-branco);
+  font-variant-numeric: tabular-nums;
+}
+
+.financa-saldo.negativo {
+  color: var(--pulso-perigo);
+}
+
+.financa-metrica {
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.financa-metrica-receita {
+  color: var(--pulso-sucesso);
+}
+
+.financa-metrica-despesa {
+  color: var(--pulso-perigo);
+}
+
+/* Orçamentos: barras de consumo */
+.lista-orcamentos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.orcamento-item {
+  border: 1px solid var(--pulso-cinza-escuro);
+  background: rgba(19, 19, 24, 0.65);
+  padding: 10px 14px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.orcamento-item:hover {
+  border-color: var(--pulso-cinza);
+}
+
+.orcamento-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.orcamento-nome {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--pulso-branco);
+}
+
+.orcamento-valores {
+  font-size: 12px;
+  color: var(--pulso-cinza);
+  font-variant-numeric: tabular-nums;
+}
+
+.orcamento-valores.estourado {
+  color: var(--pulso-perigo);
+}
+
+.orcamento-barra {
+  height: 4px;
+  background: var(--pulso-cinza-escuro);
+  overflow: hidden;
+}
+
+.orcamento-preenchimento {
+  display: block;
+  height: 100%;
+  background: var(--pulso-cinza);
+  transition: width 0.3s ease;
+}
+
+.orcamento-preenchimento.estourado {
+  background: var(--pulso-perigo);
+}
+
+/* Histórico: filtro por categoria */
+#filtro-categoria-financa {
+  padding: 6px 10px;
+  background: var(--pulso-superficie);
+  border: 1px solid var(--pulso-cinza-escuro);
+  color: var(--pulso-branco);
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+#filtro-categoria-financa:focus {
+  outline: none;
+  border-color: var(--pulso-vermelho);
+}
+
+/* Itens do histórico */
+.transacao-valor {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.transacao-valor.receita {
+  color: var(--pulso-sucesso);
+}
+
+.transacao-valor.despesa {
+  color: var(--pulso-perigo);
+}
+
+.transacao-categoria {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--pulso-cinza);
+}
+
+/* Formulários financeiros */
+#formulario-transacao select,
+#formulario-orcamento select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  background: var(--pulso-superficie);
+  border: 1px solid var(--pulso-cinza-escuro);
+  color: var(--pulso-branco);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+#formulario-transacao select:focus,
+#formulario-orcamento select:focus {
+  outline: none;
+  border-color: var(--pulso-vermelho);
+}
+
+#formulario-transacao input,
+#formulario-orcamento input {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Responsivo: resumo empilha em janelas estreitas */
+@media (max-width: 720px) {
+  .financa-resumo {
+    grid-template-columns: 1fr;
+  }
 }
