@@ -1075,7 +1075,7 @@ async function excluirTransacao() {
     return;
   }
   try {
-    const resultado = await ponteFinanca().excluirTransacao({ id: transacaoAtualId });
+    const resultado = await ponteFinanca().excluirTransacao(transacaoAtualId);
     if (!resultado.ok) {
       armarExclusaoTransacao(false);
       elementos.avisoFormularioTransacao.textContent = resultado.mensagem ?? 'Não foi possível excluir.';
@@ -1129,7 +1129,7 @@ function editarOrcamento(id) {
     exibirFormularioOrcamento(atual);
     return;
   }
-  ponteFinanca().situacaoOrcamento({ id })
+  ponteFinanca().situacaoOrcamento(id)
     .then((resultado) => {
       if (resultado.ok) exibirFormularioOrcamento(resultado.orcamento);
     })
@@ -1192,7 +1192,7 @@ async function excluirOrcamento() {
     return;
   }
   try {
-    const resultado = await ponteFinanca().excluirOrcamento({ id: orcamentoAtualId });
+    const resultado = await ponteFinanca().excluirOrcamento(orcamentoAtualId);
     if (!resultado.ok) {
       armarExclusaoOrcamento(false);
       elementos.avisoFormularioOrcamento.textContent = resultado.mensagem ?? 'Não foi possível excluir.';
