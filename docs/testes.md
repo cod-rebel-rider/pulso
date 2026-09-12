@@ -15,9 +15,22 @@ Pirâmide clássica, respeitando o ritmo das fases:
 
 ```text
 tests/
-├── unidade/      → ambiente, configuração, registro, canais IPC, conexão, migrações, jogador, status, missão
-└── integracao/   → inicialização da aplicação (fumaça), persistência real do banco, jogador, status, missão
+├── unidade/      → ambiente, configuração, registro, canais IPC, conexão, migrações, jogador, status, missão, projeto, finança
+└── integracao/   → inicialização da aplicação (fumaça), persistência real do banco, jogador, status, missão, projeto, finança
 ```
+
+## 3.4 Fase 08 — Finanças
+
+- `tests/unidade/financa.test.mjs` — regras puras do domínio: conversão e validação
+  de centavos (zero, negativos, não inteiros, grandes valores), tipos de transação,
+  categorias por tipo (compatíveis e incompatíveis), cálculo de saldo
+  (`0+1000=1000`, `1000+500=1500`, `1500−300=1200`, `100−150=−50`), períodos
+  inclusivos (`01/09` e `30/09` dentro; `31/08` e `01/10` fora) e situação de
+  orçamento (0/600→600; 420/600→180; 650/600→−50 estourado).
+- `tests/integracao/financa.test.mjs` — ciclo completo com banco real: jogador →
+  carteira → receitas/despesas → saldo → edição (recálculo) → exclusão →
+  orçamentos (gasto por período, estouro, persistência) e ciclo
+  salvar → fechar → reabrir → consultar.
 
 ## 4. Teste de fumaça (Fases 01–02)
 
@@ -54,6 +67,7 @@ Ele inicia a aplicação, cria a janela, carrega o renderer, valida a ponte IPC,
 | Domínio | unidade | funções puras, sem E/S |
 | Aplicação | unidade/integração | casos de uso com repositórios simulados ou banco temporário |
 | Persistência | integração | SQLite em arquivo temporário (Fase 02+) |
+| Finanças (Fase 08) | unidade + integração | `financa.test.mjs` — domínio (centavos, categorias, saldo, período, orçamento) e ciclo completo com banco real (carteira, transações, edição/exclusão, orçamentos, persistência) |
 | Processo principal + janela | integração | teste de fumaça (Fase 01) |
 | Persistência (SQLite) | unidade + integração | conexão/PRAGMAs, migrações e ciclo salvar→reabrir→ler em bancos isolados (Fase 02) |
 | Interface | e2e | automação dedicada (Fase 17) |

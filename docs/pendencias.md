@@ -28,6 +28,12 @@ Registro de necessidades identificadas durante as fases que **serão resolvidas 
 | P-023 | Reset de atributos (respec/redistribuição) | fase futura a definir | Fase 06 não implementa rebuild de build (documentado em `progressao.md`) |
 | P-024 | Recompensas por conclusão de projeto (XP/dinheiro/atributos/status) | fase futura a definir | Fase 07: projeto organiza e acompanha, não concede nada; requisito registrado em `projeto.md` |
 | P-025 | Regra explícita de reativação de projeto arquivado | fase futura a definir | Fase 07: arquivado é terminal (não volta ao fluxo); se necessário no futuro, exigirá regra de domínio |
+| P-026 | Auditoria financeira (tabela `transactions_audit` imutável em exclusões/alterações) | fase futura a definir | Fase 08: exclusão é física, rastro apenas no log do processo; ver `financas.md` §4.3 |
+| P-027 | Categorias financeiras personalizadas (tabela persistida + CRUD) | fase futura a definir | Fase 08: categorias são constantes do domínio, separadas por tipo |
+| P-028 | Transferências entre carteiras e múltiplas carteiras | fase futura a definir | Fase 08: única carteira principal; arquitetura (`wallet_id`) já comporta expansão |
+| P-029 | Orçamento geral (multi-categoria) | fase futura a definir | Fase 08: orçamentos apenas por categoria de despesa |
+| P-030 | Moedas adicionais além de BRL | fase futura a definir | Fase 08: `MOEDA` centralizada no domínio (`financas.md` §2) |
+| P-031 | Integração financeira das fases seguintes (loja/serviços usam o motor) | 09 — Loja / 10 — Serviços | Fase 08 entrega o motor: transações, carteira, orçamento |
 
 ## Pendências resolvidas
 

@@ -37,8 +37,8 @@ Regras estruturais:
 | --- | --- | --- |
 | Interface | `src/renderer` | Telas, componentes, estilos, feedback visual |
 | Processo principal | `src/main` | Ciclo de vida do aplicativo, janela, ponte IPC, integração com o SO |
-| Domínio | `src/core/dominio` | **Iniciado (Fase 03)**: `jogador.js` (identidade) · **Fase 04**: `status.js` (regras de estado) · **Fase 05**: `missao.js` (regras de missão, máquina de estados) |
-| Aplicação | `src/core/aplicacao` | **Iniciado (Fase 03)**: `servico-jogador.js` · **Fase 04**: `servico-status.js` · **Fase 05**: `servico-missao.js` (orquestração de missões) |
+| Domínio | `src/core/dominio` | **Iniciado (Fase 03)**: `jogador.js` (identidade) · **Fase 04**: `status.js` (regras de estado) · **Fase 05**: `missao.js` (regras de missão, máquina de estados) · **Fase 06**: `progressao.js` · **Fase 07**: `projeto.js` · **Fase 08**: `financa.js` (valores em centavos, categorias, saldo, orçamento) |
+| Aplicação | `src/core/aplicacao` | **Iniciado (Fase 03)**: `servico-jogador.js` · **Fase 04**: `servico-status.js` · **Fase 05**: `servico-missao.js` · **Fase 06**: `servico-progressao.js` · **Fase 07**: `servico-projeto.js` · **Fase 08**: `servico-financa.js` (carteira, transações, orçamentos) |
 | Persistência | `src/core/database` | **Implementada (Fase 02)**: conexão SQLite, migrações, repositórios |
 | Módulos | `src/modules` | Funcionalidades independentes com contrato público documentado |
 
@@ -49,9 +49,11 @@ Regras estruturais:
 - **Núcleo ↔ banco:** exclusivamente pela camada de persistência (`src/core/database/`), por meio de repositórios — **implementado na Fase 02** (conexão, migrações) e estendido na Fase 03 (`RepositorioJogador`);
 - **Domínio validando com regras próprias:** desde a Fase 03, a identidade do jogador é validada em `src/core/dominio/jogador.js` (puro, testável) antes de persistir;
 
-## 4. Módulos previstos (apenas planejados — nenhum implementado)
+## 4. Módulos previstos
 
-`Missões · Projetos · Jogador · Status · Progressão · Finanças · Loja · Serviços · Habilidades · Música · Mapa · Conquistas`
+**Implementados:** Jogador (Fase 03) · Status (Fase 04) · Missões (Fase 05) · Progressão (Fase 06) · Projetos (Fase 07) · **Finanças (Fase 08)** — cada um com domínio próprio, casos de uso próprios, contrato IPC documentado e testes próprios.
+
+**Planejados (nenhum implementado):** `Loja · Serviços · Habilidades · Música · Mapa · Conquistas`
 
 Quando implementados, cada módulo deverá ter: domínio próprio, casos de uso próprios, contrato público documentado e testes próprios. A granularidade exata será decidida fase a fase.
 
@@ -128,6 +130,14 @@ Quando implementados, cada módulo deverá ter: domínio próprio, casos de uso 
 **Motivos:** `better-sqlite3` (principal alternativa) exige rebuild nativo para a ABI do Electron a cada versão — atrito constante de manutenção; `node:sqlite` é síncrono, suficiente para o perfil local-first de aplicação pessoal, e roda identicamente na aplicação e na suíte de testes. Comparação completa em `banco-de-dados.md`. Risco aceito e documentado: módulo experimental no Node 22 (impacto confinado a `conexao.js`; `better-sqlite3` permanece o plano B).
 
 **Consequências:** suíte de testes roda com o runtime do Electron (`ELECTRON_RUN_AS_NODE=1 electron --test`); tabelas `STRICT` habilitadas; repositórios isolam o SQL das demais camadas.
+
+### ADR-010 — Núcleo financeiro em centavos inteiros e saldo derivado (Fase 08)
+
+**Decisão:** valores monetários armazenados como **inteiros de centavos** (R$ 1.250,75 → `125075`), nunca `float`/`double`; moeda centralizada em `MOEDA` (`BRL`) no domínio. **Nenhum** saldo é armazenado: saldo, resumos por período e situação de orçamentos são **sempre recalculados** a partir do conjunto persistido de transações.
+
+**Motivos:** elimina erros de arredondamento em binário; garante a invariante "saldo = resultado do histórico" (não há valor editável para dessincronizar); consultas agregam poucos registros (perfil local-first, uma carteira).
+
+**Consequências:** regra única de saldo em `src/core/dominio/financa.js` (`calcularResumo`) e aplicada via `ServicoFinanca`; a interface formata (`R$ 1.234,56`) mas nunca calcula saldo; orçamentos comparam apenas limite planejado × despesas reais do período (limites inclusivos). Saldo negativo é permitido e apenas sinalizado — o sistema registra a realidade financeira, não a controla à força. Múltiplas carteiras, TRANSFERÊNCIA, auditoria persistida de exclusões e categorias personalizadas ficam como pendências registradas (arquitetura já preparada).
 
 ## 6. Fundação implementada (Fase 01)
 

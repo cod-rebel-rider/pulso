@@ -166,14 +166,61 @@ CREATE INDEX IF NOT EXISTS idx_projeto_estado ON projeto(estado);
 -- vínculo missão → projeto (1:N; SET NULL preserva missões)
 ALTER TABLE missao ADD COLUMN projeto_id INTEGER REFERENCES projeto(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS idx_missao_projeto ON missao(projeto_id);
+
+-- migração 007 "criar-tabelas-financas" — Fase 08 (ver docs/financas.md)
+CREATE TABLE carteira (
+  id             INTEGER PRIMARY KEY,
+  jogador_id     INTEGER NOT NULL REFERENCES jogador(id) ON DELETE CASCADE,
+  nome           TEXT NOT NULL,
+  moeda          TEXT NOT NULL DEFAULT 'BRL',
+  criado_em      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  atualizado_em  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+) STRICT;
+
+CREATE INDEX IF NOT EXISTS idx_carteira_jogador ON carteira(jogador_id);
+
+CREATE TABLE transacao (
+  id             INTEGER PRIMARY KEY,
+  carteira_id    INTEGER NOT NULL REFERENCES carteira(id) ON DELETE CASCADE,
+  tipo           TEXT NOT NULL CHECK (tipo IN ('receita', 'despesa')),
+  valor_centavos INTEGER NOT NULL CHECK (valor_centavos > 0),
+  categoria      TEXT NOT NULL,
+  descricao      TEXT,
+  ocorrida_em    TEXT NOT NULL,
+  criado_em      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  atualizado_em  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+) STRICT;
+
+CREATE INDEX IF NOT EXISTS idx_transacao_carteira ON transacao(carteira_id);
+CREATE INDEX IF NOT EXISTS idx_transacao_ocorrida ON transacao(ocorrida_em DESC);
+CREATE INDEX IF NOT EXISTS idx_transacao_categoria ON transacao(carteira_id, categoria);
+
+CREATE TABLE orcamento (
+  id             INTEGER PRIMARY KEY,
+  jogador_id     INTEGER NOT NULL REFERENCES jogador(id) ON DELETE CASCADE,
+  categoria      TEXT NOT NULL,
+  nome           TEXT,
+  valor_centavos INTEGER NOT NULL CHECK (valor_centavos > 0),
+  inicio         TEXT NOT NULL,
+  fim            TEXT NOT NULL,
+  criado_em      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  atualizado_em  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  CHECK (fim >= inicio)
+) STRICT;
+
+CREATE INDEX IF NOT EXISTS idx_orcamento_jogador ON orcamento(jogador_id);
+CREATE INDEX IF NOT EXISTS idx_orcamento_categoria ON orcamento(jogador_id, categoria);
 ```
 
 
 
-- `schema_migrations` responde "qual é a versão atual do banco?" (`SELECT MAX(versao)` . Atual: **v6**..
+- `schema_migrations` responde "qual é a versão atual do banco?" (`SELECT MAX(versao)` . Atual: **v7**..
 - `meta` guarda metadados técnico-operacionais(chave/valor. **Não** é configuração de ambiente(,isso vive em `config/*.json`) nem dado de sistema de jogo..
 
 - `jogador` (ver `docs/jogador.md`): identidade do operador — entidade central do PULSO; single-player imposta pelo Serviço,, com schema aberto a evolução futura.
+- `carteira` (ver `docs/financas.md`): carteira do jogador — hoje uma principal por jogador (garantida pela aplicação, sem `UNIQUE` para não travar carteiras múltiplas futuras); saldo nunca é coluna — é consequência das transações.
+- `transacao` (ver `docs/financas.md`): movimentação financeira — valor em **centavos inteiros positivos** (`CHECK valor_centavos > 0`), tipo `receita`/`despesa` (o sentido vem do tipo, nunca do sinal), categoria validada pelo domínio, `ocorrida_em` (data da ocorrência, `YYYY-MM-DD`) separado de `criado_em` (registro no PULSO).
+- `orcamento` (ver `docs/financas.md`): planejamento por categoria de despesa num período (limites inclusivos; `CHECK fim >= inicio`) — não cria dinheiro e não altera saldo.
 - `STRICT` impõe tipagem real nas colunas(SQLite ≥  3.37; embutido aqui: 3.50.4.
 
 ##  ̈6. Sistema de migrações
@@ -215,7 +262,12 @@ src/core/database/
     ├── meta.js                 → RepositorioMeta (padrão de referência)
     ├── jogador.js              → RepositorioJogador (Fase 03)
     ├── status.js               → RepositorioStatus (Fase 04)
-    └── missao.js               → RepositorioMissao (Fase 05)
+    ├── missao.js               → RepositorioMissao (Fase 05)
+    ├── progressao.js           → RepositorioProgressao (Fase 06)
+    ├── projeto.js              → RepositorioProjeto (Fase 07)
+    ├── carteira.js             → RepositorioCarteira (Fase 08)
+    ├── transacao.js            → RepositorioTransacao (Fase 08)
+    └── orcamento.js            → RepositorioOrcamento (Fase 08)
 ```
 
 Padrão estabelecido (ver `src/core/database/repositorios/meta.js`):
@@ -224,7 +276,7 @@ Padrão estabelecido (ver `src/core/database/repositorios/meta.js`):
 - statements preparados uma vez, no construtor;
 - métodos com nomes de intenção (`obter`, `definir`, `remover`), sem vazamento de SQL;
 - repositórios das fases seguem o mesmo modelo em `repositorios/` (o jogador — Fase 03 — já segue o padrão);
-- migrações atuais: **001** (infraestrutura), **002** (jogador — Fase 03), **003** (status — Fase 04) e **004** (missões — Fase 05).
+- migrações atuais: **001** (infraestrutura), **002** (jogador — Fase 03), **003** (status — Fase 04), **004** (missões — Fase 05), **005** (progressão — Fase 06), **006** (projetos — Fase 07) e **007** (finanças — Fase 08).
 
 Fluxo de inicialização da aplicação (main.js):
 

@@ -12,7 +12,7 @@ Fases conhecidas do projeto. Nenhuma fase antecipa o conteúdo da seguinte; o de
 | 05 | Missões | Sistema de missões e tarefas | ✅ Concluída |
 | 06 | Progressão | XP, níveis e evolução | ✅ Concluída |
 | 07 | Projetos | Gestão de projetos | ✅ Concluída |
-| 08 | Finanças | Transações, carteira, orçamento | ⬜ Pendente |
+| 08 | Finanças | Transações, carteira, orçamento | ✅ Concluída |
 | 09 | Loja / Lista de Desejos | Itens, desejos e compras | ⬜ Pendente |
 | 10 | Serviços e Despesas | Recorrências, contas e serviços | ⬜ Pendente |
 | 11 | Habilidades | Árvore de habilidades | ⬜ Pendente |
