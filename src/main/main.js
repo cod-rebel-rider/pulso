@@ -27,11 +27,15 @@ import { RepositorioMissao } from '../core/database/repositorios/missao.js';
 import { RepositorioProjeto } from '../core/database/repositorios/projeto.js';
 import { RepositorioProgressao } from '../core/database/repositorios/progressao.js';
 import { RepositorioAtributos } from '../core/database/repositorios/atributos.js';
+import { RepositorioCarteira } from '../core/database/repositorios/carteira.js';
+import { RepositorioTransacao } from '../core/database/repositorios/transacao.js';
+import { RepositorioOrcamento } from '../core/database/repositorios/orcamento.js';
 import { ServicoJogador } from '../core/aplicacao/servico-jogador.js';
 import { ServicoStatus } from '../core/aplicacao/servico-status.js';
 import { ServicoMissao } from '../core/aplicacao/servico-missao.js';
 import { ServicoProjeto } from '../core/aplicacao/servico-projeto.js';
 import { ServicoProgressao } from '../core/aplicacao/servico-progressao.js';
+import { ServicoFinanca } from '../core/aplicacao/servico-financa.js';
 import { ErroValidacao, ErroConflito, ErroTransicao } from '../core/erros.js';
 import canais from './canais.cjs';
 
@@ -58,6 +62,7 @@ let servicoStatus = null;
 let servicoMissao = null;
 let servicoProjeto = null;
 let servicoProgressao = null;
+let servicoFinanca = null;
 
 // ── Teste de fumaça ─────────────────────────────────────────────────────
 const resultadosFumaca = {
@@ -391,6 +396,89 @@ function registrarIpc() {
       ok: true,
       projeto: servicoProjeto.removerMissao(Number(projetoId ?? 0), Number(missaoId ?? 0)),
     })));
+
+  // ── Finanças (Fase 08) ────────────────────────────────────────────────
+  ipcMain.handle(canais.FINANCA_CARTEIRA, (_evento, { jogadorId } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      carteira: servicoFinanca.obterCarteira(Number(jogadorId ?? 0)),
+    })));
+
+  ipcMain.handle(canais.FINANCA_SALDO, (_evento, { jogadorId, inicio = null, fim = null } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      saldo: servicoFinanca.obterSaldo(Number(jogadorId ?? 0), { inicio, fim }),
+    })));
+
+  ipcMain.handle(canais.FINANCA_RESUMO, (_evento, { jogadorId, inicio = null, fim = null } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      ...servicoFinanca.obterResumo(Number(jogadorId ?? 0), { inicio, fim }),
+    })));
+
+  ipcMain.handle(canais.FINANCA_LISTAR_TRANSACOES, (_evento, { jogadorId, tipo = null, categoria = null, inicio = null, fim = null } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      transacoes: servicoFinanca.listarTransacoes(Number(jogadorId ?? 0), { tipo, categoria, inicio, fim }),
+    })));
+
+  ipcMain.handle(canais.FINANCA_CRIAR_TRANSACAO, (_evento, { jogadorId, ...dados } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const transacao = servicoFinanca.criarTransacao(Number(jogadorId ?? 0), dados ?? {});
+      registro.info(
+        `Transação criada: ${transacao.tipo} R$ ${(transacao.valorCentavos / 100).toFixed(2)} (${transacao.categoria}).`,
+      );
+      return { ok: true, transacao };
+    }));
+
+  ipcMain.handle(canais.FINANCA_ATUALIZAR_TRANSACAO, (_evento, { id, ...dados } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const transacao = servicoFinanca.atualizarTransacao(Number(id ?? 0), dados ?? {});
+      registro.info(`Transação atualizada: id=${transacao.id}.`);
+      return { ok: true, transacao };
+    }));
+
+  ipcMain.handle(canais.FINANCA_EXCLUIR_TRANSACAO, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => {
+      servicoFinanca.excluirTransacao(Number(id ?? 0));
+      registro.info(`Transação excluída: id=${id}.`);
+      return { ok: true };
+    }));
+
+  ipcMain.handle(canais.FINANCA_LISTAR_ORCAMENTOS, (_evento, { jogadorId } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      orcamentos: servicoFinanca.listarOrcamentos(Number(jogadorId ?? 0)),
+    })));
+
+  ipcMain.handle(canais.FINANCA_CRIAR_ORCAMENTO, (_evento, { jogadorId, ...dados } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const orcamento = servicoFinanca.criarOrcamento(Number(jogadorId ?? 0), dados ?? {});
+      registro.info(
+        `Orçamento criado: ${orcamento.categoria} R$ ${(orcamento.valorCentavos / 100).toFixed(2)} (${orcamento.inicio} → ${orcamento.fim}).`,
+      );
+      return { ok: true, orcamento };
+    }));
+
+  ipcMain.handle(canais.FINANCA_ATUALIZAR_ORCAMENTO, (_evento, { id, ...dados } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const orcamento = servicoFinanca.atualizarOrcamento(Number(id ?? 0), dados ?? {});
+      registro.info(`Orçamento atualizado: id=${orcamento.id}.`);
+      return { ok: true, orcamento };
+    }));
+
+  ipcMain.handle(canais.FINANCA_EXCLUIR_ORCAMENTO, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => {
+      servicoFinanca.excluirOrcamento(Number(id ?? 0));
+      registro.info(`Orçamento excluído: id=${id}.`);
+      return { ok: true };
+    }));
+
+  ipcMain.handle(canais.FINANCA_SITUACAO_ORCAMENTO, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const situacao = servicoFinanca.situacaoOrcamento(Number(id ?? 0));
+      return { ok: true, orcamento: situacao.orcamento, situacao: situacao.situacao };
+    }));
 }
 
 /**
@@ -468,14 +556,23 @@ async function aoIniciar() {
   const repositorioProgressao = new RepositorioProgressao(estadoBanco.banco);
   const repositorioAtributos = new RepositorioAtributos(estadoBanco.banco);
   const repositorioProjeto = new RepositorioProjeto(estadoBanco.banco);
+  const repositorioCarteira = new RepositorioCarteira(estadoBanco.banco);
+  const repositorioTransacao = new RepositorioTransacao(estadoBanco.banco);
+  const repositorioOrcamento = new RepositorioOrcamento(estadoBanco.banco);
 
-  // Criação atômica: jogador + status + progressão iniciais em uma transação.
+  // Criação atômica: jogador + status + progressão + carteira em uma transação.
   servicoStatus = new ServicoStatus({ repositorio: repositorioStatus, repositorioJogador });
   servicoProgressao = new ServicoProgressao({
     repositorioProgressao,
     repositorioAtributos,
     repositorioJogador,
     banco: estadoBanco.banco,
+  });
+  servicoFinanca = new ServicoFinanca({
+    repositorioCarteira,
+    repositorioTransacao,
+    repositorioOrcamento,
+    repositorioJogador,
   });
   servicoJogador = new ServicoJogador({
     repositorio: repositorioJogador,
@@ -487,6 +584,10 @@ async function aoIniciar() {
       );
       servicoProgressao.criarInicial(jogador.id);
       registro.info('Progressão inicial criada: nível 1, 0 XP, atributos em 1.');
+      const carteira = servicoFinanca.criarCarteiraInicial(jogador.id);
+      registro.info(
+        `Carteira inicial criada: ${carteira.nome} (${carteira.moeda}), saldo R$ 0,00.`,
+      );
     },
   });
   servicoMissao = new ServicoMissao({ repositorio: repositorioMissao });

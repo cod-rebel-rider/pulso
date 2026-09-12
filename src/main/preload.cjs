@@ -43,6 +43,18 @@ const CANAL_PROJETO_CANCELAR = 'projeto:cancelar'; // igual a canais.cjs → PRO
 const CANAL_PROJETO_ARQUIVAR = 'projeto:arquivar'; // igual a canais.cjs → PROJETO_ARQUIVAR
 const CANAL_PROJETO_ASSOCIAR_MISSAO = 'projeto:associar-missao'; // igual a canais.cjs → PROJETO_ASSOCIAR_MISSAO
 const CANAL_PROJETO_REMOVER_MISSAO = 'projeto:remover-missao'; // igual a canais.cjs → PROJETO_REMOVER_MISSAO
+const CANAL_FINANCA_CARTEIRA = 'financa:carteira'; // igual a canais.cjs → FINANCA_CARTEIRA
+const CANAL_FINANCA_SALDO = 'financa:saldo'; // igual a canais.cjs → FINANCA_SALDO
+const CANAL_FINANCA_RESUMO = 'financa:resumo'; // igual a canais.cjs → FINANCA_RESUMO
+const CANAL_FINANCA_LISTAR_TRANSACOES = 'financa:listar-transacoes'; // igual a canais.cjs → FINANCA_LISTAR_TRANSACOES
+const CANAL_FINANCA_CRIAR_TRANSACAO = 'financa:criar-transacao'; // igual a canais.cjs → FINANCA_CRIAR_TRANSACAO
+const CANAL_FINANCA_ATUALIZAR_TRANSACAO = 'financa:atualizar-transacao'; // igual a canais.cjs → FINANCA_ATUALIZAR_TRANSACAO
+const CANAL_FINANCA_EXCLUIR_TRANSACAO = 'financa:excluir-transacao'; // igual a canais.cjs → FINANCA_EXCLUIR_TRANSACAO
+const CANAL_FINANCA_LISTAR_ORCAMENTOS = 'financa:listar-orcamentos'; // igual a canais.cjs → FINANCA_LISTAR_ORCAMENTOS
+const CANAL_FINANCA_CRIAR_ORCAMENTO = 'financa:criar-orcamento'; // igual a canais.cjs → FINANCA_CRIAR_ORCAMENTO
+const CANAL_FINANCA_ATUALIZAR_ORCAMENTO = 'financa:atualizar-orcamento'; // igual a canais.cjs → FINANCA_ATUALIZAR_ORCAMENTO
+const CANAL_FINANCA_EXCLUIR_ORCAMENTO = 'financa:excluir-orcamento'; // igual a canais.cjs → FINANCA_EXCLUIR_ORCAMENTO
+const CANAL_FINANCA_SITUACAO_ORCAMENTO = 'financa:situacao-orcamento'; // igual a canais.cjs → FINANCA_SITUACAO_ORCAMENTO
 
 const { contextBridge, ipcRenderer } = require('electron');
 
@@ -185,6 +197,29 @@ contextBridge.exposeInMainWorld(
         ipcRenderer.invoke(CANAL_PROJETO_ASSOCIAR_MISSAO, { projetoId, missaoId }),
       removerMissao: (projetoId, missaoId) =>
         ipcRenderer.invoke(CANAL_PROJETO_REMOVER_MISSAO, { projetoId, missaoId }),
+    }),
+
+    /**
+     * Operações específicas de finanças (Fase 08) — nunca acesso genérico.
+     * Valores monetários trafegam em CENTAVOS (inteiros); a formatação em R$
+     * acontece apenas na interface.
+     */
+    financa: Object.freeze({
+      carteira: (jogadorId) => ipcRenderer.invoke(CANAL_FINANCA_CARTEIRA, { jogadorId }),
+      saldo: (jogadorId, { inicio = null, fim = null } = {}) =>
+        ipcRenderer.invoke(CANAL_FINANCA_SALDO, { jogadorId, inicio, fim }),
+      resumo: (jogadorId, { inicio = null, fim = null } = {}) =>
+        ipcRenderer.invoke(CANAL_FINANCA_RESUMO, { jogadorId, inicio, fim }),
+      listarTransacoes: (jogadorId, { tipo = null, categoria = null, inicio = null, fim = null } = {}) =>
+        ipcRenderer.invoke(CANAL_FINANCA_LISTAR_TRANSACOES, { jogadorId, tipo, categoria, inicio, fim }),
+      criarTransacao: (dados) => ipcRenderer.invoke(CANAL_FINANCA_CRIAR_TRANSACAO, dados),
+      atualizarTransacao: (dados) => ipcRenderer.invoke(CANAL_FINANCA_ATUALIZAR_TRANSACAO, dados),
+      excluirTransacao: (id) => ipcRenderer.invoke(CANAL_FINANCA_EXCLUIR_TRANSACAO, { id }),
+      listarOrcamentos: (jogadorId) => ipcRenderer.invoke(CANAL_FINANCA_LISTAR_ORCAMENTOS, { jogadorId }),
+      criarOrcamento: (dados) => ipcRenderer.invoke(CANAL_FINANCA_CRIAR_ORCAMENTO, dados),
+      atualizarOrcamento: (dados) => ipcRenderer.invoke(CANAL_FINANCA_ATUALIZAR_ORCAMENTO, dados),
+      excluirOrcamento: (id) => ipcRenderer.invoke(CANAL_FINANCA_EXCLUIR_ORCAMENTO, { id }),
+      situacaoOrcamento: (id) => ipcRenderer.invoke(CANAL_FINANCA_SITUACAO_ORCAMENTO, { id }),
     }),
   }),
 );
