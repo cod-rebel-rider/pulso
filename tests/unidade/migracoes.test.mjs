@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { abrirConexao, fecharConexao } from '../../src/core/database/conexao.js';
 import { aplicarMigracoes, versaoAtual, MIGRACOES } from '../../src/core/database/migracoes.js';
 
-test('banco vazio recebe as migrações oficiais: schema v6 com infraestrutura, jogador, status, missões, progressão e projetos', () => {
+test('banco vazio recebe as migrações oficiais: schema v7 com infraestrutura, jogador, status, missões, progressão, projetos e finanças', () => {
   const banco = abrirConexao({ caminho: ':memory:' });
   try {
     const resultado = aplicarMigracoes(banco);
@@ -18,9 +18,10 @@ test('banco vazio recebe as migrações oficiais: schema v6 com infraestrutura, 
       { versao: 4, nome: 'criar-tabela-missoes' },
       { versao: 5, nome: 'criar-tabelas-progressao' },
       { versao: 6, nome: 'criar-tabela-projetos' },
+      { versao: 7, nome: 'criar-tabelas-financas' },
     ]);
-    assert.equal(resultado.versaoAtual, 6);
-    assert.equal(versaoAtual(banco), 6);
+    assert.equal(resultado.versaoAtual, 7);
+    assert.equal(versaoAtual(banco), 7);
 
     assert.equal(banco.prepare("SELECT valor FROM meta WHERE chave = 'aplicacao'").get().valor, 'PULSO');
     // a tabela do jogador existe e aceita inserção mínima
@@ -41,6 +42,13 @@ test('banco vazio recebe as migrações oficiais: schema v6 com infraestrutura, 
     // a tabela de projetos existe, aceita inserção mínima e vincula missão
     banco.prepare("INSERT INTO projeto (jogador_id, titulo) VALUES (1, 'Projeto')").run();
     assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM projeto').get().n, 1);
+    // as tabelas de finanças existem, aceitam inserção mínima e validam CHECKs
+    banco.prepare("INSERT INTO carteira (jogador_id, nome, moeda) VALUES (1, 'Carteira Principal', 'BRL')").run();
+    assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM carteira').get().n, 1);
+    banco.prepare("INSERT INTO transacao (carteira_id, tipo, valor_centavos, categoria, ocorrida_em) VALUES (1, 'receita', 1000, 'salario', '2026-09-01')").run();
+    assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM transacao').get().n, 1);
+    banco.prepare("INSERT INTO orcamento (jogador_id, categoria, valor_centavos, inicio, fim) VALUES (1, 'alimentacao', 50000, '2026-09-01', '2026-09-30')").run();
+    assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM orcamento').get().n, 1);
   } finally {
     fecharConexao(banco);
   }
@@ -63,7 +71,7 @@ test('migrações já aplicadas não são executadas novamente', () => {
     assert.equal(registroDepois.aplicada_em, registroOriginal.aplicada_em, 'registro inalterado');
     assert.equal(
       banco.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get().n,
-      6,
+      7,
       'todas as migrações oficiais registradas uma única vez',
     );
   } finally {

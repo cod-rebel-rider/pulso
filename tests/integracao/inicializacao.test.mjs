@@ -38,6 +38,10 @@ function resolverBinarioElectron() {
 }
 
 function resolverComandoGrafico() {
+  // Windows e macOS expõem sessão gráfica nativa ao processo do usuário.
+  if (process.platform === 'win32' || process.platform === 'darwin') {
+    return { disponivel: true, prefixo: [] };
+  }
   if (process.env.DISPLAY || process.env.WAYLAND_DISPLAY) {
     return { disponivel: true, prefixo: [] };
   }
