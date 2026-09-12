@@ -190,6 +190,70 @@ const MIGRACAO_006 = Object.freeze({
   },
 });
 
+/**
+ * Migração 007 — finanças (Fase 08): carteira, transações e orçamentos.
+ */
+const MIGRACAO_007 = Object.freeze({
+  versao: 7,
+  nome: 'criar-tabelas-financas',
+  cima(banco) {
+    // Carteira: referenciada pelas transações. Uma carteira principal por
+    // jogador é garantida pela aplicação; sem UNIQUE no jogador para não
+    // impedir carteiras múltiplas em fases futuras.
+    banco.exec(`
+      CREATE TABLE carteira (
+        id             INTEGER PRIMARY KEY,
+        jogador_id     INTEGER NOT NULL REFERENCES jogador(id) ON DELETE CASCADE,
+        nome           TEXT NOT NULL,
+        moeda          TEXT NOT NULL DEFAULT 'BRL',
+        criado_em      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+      ) STRICT
+    `);
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_carteira_jogador ON carteira(jogador_id)');
+
+    // Transação: saldo é CONSEQUÊNCIA destas linhas. Valor sempre em centavos,
+    // inteiro e positivo (CHECK no banco e no domínio); o sentido (receita/
+    // despesa) é dado pelo tipo, nunca pelo sinal do valor. Categoria é TEXT
+    // validado pelo domínio (constantes centralizadas em dominio/financa.js).
+    banco.exec(`
+      CREATE TABLE transacao (
+        id             INTEGER PRIMARY KEY,
+        carteira_id    INTEGER NOT NULL REFERENCES carteira(id) ON DELETE CASCADE,
+        tipo           TEXT NOT NULL CHECK (tipo IN ('receita', 'despesa')),
+        valor_centavos INTEGER NOT NULL CHECK (valor_centavos > 0),
+        categoria      TEXT NOT NULL,
+        descricao      TEXT,
+        ocorrida_em    TEXT NOT NULL,
+        criado_em      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+      ) STRICT
+    `);
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_transacao_carteira ON transacao(carteira_id)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_transacao_ocorrida ON transacao(ocorrida_em DESC)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_transacao_categoria ON transacao(carteira_id, categoria)');
+
+    // Orçamento: planejamento por categoria de DESPESA num período definido.
+    // Não cria dinheiro — apenas compara despesas reais com o limite.
+    banco.exec(`
+      CREATE TABLE orcamento (
+        id             INTEGER PRIMARY KEY,
+        jogador_id     INTEGER NOT NULL REFERENCES jogador(id) ON DELETE CASCADE,
+        categoria      TEXT NOT NULL,
+        nome           TEXT,
+        valor_centavos INTEGER NOT NULL CHECK (valor_centavos > 0),
+        inicio         TEXT NOT NULL,
+        fim            TEXT NOT NULL,
+        criado_em      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        CHECK (fim >= inicio)
+      ) STRICT
+    `);
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_orcamento_jogador ON orcamento(jogador_id)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_orcamento_categoria ON orcamento(jogador_id, categoria)');
+  },
+});
+
 /** Lista oficial de migrações — fases futuras ACRESCENTAM ao final. */
 export const MIGRACOES = Object.freeze([
   MIGRACAO_001,
@@ -198,6 +262,7 @@ export const MIGRACOES = Object.freeze([
   MIGRACAO_004,
   MIGRACAO_005,
   MIGRACAO_006,
+  MIGRACAO_007,
 ]);
 
 function validarLista(migracoes) {
