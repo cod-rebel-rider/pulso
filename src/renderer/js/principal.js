@@ -1760,6 +1760,42 @@ document.addEventListener('DOMContentLoaded', () => {
     salvarTransacao();
   });
   elementos.formularioTransacao.addEventListener('submit', (e) => {
+  // Lista de desejos / compras (Fase 09)
+  elementos.botaoVerDesejos.addEventListener('click', irParaDesejos);
+  elementos.desejosPainel.addEventListener('click', voltarAoPainelDesejos);
+  elementos.filtrosDesejos.addEventListener('click', (evento) => {
+    const botao = evento.target.closest('[data-filtro]');
+    if (!botao) return;
+    aplicarFiltroEstadoDesejo(botao);
+  });
+  elementos.filtroCategoriaDesejo.addEventListener('change', () => {
+    categoriaFiltroDesejo = elementos.filtroCategoriaDesejo.value;
+    carregarDesejos();
+  });
+  elementos.botaoNovoDesejo.addEventListener('click', () => exibirFormularioDesejo());
+  elementos.desejoVoltar.addEventListener('click', () => exibirVisaoDesejo('visao-desejos'));
+  elementos.desejoPainel.addEventListener('click', voltarAoPainelDesejos);
+  elementos.desejoEditar.addEventListener('click', () => {
+    const item = itensDesejosCarregados.find((i) => i.id === desejoAtualId);
+    if (item) exibirFormularioDesejo({ modo: 'edicao', item });
+  });
+  elementos.botaoSalvarDesejo.addEventListener('click', (e) => {
+    e.preventDefault();
+    salvarDesejo();
+  });
+  elementos.formularioDesejo.addEventListener('submit', (e) => {
+    e.preventDefault();
+    salvarDesejo();
+  });
+  elementos.botaoCancelarDesejo.addEventListener('click', () => {
+    if (desejoAtualId) exibirVisaoDesejo('visao-desejos');
+    else exibirVisaoDesejo('visao-desejos');
+  });
+  elementos.botaoCancelarOrcamento.addEventListener('click', () => {
+    if (orcamentoAtualId) exibirVisaoFinanca('visao-financas');
+    else exibirVisaoFinanca('visao-financas');
+  });
+  iniciar();
     e.preventDefault();
     salvarTransacao();
   });

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PULSO — Preload (Fase 01 — Fundação)
  *
  * Ponte controlada entre renderer e processo principal:
@@ -55,6 +55,13 @@ const CANAL_FINANCA_CRIAR_ORCAMENTO = 'financa:criar-orcamento'; // igual a cana
 const CANAL_FINANCA_ATUALIZAR_ORCAMENTO = 'financa:atualizar-orcamento'; // igual a canais.cjs → FINANCA_ATUALIZAR_ORCAMENTO
 const CANAL_FINANCA_EXCLUIR_ORCAMENTO = 'financa:excluir-orcamento'; // igual a canais.cjs → FINANCA_EXCLUIR_ORCAMENTO
 const CANAL_FINANCA_SITUACAO_ORCAMENTO = 'financa:situacao-orcamento'; // igual a canais.cjs → FINANCA_SITUACAO_ORCAMENTO
+const CANAL_DESEJO_LISTAR = 'desejo:listar';
+const CANAL_DESEJO_CRIAR = 'desejo:criar';
+const CANAL_DESEJO_OBTER = 'desejo:obter';
+const CANAL_DESEJO_ATUALIZAR = 'desejo:atualizar';
+const CANAL_DESEJO_CANCELAR = 'desejo:cancelar';
+const CANAL_DESEJO_COMPRAR = 'desejo:comprar';
+const CANAL_DESEJO_LISTAR_COMPRADOS = 'desejo:listar-comprados';
 
 const { contextBridge, ipcRenderer } = require('electron');
 
@@ -220,6 +227,19 @@ contextBridge.exposeInMainWorld(
       atualizarOrcamento: (dados) => ipcRenderer.invoke(CANAL_FINANCA_ATUALIZAR_ORCAMENTO, dados),
       excluirOrcamento: (id) => ipcRenderer.invoke(CANAL_FINANCA_EXCLUIR_ORCAMENTO, { id }),
       situacaoOrcamento: (id) => ipcRenderer.invoke(CANAL_FINANCA_SITUACAO_ORCAMENTO, { id }),
+      /**
+       * Operações de lista de desejos / compras (Fase 09) - nunca acesso
+       * genérico ao banco. Valores monetários trafegam em CENTAVOS (inteiros).
+       */
+      desejo: Object.freeze({
+        listar: (jogadorId) => ipcRenderer.invoke(CANAL_DESEJO_LISTAR, { jogadorId }),
+        criar: (dados) => ipcRenderer.invoke(CANAL_DESEJO_CRIAR, dados),
+        obter: (id) => ipcRenderer.invoke(CANAL_DESEJO_OBTER, { id }),
+        atualizar: (dados) => ipcRenderer.invoke(CANAL_DESEJO_ATUALIZAR, dados),
+        cancelar: (id) => ipcRenderer.invoke(CANAL_DESEJO_CANCELAR, { id }),
+        comprar: (dados) => ipcRenderer.invoke(CANAL_DESEJO_COMPRAR, dados),
+        listarComprados: (jogadorId) => ipcRenderer.invoke(CANAL_DESEJO_LISTAR_COMPRADOS, { jogadorId }),
+      }),
     }),
   }),
 );

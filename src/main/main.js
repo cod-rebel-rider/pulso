@@ -479,6 +479,59 @@ function registrarIpc() {
       const situacao = servicoFinanca.situacaoOrcamento(Number(id ?? 0));
       return { ok: true, orcamento: situacao.orcamento, situacao: situacao.situacao };
     }));
+
+  // ── Lista de desejos / compras (Fase 09) ──────────────────────────────
+  ipcMain.handle(canais.DESEJO_LISTAR, (_evento, { jogadorId } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      itens: servicoDesejo.listar(Number(jogadorId ?? 0)),
+    })));
+
+  ipcMain.handle(canais.DESEJO_CRIAR, (_evento, dados) =>
+    traduzirResultadoOperacao(() => {
+      const item = servicoDesejo.criar(dados ?? {});
+      registro.info(`Desejo criado: ${item.titulo} (${item.categoria}).`);
+      return { ok: true, item };
+    }));
+
+  ipcMain.handle(canais.DESEJO_OBTER, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      item: servicoDesejo.obter(Number(id ?? 0)),
+    })));
+
+  ipcMain.handle(canais.DESEJO_ATUALIZAR, (_evento, dados) =>
+    traduzirResultadoOperacao(() => {
+      const item = servicoDesejo.atualizar(dados ?? {});
+      registro.info(`Desejo atualizado: id=${item.id}.`);
+      return { ok: true, item };
+    }));
+
+  ipcMain.handle(canais.DESEJO_CANCELAR, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => {
+      servicoDesejo.cancelar(Number(id ?? 0));
+      registro.info(`Desejo cancelado: id=${id}.`);
+      return { ok: true };
+    }));
+
+  ipcMain.handle(canais.DESEJO_COMPRAR, (_evento, dados) =>
+    traduzirResultadoOperacao(() => {
+      const operacao = servicoDesejo.comprar(dados ?? {});
+      registro.info(
+        `Compra registrada: ${operacao.item.titulo} — esperado R$ ` +
+        `${(operacao.item.precoEsperadoCentavos / 100).toFixed(2)} → ` +
+        `pago R$ ${(operacao.item.precoFinalCentavos / 100).toFixed(2)} ` +
+        `(transação id=${operacao.transacao.id}).`,
+      );
+      return { ok: true, ...operacao };
+    }));
+
+  ipcMain.handle(canais.DESEJO_LISTAR_COMPRADOS, (_evento, { jogadorId } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      itens: servicoDesejo.listarComprados(Number(jogadorId ?? 0)),
+    })));
+
 }
 
 /**

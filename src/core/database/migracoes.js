@@ -255,6 +255,40 @@ const MIGRACAO_007 = Object.freeze({
 });
 
 /** Lista oficial de migrações — fases futuras ACRESCENTAM ao final. */
+export const MIGRACAO_008 = Object.freeze({
+  versao: 8,
+  nome: 'criar-tabela-desejos',
+  cima(banco) {
+    // Desejo / Lista de Desejos (Fase 09 — Loja). O desejo NÃO gasta dinheiro:
+    // sem compra, é apenas planejamento. Campos de compra (preço final, data,
+    // referência da transação) só são preenchidos pelo fluxo atômico de compra
+    // (ServicoDesejo.comprar), que cria a despesa via motor da FASE 08.
+    // Exclusão é lógica (estado `cancelado`/histórico preservado), não física.
+    banco.exec(`
+      CREATE TABLE desejo (
+        id                       INTEGER PRIMARY KEY,
+        jogador_id               INTEGER NOT NULL REFERENCES jogador(id) ON DELETE CASCADE,
+        titulo                   TEXT NOT NULL,
+        descricao                TEXT,
+        categoria                TEXT NOT NULL,
+        prioridade               TEXT NOT NULL CHECK (prioridade IN ('baixa', 'normal', 'alta', 'critica')),
+        estado                   TEXT NOT NULL DEFAULT 'desejado'
+                                 CHECK (estado IN ('desejado', 'em_analise', 'planejado', 'comprado', 'cancelado')),
+        valor_esperado_centavos  INTEGER NOT NULL CHECK (valor_esperado_centavos > 0),
+        valor_final_centavos     INTEGER CHECK (valor_final_centavos > 0),
+        comprado_em              TEXT,
+        transacao_id             INTEGER REFERENCES transacao(id) ON DELETE SET NULL,
+        criado_em                TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em            TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+      ) STRICT
+    `);
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_desejo_jogador ON desejo(jogador_id)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_desejo_estado ON desejo(jogador_id, estado)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_desejo_categoria ON desejo(jogador_id, categoria)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_desejo_transacao ON desejo(transacao_id)');
+  },
+});
+
 export const MIGRACOES = Object.freeze([
   MIGRACAO_001,
   MIGRACAO_002,
@@ -263,6 +297,7 @@ export const MIGRACOES = Object.freeze([
   MIGRACAO_005,
   MIGRACAO_006,
   MIGRACAO_007,
+  MIGRACAO_008,
 ]);
 
 function validarLista(migracoes) {

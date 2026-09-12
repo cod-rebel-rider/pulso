@@ -47,4 +47,11 @@ module.exports = Object.freeze({
   FINANCA_ATUALIZAR_ORCAMENTO: 'financa:atualizar-orcamento',
   FINANCA_EXCLUIR_ORCAMENTO: 'financa:excluir-orcamento',
   FINANCA_SITUACAO_ORCAMENTO: 'financa:situacao-orcamento',
+  DESEJO_LISTAR: 'desejo:listar',
+  DESEJO_CRIAR: 'desejo:criar',
+  DESEJO_OBTER: 'desejo:obter',
+  DESEJO_ATUALIZAR: 'desejo:atualizar',
+  DESEJO_CANCELAR: 'desejo:cancelar',
+  DESEJO_COMPRAR: 'desejo:comprar',
+  DESEJO_LISTAR_COMPRADOS: 'desejo:listar-comprados',
 });
