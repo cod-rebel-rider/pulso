@@ -254,7 +254,39 @@ const MIGRACAO_007 = Object.freeze({
   },
 });
 
-/** Lista oficial de migrações — fases futuras ACRESCENTAM ao final. */
+/** Migracao 008 — lista de desejos / loja (Fase 09). */
+const MIGRACAO_008 = Object.freeze({
+  versao: 8,
+  nome: 'criar-tabela-desejo',
+  cima(banco) {
+    banco.exec(`
+      CREATE TABLE desejo (
+        id                      INTEGER PRIMARY KEY,
+        jogador_id              INTEGER NOT NULL REFERENCES jogador(id) ON DELETE CASCADE,
+        titulo                  TEXT NOT NULL,
+        descricao               TEXT,
+        categoria               TEXT NOT NULL,
+        prioridade              TEXT NOT NULL,
+        estado                  TEXT NOT NULL,
+        valor_esperado_centavos INTEGER NOT NULL CHECK (valor_esperado_centavos > 0),
+        valor_pago_centavos     INTEGER CHECK (valor_pago_centavos IS NULL OR valor_pago_centavos > 0),
+        diferenca_centavos      INTEGER,
+        data_compra             TEXT,
+        observacao_compra       TEXT,
+        transacao_id            INTEGER REFERENCES transacao(id) ON DELETE SET NULL,
+        criado_em               TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        comprado_em             TEXT,
+        CHECK (estado IN ('desejado', 'em_analise', 'planejado', 'comprado', 'cancelado')),
+        CHECK (prioridade IN ('baixa', 'normal', 'alta', 'critica'))
+      ) STRICT
+    `);
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_desejo_jogador ON desejo(jogador_id)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_desejo_estado ON desejo(jogador_id, estado)');
+  },
+});
+
+/** Lista oficial de migracoes — fases futuras ACRESCENTAM ao final. */
 export const MIGRACOES = Object.freeze([
   MIGRACAO_001,
   MIGRACAO_002,
@@ -263,6 +295,7 @@ export const MIGRACOES = Object.freeze([
   MIGRACAO_005,
   MIGRACAO_006,
   MIGRACAO_007,
+  MIGRACAO_008,
 ]);
 
 function validarLista(migracoes) {
