@@ -30,12 +30,27 @@ import { RepositorioAtributos } from '../core/database/repositorios/atributos.js
 import { RepositorioCarteira } from '../core/database/repositorios/carteira.js';
 import { RepositorioTransacao } from '../core/database/repositorios/transacao.js';
 import { RepositorioOrcamento } from '../core/database/repositorios/orcamento.js';
+import { RepositorioDesejo } from '../core/database/repositorios/desejo.js';
 import { ServicoJogador } from '../core/aplicacao/servico-jogador.js';
 import { ServicoStatus } from '../core/aplicacao/servico-status.js';
 import { ServicoMissao } from '../core/aplicacao/servico-missao.js';
 import { ServicoProjeto } from '../core/aplicacao/servico-projeto.js';
 import { ServicoProgressao } from '../core/aplicacao/servico-progressao.js';
 import { ServicoFinanca } from '../core/aplicacao/servico-financa.js';
+import { ServicoLoja } from '../core/aplicacao/servico-loja.js';
+import {
+  CATEGORIAS_DESEJO,
+  PRIORIDADES_DESEJO_ORDEM,
+  PRIORIDADES_DESEJO_ROTULOS,
+  ESTADOS_DESEJO_ORDEM,
+  ESTADOS_DESEJO_ROTULOS,
+} from '../core/dominio/loja.js';
+
+const CATEGORIAS_DESEJO_LOJA = CATEGORIAS_DESEJO;
+const PRIORIDADES_DESEJO_LOJA = PRIORIDADES_DESEJO_ORDEM;
+const ROTULOS_PRIORIDADES_LOJA = PRIORIDADES_DESEJO_ROTULOS;
+const ESTADOS_DESEJO_LOJA = ESTADOS_DESEJO_ORDEM;
+const ROTULOS_ESTADOS_LOJA = ESTADOS_DESEJO_ROTULOS;
 import { ErroValidacao, ErroConflito, ErroTransicao } from '../core/erros.js';
 import canais from './canais.cjs';
 
@@ -63,6 +78,7 @@ let servicoMissao = null;
 let servicoProjeto = null;
 let servicoProgressao = null;
 let servicoFinanca = null;
+let servicoLoja = null;
 
 // ── Teste de fumaça ─────────────────────────────────────────────────────
 const resultadosFumaca = {
@@ -177,6 +193,16 @@ function executarTesteFumaca(janela) {
 }
 
 // ── IPC (superfície mínima) ─────────────────────────────────────────────
+function configLoja() {
+  return Object.freeze({
+    categorias: CATEGORIAS_DESEJO_LOJA,
+    prioridades: PRIORIDADES_DESEJO_LOJA,
+    rotulosPrioridades: ROTULOS_PRIORIDADES_LOJA,
+    estados: ESTADOS_DESEJO_LOJA,
+    rotulosEstados: ROTULOS_ESTADOS_LOJA,
+  });
+}
+
 function registrarIpc() {
   ipcMain.handle(canais.INFO_SISTEMA, () => ({
     nome: 'PULSO',
@@ -479,6 +505,52 @@ function registrarIpc() {
       const situacao = servicoFinanca.situacaoOrcamento(Number(id ?? 0));
       return { ok: true, orcamento: situacao.orcamento, situacao: situacao.situacao };
     }));
+
+  // ── Loja / Lista de Desejos (Fase 09) ──────────────────────────────────
+  ipcMain.handle(canais.LOJA_CONFIG, () =>
+    traduzirResultadoOperacao(() => ({ ok: true, config: configLoja() })));
+  ipcMain.handle(canais.LOJA_LISTAR, (_evento, { jogadorId, estado = null, categoria = null, prioridade = null } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      desejos: servicoLoja.listar(Number(jogadorId ?? 0), { estado, categoria, prioridade }),
+    })));
+  ipcMain.handle(canais.LOJA_OBTER, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => ({ ok: true, desejo: servicoLoja.obter(Number(id ?? 0)) })));
+  ipcMain.handle(canais.LOJA_CRIAR, (_evento, dados = {}) =>
+    traduzirResultadoOperacao(() => {
+      const desejo = servicoLoja.criar(Number(dados.jogadorId ?? 0), dados);
+      return { ok: true, desejo };
+    }));
+  ipcMain.handle(canais.LOJA_ATUALIZAR, (_evento, dados = {}) =>
+    traduzirResultadoOperacao(() => {
+      const desejo = servicoLoja.atualizar(Number(dados.id ?? 0), dados);
+      return { ok: true, desejo };
+    }));
+  ipcMain.handle(canais.LOJA_ANALISAR, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => ({ ok: true, desejo: servicoLoja.analisar(Number(id ?? 0)) })));
+  ipcMain.handle(canais.LOJA_PLANEJAR, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => ({ ok: true, desejo: servicoLoja.planejar(Number(id ?? 0)) })));
+  ipcMain.handle(canais.LOJA_COMPRAR, (_evento, { id, precoFinal, valorPagoCentavos, data, observacao } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      desejo: servicoLoja.comprar(Number(id ?? 0), {
+        precoFinal: precoFinal ?? valorPagoCentavos,
+        data,
+        observacao,
+      }),
+    })));
+  ipcMain.handle(canais.LOJA_CANCELAR, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => ({ ok: true, desejo: servicoLoja.cancelar(Number(id ?? 0)) })));
+  ipcMain.handle(canais.LOJA_HISTORICO, (_evento, { jogadorId } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      compras: servicoLoja.listarComprados(Number(jogadorId ?? 0)),
+    })));
+  ipcMain.handle(canais.LOJA_RESUMO, (_evento, { jogadorId } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      resumo: servicoLoja.resumo(Number(jogadorId ?? 0)),
+    })));
 }
 
 /**
@@ -559,6 +631,7 @@ async function aoIniciar() {
   const repositorioCarteira = new RepositorioCarteira(estadoBanco.banco);
   const repositorioTransacao = new RepositorioTransacao(estadoBanco.banco);
   const repositorioOrcamento = new RepositorioOrcamento(estadoBanco.banco);
+  const repositorioDesejo = new RepositorioDesejo(estadoBanco.banco);
 
   // Criação atômica: jogador + status + progressão + carteira em uma transação.
   servicoStatus = new ServicoStatus({ repositorio: repositorioStatus, repositorioJogador });
@@ -591,6 +664,12 @@ async function aoIniciar() {
     },
   });
   servicoMissao = new ServicoMissao({ repositorio: repositorioMissao });
+  servicoLoja = new ServicoLoja({
+    repositorio: repositorioDesejo,
+    repositorioJogador,
+    servicoFinanca,
+    banco: estadoBanco.banco,
+  });
   servicoProjeto = new ServicoProjeto({
     repositorio: repositorioProjeto,
     repositorioMissao,
