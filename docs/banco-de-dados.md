@@ -53,9 +53,9 @@ Em outros sistemas operacionais o caminho acompanha o padrão da plataforma(Fase
 | `busy_timeout` | `5000` | locks transitórios esperam até 5 s em vez de falhar de imediato |
 | `synchronous` | `NORMAL` | par recomendado com WAL: seguro contra falha da aplicação; risco residual apenas em queda de energia(janela mínima) |
 
-##  ̈5. Schema atual(versão 2
+##  ̈5. Schema atual(versão 8
 
-Infraestrutura + entidade **Jogador** — nenhuma outra tabela de sistema de jogo(elas nascem nas fases próprias.
+Infraestrutura + entidades de negócio implementadas até a **Fase 09** (cada fase acrescenta sua migração ao final da lista — ver `src/core/database/migracoes.js`).
 
 
 
@@ -210,17 +210,43 @@ CREATE TABLE orcamento (
 
 CREATE INDEX IF NOT EXISTS idx_orcamento_jogador ON orcamento(jogador_id);
 CREATE INDEX IF NOT EXISTS idx_orcamento_categoria ON orcamento(jogador_id, categoria);
+
+-- migração 008 "criar-tabela-desejo" — Fase 09 (ver docs/loja.md)
+CREATE TABLE desejo (
+  id                      INTEGER PRIMARY KEY,
+  jogador_id              INTEGER NOT NULL REFERENCES jogador(id) ON DELETE CASCADE,
+  titulo                  TEXT NOT NULL,
+  descricao               TEXT,
+  categoria               TEXT NOT NULL,
+  prioridade              TEXT NOT NULL,
+  estado                  TEXT NOT NULL,
+  valor_esperado_centavos INTEGER NOT NULL CHECK (valor_esperado_centavos > 0),
+  valor_pago_centavos     INTEGER CHECK (valor_pago_centavos IS NULL OR valor_pago_centavos > 0),
+  diferenca_centavos      INTEGER,
+  data_compra             TEXT,
+  observacao_compra       TEXT,
+  transacao_id            INTEGER REFERENCES transacao(id) ON DELETE SET NULL,
+  criado_em               TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  atualizado_em           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  comprado_em             TEXT,
+  CHECK (estado IN ('desejado', 'em_analise', 'planejado', 'comprado', 'cancelado')),
+  CHECK (prioridade IN ('baixa', 'normal', 'alta', 'critica'))
+) STRICT;
+
+CREATE INDEX IF NOT EXISTS idx_desejo_jogador ON desejo(jogador_id);
+CREATE INDEX IF NOT EXISTS idx_desejo_estado ON desejo(jogador_id, estado);
 ```
 
 
 
-- `schema_migrations` responde "qual é a versão atual do banco?" (`SELECT MAX(versao)` . Atual: **v7**..
+- `schema_migrations` responde "qual é a versão atual do banco?" (`SELECT MAX(versao)` . Atual: **v8**..
 - `meta` guarda metadados técnico-operacionais(chave/valor. **Não** é configuração de ambiente(,isso vive em `config/*.json`) nem dado de sistema de jogo..
 
 - `jogador` (ver `docs/jogador.md`): identidade do operador — entidade central do PULSO; single-player imposta pelo Serviço,, com schema aberto a evolução futura.
 - `carteira` (ver `docs/financas.md`): carteira do jogador — hoje uma principal por jogador (garantida pela aplicação, sem `UNIQUE` para não travar carteiras múltiplas futuras); saldo nunca é coluna — é consequência das transações.
 - `transacao` (ver `docs/financas.md`): movimentação financeira — valor em **centavos inteiros positivos** (`CHECK valor_centavos > 0`), tipo `receita`/`despesa` (o sentido vem do tipo, nunca do sinal), categoria validada pelo domínio, `ocorrida_em` (data da ocorrência, `YYYY-MM-DD`) separado de `criado_em` (registro no PULSO).
 - `orcamento` (ver `docs/financas.md`): planejamento por categoria de despesa num período (limites inclusivos; `CHECK fim >= inicio`) — não cria dinheiro e não altera saldo.
+- `desejo` (ver `docs/loja.md`): item da lista de desejos (Fase 09) — preço esperado/pago em centavos inteiros positivos, estado com `CHECK` de domínio e `transacao_id` apontando para a despesa criada pela compra (`ON DELETE SET NULL` preserva o histórico do desejo mesmo se a transação for excluída manualmente no financeiro). Desejo **nunca** movimenta saldo por si só — só a compra, via transação.
 - `STRICT` impõe tipagem real nas colunas(SQLite ≥  3.37; embutido aqui: 3.50.4.
 
 ##  ̈6. Sistema de migrações
@@ -293,8 +319,8 @@ O renderer enxerga apenas canais de leitura/específicos (`banco:info`, `jogador
 ##  ̈8. Estratégia de testes
 
 - **Isolamento total:** todos os testes usam bancos `:memory:` ou diretórios temporários (`mkdtemp`) — o banco real do usuário nunca é tocado.
-- **Suíte:** `tests/unidade/{conexao,migracoes}.test.mjs` + `tests/integracao/persistencia.test.mjs` + `tests/{unidade,integracao}/jogador.test.mjs` + teste de fumaça do Electron (que inicializa o banco em diretório temporário, valida o schema e o fluxo IPC do jogador).
-- **Cobertura da fase:** criação automática, reutilização, migração única (não reexecuta), migração pendente, falha com rollback, foreign keys ativas, fechamento, reinício, integridade pós-reinício, ciclo salvar→fechar→reabrir→ler — e, desde a Fase 03, a cadeia completa do jogador (criar, consultar, atualizar, persistir, validar, bloquear múltiplos).
+- **Suíte:** `tests/unidade/{conexao,migracoes,loja}.test.mjs` + `tests/integracao/{persistencia,jogador,status,missao,projeto,financa,loja}.test.mjs` + teste de fumaça do Electron (que inicializa o banco em diretório temporário, valida o schema e o fluxo IPC do jogador).
+- **Cobertura da fase:** criação automática, reutilização, migração única (não reexecuta), migração pendente, falha com rollback, foreign keys ativas, fechamento, reinício, integridade pós-reinício, ciclo salvar→fechar→reabrir→ler — a cadeia completa do jogador (criar, consultar, atualizar, persistir, validar, bloquear múltiplos) e, desde a Fase 09, compra atômica com despesa + item + rollback (ver `docs/loja.md`).
 - **Runner:** a suíte roda com o **Node embutido do Electron** (`npm test` → `ELECTRON_RUN_AS_NODE=1 electron --test`), pois é o mesmo runtime da aplicação — o Node do sistema (20.x) não possui `node:sqlite`.
 
 ##  ̈9. Backup manual (o backup automático é pendência futura — P-017)
