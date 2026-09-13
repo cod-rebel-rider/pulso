@@ -103,6 +103,7 @@
         <button type="button" id="botao-ver-missoes" class="botao-secundario" disabled>VER MISSÕES</button>
         <button type="button" id="botao-ver-projetos" class="botao-secundario" disabled>VER PROJETOS</button>
         <button type="button" id="botao-ver-financas" class="botao-secundario" disabled>VER FINANÇAS</button>
+        <button type="button" id="botao-ver-loja" class="botao-secundario" disabled>VER LOJA</button>
       </div>
     </section>
 
@@ -426,6 +427,189 @@
       </form>
     </section>
 
+    <!-- Loja: lista de desejos (Fase 09) -->
+    <section class="nucleo visao oculto" id="visao-loja">
+      <p class="rotulo-secao">LOJA</p>
+      <h1 class="titulo-secao">LISTA DE DESEJOS</h1>
+
+      <section class="financa-resumo" aria-label="Resumo da lista de desejos">
+        <div class="financa-cartao">
+          <p class="rotulo-secao">DESEJOS ATIVOS</p>
+          <p class="financa-metrica" id="loja-ativos">0</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">PLANEJADOS</p>
+          <p class="financa-metrica" id="loja-planejados">0</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">COMPRADOS</p>
+          <p class="financa-metrica" id="loja-comprados">0</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">VALOR ESTIMADO</p>
+          <p class="financa-metrica" id="loja-valor-estimado">R$ 0,00</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">ECONOMIA HISTÓRICA</p>
+          <p class="financa-metrica" id="loja-economia">R$ 0,00</p>
+        </div>
+      </section>
+
+      <p class="aviso" id="aviso-loja" role="alert"></p>
+
+      <div class="toolbar-missoes">
+        <div class="filtros" id="filtros-loja" role="tablist" aria-label="Filtros da lista de desejos">
+          <button type="button" class="filtro ativo" data-filtro="">TODOS</button>
+          <button type="button" class="filtro" data-filtro="desejado">DESEJADOS</button>
+          <button type="button" class="filtro" data-filtro="em_analise">EM ANÁLISE</button>
+          <button type="button" class="filtro" data-filtro="planejado">PLANEJADOS</button>
+          <button type="button" class="filtro" data-filtro="comprado">COMPRADOS</button>
+          <button type="button" class="filtro" data-filtro="cancelado">CANCELADOS</button>
+        </div>
+        <div class="loja-filtros-extras">
+          <select id="filtro-categoria-loja" aria-label="Filtrar por categoria">
+            <option value="">TODAS AS CATEGORIAS</option>
+          </select>
+          <select id="filtro-prioridade-loja" aria-label="Filtrar por prioridade">
+            <option value="">TODAS AS PRIORIDADES</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="lista-missoes" id="lista-desejos"></div>
+
+      <div class="acoes-missao">
+        <button type="button" id="botao-novo-desejo" class="botao-primario">NOVO DESEJO</button>
+        <button type="button" id="botao-historico-loja" class="botao-secundario">HISTÓRICO DE COMPRAS</button>
+        <button type="button" id="botao-voltar-loja" class="botao-secundario">VOLTAR AO PAINEL</button>
+      </div>
+    </section>
+
+    <!-- Loja: histórico de compras (Fase 09) -->
+    <section class="nucleo visao oculto" id="visao-loja-historico">
+      <p class="rotulo-secao">LOJA</p>
+      <h1 class="titulo-secao">HISTÓRICO DE COMPRAS</h1>
+
+      <p class="aviso" id="aviso-loja-historico" role="alert"></p>
+      <div class="lista-missoes" id="lista-compras"></div>
+
+      <div class="acoes-missao">
+        <button type="button" id="botao-voltar-loja-historico" class="botao-secundario">VOLTAR À LISTA</button>
+      </div>
+    </section>
+
+    <!-- Loja: detalhe do desejo (Fase 09) -->
+    <section class="nucleo visao oculto" id="visao-loja-detalhe">
+      <p class="rotulo-secao" id="loja-detalhe-secao">LOJA</p>
+      <h1 class="titulo-secao" id="loja-detalhe-titulo">DETALHE DO DESEJO</h1>
+
+      <dl class="loja-detalhes">
+        <div>
+          <dt>CATEGORIA</dt>
+          <dd id="loja-detalhe-categoria">—</dd>
+        </div>
+        <div>
+          <dt>PRIORIDADE</dt>
+          <dd id="loja-detalhe-prioridade">—</dd>
+        </div>
+        <div>
+          <dt>STATUS</dt>
+          <dd id="loja-detalhe-status">—</dd>
+        </div>
+        <div>
+          <dt>CRIADO EM</dt>
+          <dd id="loja-detalhe-criado">—</dd>
+        </div>
+        <div>
+          <dt>PREÇO ESPERADO</dt>
+          <dd id="loja-detalhe-esperado">—</dd>
+        </div>
+        <div id="linha-preco-final">
+          <dt>PREÇO FINAL</dt>
+          <dd id="loja-detalhe-final">NÃO REALIZADA</dd>
+        </div>
+        <div id="linha-diferenca">
+          <dt>DIFERENÇA</dt>
+          <dd id="loja-detalhe-diferenca">—</dd>
+        </div>
+        <div id="linha-percentual">
+          <dt>PERCENTUAL</dt>
+          <dd id="loja-detalhe-percentual">—</dd>
+        </div>
+        <div id="linha-data-compra">
+          <dt>DATA DA COMPRA</dt>
+          <dd id="loja-detalhe-data">—</dd>
+        </div>
+      </dl>
+
+      <p class="loja-descricao" id="loja-detalhe-descricao"></p>
+      <p class="aviso" id="aviso-loja-detalhe" role="alert"></p>
+
+      <div class="acoes-missao" id="acoes-loja-detalhe"></div>
+    </section>
+
+    <!-- Loja: formulário do desejo (Fase 09) -->
+    <section class="nucleo visao oculto" id="visao-formulario-desejo">
+      <p class="rotulo-secao" id="formulario-desejo-titulo-secao">NOVO DESEJO</p>
+      <h1 class="titulo-secao" id="formulario-desejo-titulo">ADICIONAR À LISTA</h1>
+
+      <form id="formulario-desejo" novalidate>
+        <label for="campo-desejo-titulo">NOME DO ITEM <span class="obrigatorio">*</span></label>
+        <input id="campo-desejo-titulo" name="titulo" maxlength="120" autocomplete="off" spellcheck="false" />
+
+        <label for="campo-desejo-descricao">DESCRIÇÃO <span class="opcional">(opcional)</span></label>
+        <textarea id="campo-desejo-descricao" name="descricao" maxlength="2000" rows="4"></textarea>
+
+        <label for="campo-desejo-categoria">CATEGORIA <span class="obrigatorio">*</span></label>
+        <select id="campo-desejo-categoria" name="categoria"></select>
+
+        <label for="campo-desejo-prioridade">PRIORIDADE <span class="obrigatorio">*</span></label>
+        <select id="campo-desejo-prioridade" name="prioridade"></select>
+
+        <label for="campo-desejo-preco">PREÇO ESPERADO <span class="obrigatorio">*</span></label>
+        <input id="campo-desejo-preco" name="precoEsperado" inputmode="decimal"
+               placeholder="0,00" autocomplete="off" spellcheck="false" maxlength="14" />
+
+        <p class="aviso" id="aviso-formulario-desejo" role="alert"></p>
+
+        <div class="acoes-formulario">
+          <button type="submit" id="botao-salvar-desejo">SALVAR</button>
+          <button type="button" id="botao-cancelar-desejo" class="botao-secundario">CANCELAR</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Loja: formulário de compra (Fase 09) -->
+    <section class="nucleo visao oculto" id="visao-formulario-compra">
+      <p class="rotulo-secao">REGISTRAR COMPRA</p>
+      <h1 class="titulo-secao" id="formulario-compra-titulo">CONFIRMAR COMPRA</h1>
+
+      <div class="loja-compra-resumo" id="compra-resumo">
+        <p id="compra-resumo-item">Item: —</p>
+        <p id="compra-resumo-esperado">Preço esperado: —</p>
+        <p id="compra-resumo-financeiro">Categoria financeira: —</p>
+      </div>
+
+      <form id="formulario-compra" novalidate>
+        <label for="campo-compra-preco">PREÇO FINAL PAGO <span class="obrigatorio">*</span></label>
+        <input id="campo-compra-preco" name="precoFinal" inputmode="decimal"
+               placeholder="0,00" autocomplete="off" spellcheck="false" maxlength="14" />
+
+        <label for="campo-compra-data">DATA DA COMPRA <span class="opcional">(opcional — padrão: hoje)</span></label>
+        <input id="campo-compra-data" name="data" type="date" />
+
+        <label for="campo-compra-observacao">OBSERVAÇÃO <span class="opcional">(opcional)</span></label>
+        <input id="campo-compra-observacao" name="observacao" maxlength="500" autocomplete="off" spellcheck="false" />
+
+        <p class="aviso" id="aviso-formulario-compra" role="alert"></p>
+
+        <div class="acoes-formulario">
+          <button type="submit" id="botao-salvar-compra" class="botao-perigo">REGISTRAR COMPRA</button>
+          <button type="button" id="botao-cancelar-compra" class="botao-secundario">CANCELAR</button>
+        </div>
+      </form>
+    </section>
+
     <footer class="rodape">
       <span id="rodape-ambiente">AMBIENTE: —</span>
       <span class="separador" aria-hidden="true">·</span>
@@ -438,5 +622,6 @@
   </main>
 
   <script src="js/principal.js"></script>
+  <script src="js/loja.js"></script>
 </body>
 </html>

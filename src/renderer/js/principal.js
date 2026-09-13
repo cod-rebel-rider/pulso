@@ -169,6 +169,7 @@ function mapearElementos() {
   elementos.botaoCancelarProjeto = consultar('botao-cancelar-projeto');
   // Finanças (Fase 08)
   elementos.botaoVerFinancas = consultar('botao-ver-financas');
+  elementos.botaoVerLoja = consultar('botao-ver-loja');
   elementos.visaoFinancas = consultar('visao-financas');
   elementos.visaoFormularioTransacao = consultar('visao-formulario-transacao');
   elementos.visaoFormularioOrcamento = consultar('visao-formulario-orcamento');
@@ -1520,6 +1521,20 @@ function exibirVisao(nomeVisao) {
     elementos.visaoFormularioTransacao.classList.add('oculto');
     elementos.visaoFormularioOrcamento.classList.add('oculto');
   }
+
+  // Loja / Lista de Desejos (Fase 09) — telas próprias gerenciadas por loja.js
+  const emLoja = nomeVisao === 'visao-loja'
+    || nomeVisao === 'visao-loja-historico'
+    || nomeVisao === 'visao-loja-detalhe'
+    || nomeVisao === 'visao-formulario-desejo'
+    || nomeVisao === 'visao-formulario-compra';
+  if (!emLoja) {
+    for (const id of ['visao-loja', 'visao-loja-historico', 'visao-loja-detalhe',
+      'visao-formulario-desejo', 'visao-formulario-compra']) {
+      const visao = document.getElementById(id);
+      if (visao) visao.classList.add('oculto');
+    }
+  }
 }
 
 /** Vai para a lista de projetos (esconde o painel principal). */
@@ -1579,6 +1594,7 @@ function executarBoot() {
   elementos.botaoVerMissoes.disabled = true;
   elementos.botaoVerProjetos.disabled = true;
   elementos.botaoVerFinancas.disabled = true;
+  elementos.botaoVerLoja.disabled = true;
   definirEstado('INICIANDO…');
   const linhas = linhasDoBoot();
   montarLinhasBoot(linhas, false);
@@ -1592,6 +1608,7 @@ function executarBoot() {
     elementos.botaoVerMissoes.disabled = false;
     elementos.botaoVerProjetos.disabled = false;
     elementos.botaoVerFinancas.disabled = false;
+    elementos.botaoVerLoja.disabled = false;
     elementos.mensagem.textContent = 'Operador identificado. Aguardando módulos…';
     carregarStatus();
     carregarProgressao();
@@ -1619,6 +1636,7 @@ async function submeterIdentidade(evento) {
       return;
     }
     jogadorAtual = resultado.jogador;
+    window.__pulsoJogadorAtual = jogadorAtual;
     executarBoot(); // reexecuta o boot exibindo a identidade confirmada
   } catch (erro) {
     setAviso('Falha de comunicação com o núcleo.');
@@ -1637,6 +1655,7 @@ async function iniciar() {
     const estadoJogador = await carregarEstadoJogador();
     if (estadoJogador.existe && estadoJogador.jogador) {
       jogadorAtual = estadoJogador.jogador;
+      window.__pulsoJogadorAtual = jogadorAtual;
       executarBoot();
     } else {
       exibirConfiguracao({ modo: 'criacao' });
@@ -1742,6 +1761,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   // Finanças (Fase 08)
   elementos.botaoVerFinancas.addEventListener('click', irParaFinancas);
+  // Loja / Lista de Desejos (Fase 09) — navegação delegada ao módulo loja.js
+  elementos.botaoVerLoja.addEventListener('click', () => {
+    if (typeof window.__irParaLoja === 'function') window.__irParaLoja();
+  });
   elementos.financasPainel.addEventListener('click', voltarAoPainelFinancas);
   elementos.filtrosFinanca.addEventListener('click', (evento) => {
     const botao = evento.target.closest('[data-filtro]');
