@@ -9,6 +9,10 @@
   "scripts": {
     "start": "electron .",
     "test": "ELECTRON_RUN_AS_NODE=1 electron --test \"tests/**/*.test.mjs\"",
+    "test:homologacao": "node scripts/homologacao/executar.mjs --grupo=tudo",
+    "test:fases": "node scripts/homologacao/executar.mjs --grupo=fases",
+    "test:integracao": "node scripts/homologacao/executar.mjs --grupo=integracao",
+    "test:criticos": "node scripts/homologacao/executar.mjs --grupo=criticos",
     "verificar-ambiente": "node scripts/verificar-ambiente.mjs"
   },
   "engines": {
