@@ -53,7 +53,7 @@ Em outros sistemas operacionais o caminho acompanha o padrão da plataforma(Fase
 | `busy_timeout` | `5000` | locks transitórios esperam até 5 s em vez de falhar de imediato |
 | `synchronous` | `NORMAL` | par recomendado com WAL: seguro contra falha da aplicação; risco residual apenas em queda de energia(janela mínima) |
 
-##  ̈5. Schema atual(versão 8
+##  ̈5. Schema atual(versão 9
 
 Infraestrutura + entidades de negócio implementadas até a **Fase 09** (cada fase acrescenta sua migração ao final da lista — ver `src/core/database/migracoes.js`).
 
@@ -235,11 +235,19 @@ CREATE TABLE desejo (
 
 CREATE INDEX IF NOT EXISTS idx_desejo_jogador ON desejo(jogador_id);
 CREATE INDEX IF NOT EXISTS idx_desejo_estado ON desejo(jogador_id, estado);
+
+-- migração 009 "conciliar-progressao-legado" — conciliação de bancos criados
+-- pela PRIMEIRA implementação da Fase 06 (sem `nivel` em
+-- `jogador_progressao` e com `jogador_atributo` no singular). Reconstrói as
+-- tabelas no formato da migração 005 preservando os dados; `nivel` é
+-- derivado do XP acumulado pela MESMA regra do domínio (`calcularNivel`).
+-- Em bancos novos (ou já corretos) ela NÃO altera nada: cada passo só age
+-- quando detecta a forma legada.
 ```
 
 
 
-- `schema_migrations` responde "qual é a versão atual do banco?" (`SELECT MAX(versao)` . Atual: **v8**..
+- `schema_migrations` responde "qual é a versão atual do banco?" (`SELECT MAX(versao)` . Atual: **v9**..
 - `meta` guarda metadados técnico-operacionais(chave/valor. **Não** é configuração de ambiente(,isso vive em `config/*.json`) nem dado de sistema de jogo..
 
 - `jogador` (ver `docs/jogador.md`): identidade do operador — entidade central do PULSO; single-player imposta pelo Serviço,, com schema aberto a evolução futura.
@@ -276,6 +284,19 @@ export const MIGRACOES = Object.freeze([MIGRACAO_001, MIGRACAO_002]);
 ```
 
 Cada módulo evolui o banco com as migrações da sua fase (Fase 03 → jogador [aplicada]; Fase 04 → status; Fase 05 → missões…), respeitando o mecanismo central.
+
+### Migração 009 — conciliação do banco legado da Fase 06 (correção)
+
+**Incidente:** bancos criados pela PRIMEIRA implementação da Fase 06 (commit `7473e06`, branch antiga da fase) registraram a migração de progressão com outro nome e formato: `jogador_progressao` **sem** a coluna `nivel` e `jogador_atributo` no singular. Como o mecanismo pula migrações **por versão** (nunca reexecuta), esses bancos avançaram até a v8 com as tabelas de progressão no formato legado — e qualquer operação de progressão quebrava com `no such column: nivel`.
+
+**Decisão:** como migração aplicada nunca é editada, a correção veio como **nova migração no fim da lista** (v9, `conciliar-progressao-legado`), que:
+
+1. reconstrói `jogador_progressao` no formato exato da migração 005, **derivando `nivel` do XP acumulado pela mesma regra do domínio** (`calcularNivel`) — XP e pontos disponíveis são preservados;
+2. reconstrói `jogador_atributo` (singular) como `jogador_atributos`, preservando todos os atributos;
+3. nos dois casos só age **quando detecta a forma legada** — em bancos novos ou já corretos a migração é um no-op, o que a torna segura para toda a base instalada;
+4. caso raro de coexistência das duas formas de atributos: descarta a legada se vazia; com dados, **bloqueia com instrução clara** em vez de arriscar perder histórico.
+
+**Validação:** replicada em testes automatizados (réplica do banco legado com dados do usuário + verificação de preservação + idempotência + no-op em banco correto) e confirmada em uma **cópia** do banco real afetado (dados preservados, `nivel` correto, reexecução vazia). O original só é migrado quando o PULSO é iniciado normalmente com a versão corrigida.
 
 ##  ̈7. Camada de acesso (padrão de repositório)
 
