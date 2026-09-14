@@ -6,8 +6,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { abrirConexao, fecharConexao } from '../../src/core/database/conexao.js';
 import { aplicarMigracoes, versaoAtual, MIGRACOES } from '../../src/core/database/migracoes.js';
+import { calcularNivel } from '../../src/core/dominio/progressao.js';
 
-test('banco vazio recebe as migrações oficiais: schema v8 com infraestrutura, jogador, status, missões, progressão, projetos, finanças e lista de desejos', () => {
+test('banco vazio recebe as migrações oficiais: schema v9 com infraestrutura, jogador, status, missões, progressão, projetos, finanças, lista de desejos e conciliação legada', () => {
   const banco = abrirConexao({ caminho: ':memory:' });
   try {
     const resultado = aplicarMigracoes(banco);
@@ -20,9 +21,10 @@ test('banco vazio recebe as migrações oficiais: schema v8 com infraestrutura, 
       { versao: 6, nome: 'criar-tabela-projetos' },
       { versao: 7, nome: 'criar-tabelas-financas' },
       { versao: 8, nome: 'criar-tabela-desejo' },
+      { versao: 9, nome: 'conciliar-progressao-legado' },
     ]);
-    assert.equal(resultado.versaoAtual, 8);
-    assert.equal(versaoAtual(banco), 8);
+    assert.equal(resultado.versaoAtual, 9);
+    assert.equal(versaoAtual(banco), 9);
 
     assert.equal(banco.prepare("SELECT valor FROM meta WHERE chave = 'aplicacao'").get().valor, 'PULSO');
     // a tabela do jogador existe e aceita inserção mínima
@@ -79,7 +81,7 @@ test('migrações já aplicadas não são executadas novamente', () => {
     assert.equal(registroDepois.aplicada_em, registroOriginal.aplicada_em, 'registro inalterado');
     assert.equal(
       banco.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get().n,
-      8,
+      9,
       'todas as migrações oficiais registradas uma única vez',
     );
   } finally {
@@ -155,6 +157,120 @@ test('lista de migrações inválida é rejeitada antes de tocar no banco', () =
     assert.throws(
       () => aplicarMigracoes(banco, [{ versao: 1, nome: 'Nome Invalido', cima() {} }]),
       /nome inválido/,
+    );
+  } finally {
+    fecharConexao(banco);
+  }
+});
+
+/**
+ * Réplica do problema real: banco criado pela PRIMEIRA implementação da
+ * Fase 06 registra as versões 5–8 como aplicadas, mas com
+ * `jogador_progressao` SEM `nivel` e `jogador_atributo` no singular.
+ * A Migração 009 reconstrói as tabelas no formato atual SEM perder dados.
+ */
+test('migração 009 concilia banco legado da Fase 06: restaura nivel e jogador_atributos preservando dados', () => {
+  const banco = abrirConexao({ caminho: ':memory:' });
+  try {
+    // 1) Base com as migrações 1–4 atuais (infraestrutura, jogador, status, missões).
+    aplicarMigracoes(banco, MIGRACOES.slice(0, 4));
+    banco.prepare("INSERT INTO jogador (nome) VALUES ('Legado')").run();
+
+    // 2) Tabelas de progressão na forma LEGADA (commit 7473e06, Fase 06 v1).
+    banco.exec(`
+      CREATE TABLE jogador_progressao (
+        id                   INTEGER PRIMARY KEY,
+        jogador_id           INTEGER NOT NULL UNIQUE REFERENCES jogador(id) ON DELETE CASCADE,
+        xp_total             INTEGER NOT NULL DEFAULT 0,
+        pontos_disponiveis   INTEGER NOT NULL DEFAULT 0,
+        criado_em            TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        CHECK (xp_total >= 0),
+        CHECK (pontos_disponiveis >= 0)
+      ) STRICT
+    `);
+    banco.exec(`
+      CREATE TABLE jogador_atributo (
+        id                   INTEGER PRIMARY KEY,
+        jogador_id           INTEGER NOT NULL UNIQUE REFERENCES jogador(id) ON DELETE CASCADE,
+        tecnologia           INTEGER NOT NULL DEFAULT 1,
+        criatividade         INTEGER NOT NULL DEFAULT 1,
+        musica               INTEGER NOT NULL DEFAULT 1,
+        social               INTEGER NOT NULL DEFAULT 1,
+        energia              INTEGER NOT NULL DEFAULT 1,
+        foco                 INTEGER NOT NULL DEFAULT 1,
+        disciplina           INTEGER NOT NULL DEFAULT 1,
+        criado_em            TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        CHECK (tecnologia BETWEEN 1 AND 100),
+        CHECK (criatividade BETWEEN 1 AND 100),
+        CHECK (musica BETWEEN 1 AND 100),
+        CHECK (social BETWEEN 1 AND 100),
+        CHECK (energia BETWEEN 1 AND 100),
+        CHECK (foco BETWEEN 1 AND 100),
+        CHECK (disciplina BETWEEN 1 AND 100)
+      ) STRICT
+    `);
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_progressao_jogador ON jogador_progressao(jogador_id)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_atributo_jogador ON jogador_atributo(jogador_id)');
+
+    // 3) Dados reais do usuário: XP acumulado e atributos já distribuídos.
+    banco.prepare('INSERT INTO jogador_progressao (jogador_id, xp_total, pontos_disponiveis) VALUES (1, 450, 2)').run();
+    banco.prepare('INSERT INTO jogador_atributo (jogador_id, tecnologia, criatividade, musica) VALUES (1, 7, 3, 5)').run();
+
+    // 4) O banco legado registra as versões 5–8 como aplicadas (nunca reexecuta).
+    const registrar = banco.prepare('INSERT INTO schema_migrations (versao, nome) VALUES (?, ?)');
+    for (let versao = 5; versao <= 8; versao += 1) registrar.run(versao, `legado-${versao}`);
+
+    // 5) A aplicação atual aplica SOMENTE a conciliação (v9).
+    const resultado = aplicarMigracoes(banco);
+    assert.deepEqual(resultado.aplicadas, [{ versao: 9, nome: 'conciliar-progressao-legado' }]);
+    assert.equal(versaoAtual(banco), 9);
+
+    // 6) Progressão reconstruída: nivel derivado do XP pela regra do domínio.
+    const colunas = banco
+      .prepare('PRAGMA table_info(jogador_progressao)')
+      .all()
+      .map((coluna) => coluna.name);
+    assert.ok(colunas.includes('nivel'), 'a coluna nivel deve ser restaurada');
+    const progressao = banco.prepare('SELECT * FROM jogador_progressao WHERE jogador_id = 1').get();
+    assert.equal(progressao.xp_total, 450, 'XP preservado');
+    assert.equal(progressao.pontos_disponiveis, 2, 'pontos preservados');
+    assert.equal(progressao.nivel, calcularNivel(450), 'nivel segue a regra do domínio');
+
+    // 7) Atributos reconstruídos no plural, valores preservados; legada removida.
+    const tabelaLegada = banco
+      .prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type = 'table' AND name = 'jogador_atributo'")
+      .get().n;
+    assert.equal(tabelaLegada, 0, 'a tabela legada no singular deve ser removida');
+    const atributos = banco.prepare('SELECT * FROM jogador_atributos WHERE jogador_id = 1').get();
+    assert.equal(atributos.tecnologia, 7);
+    assert.equal(atributos.criatividade, 3);
+    assert.equal(atributos.musica, 5);
+
+    // 8) Reexecução: conciliação é idempotente (nada roda, nada muda).
+    const segunda = aplicarMigracoes(banco);
+    assert.deepEqual(segunda.aplicadas, []);
+    assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM jogador_progressao').get().n, 1);
+    assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM jogador_atributos').get().n, 1);
+  } finally {
+    fecharConexao(banco);
+  }
+});
+
+test('migração 009 não altera banco que já está no formato atual', () => {
+  const banco = abrirConexao({ caminho: ':memory:' });
+  try {
+    // Banco novo: schema v8 correto + v9 que não encontra forma legada.
+    aplicarMigracoes(banco);
+    const tabelas = banco
+      .prepare("SELECT name FROM sqlite_master WHERE name LIKE 'jogador_progress%' OR name LIKE 'jogador_atribut%' ORDER BY name")
+      .all()
+      .map((linha) => linha.name);
+    assert.deepEqual(
+      tabelas,
+      ['jogador_atributos', 'jogador_progressao'],
+      'somente as tabelas no formato atual devem existir',
     );
   } finally {
     fecharConexao(banco);
