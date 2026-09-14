@@ -2,7 +2,7 @@
 
 > Sistema pessoal de gestão da vida que transforma atividades, projetos, objetivos, finanças, aprendizado e música em uma experiência de progressão inspirada em RPG e Cyberpunk/Netrunner.
 
-**Status:** FASE 07 — PROJETOS (concluída). O PULSO agora tem **direção**: projetos com máquina de estados própria (planejado/em andamento/concluído/cancelado/arquivado), prioridade, prazo com indicador de atraso, progresso derivado das missões associadas (1:N via `missao.projeto_id`), listagem com filtros e detalhes reutilizando a visão de missões.
+**Status:** FASE 09 — LOJA / LISTA DE DESEJOS (concluída). O PULSO agora distingue **EU QUERO** de **EU COMPREI**: lista de desejos com categorias, prioridades e preço esperado; registro de compra com preço real, comparação esperado × pago e despesa criada de forma **atômica** pelo motor financeiro da FASE 08 (a Loja não tem carteira própria).
 
 ## Princípios
 
@@ -64,6 +64,8 @@ pulso/
 | [`docs/pendencias.md`](docs/pendencias.md) | Pendências registradas para fases futuras |
 | [`docs/progressao.md`](docs/progressao.md) | Sistema de progressão: XP, níveis, atributos (Fase 06) |
 | [`docs/projeto.md`](docs/projeto.md) | Sistema de projetos: estados, missões, progresso (Fase 07) |
+| [`docs/financas.md`](docs/financas.md) | Sistema financeiro: carteira, transações, orçamentos (Fase 08) |
+| [`docs/loja.md`](docs/loja.md) | Loja / Lista de desejos: desejos, compras e integração financeira (Fase 09) |
 
 ## Git
 
@@ -73,4 +75,4 @@ pulso/
 
 ## Próxima etapa
 
-**FASE 08 — FINANÇAS** (não implementada — ver `docs/roadmap.md`).
+**FASE 10 — SERVIÇOS E DESPESAS** (não implementada — ver `docs/roadmap.md`).

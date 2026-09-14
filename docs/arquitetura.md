@@ -37,8 +37,8 @@ Regras estruturais:
 | --- | --- | --- |
 | Interface | `src/renderer` | Telas, componentes, estilos, feedback visual |
 | Processo principal | `src/main` | Ciclo de vida do aplicativo, janela, ponte IPC, integração com o SO |
-| Domínio | `src/core/dominio` | **Iniciado (Fase 03)**: `jogador.js` (identidade) · **Fase 04**: `status.js` (regras de estado) · **Fase 05**: `missao.js` (regras de missão, máquina de estados) · **Fase 06**: `progressao.js` · **Fase 07**: `projeto.js` · **Fase 08**: `financa.js` (valores em centavos, categorias, saldo, orçamento) |
-| Aplicação | `src/core/aplicacao` | **Iniciado (Fase 03)**: `servico-jogador.js` · **Fase 04**: `servico-status.js` · **Fase 05**: `servico-missao.js` · **Fase 06**: `servico-progressao.js` · **Fase 07**: `servico-projeto.js` · **Fase 08**: `servico-financa.js` (carteira, transações, orçamentos) |
+| Domínio | `src/core/dominio` | **Iniciado (Fase 03)**: `jogador.js` (identidade) · **Fase 04**: `status.js` (regras de estado) · **Fase 05**: `missao.js` (regras de missão, máquina de estados) · **Fase 06**: `progressao.js` · **Fase 07**: `projeto.js` · **Fase 08**: `financa.js` (valores em centavos, categorias, saldo, orçamento) · **Fase 09**: `loja.js` (desejo, máquina de estados, comparação esperado × pago) |
+| Aplicação | `src/core/aplicacao` | **Iniciado (Fase 03)**: `servico-jogador.js` · **Fase 04**: `servico-status.js` · **Fase 05**: `servico-missao.js` · **Fase 06**: `servico-progressao.js` · **Fase 07**: `servico-projeto.js` · **Fase 08**: `servico-financa.js` (carteira, transações, orçamentos) · **Fase 09**: `servico-loja.js` (lista de desejos, compra atômica via Fase 08) |
 | Persistência | `src/core/database` | **Implementada (Fase 02)**: conexão SQLite, migrações, repositórios |
 | Módulos | `src/modules` | Funcionalidades independentes com contrato público documentado |
 
@@ -51,9 +51,9 @@ Regras estruturais:
 
 ## 4. Módulos previstos
 
-**Implementados:** Jogador (Fase 03) · Status (Fase 04) · Missões (Fase 05) · Progressão (Fase 06) · Projetos (Fase 07) · **Finanças (Fase 08)** — cada um com domínio próprio, casos de uso próprios, contrato IPC documentado e testes próprios.
+**Implementados:** Jogador (Fase 03) · Status (Fase 04) · Missões (Fase 05) · Progressão (Fase 06) · Projetos (Fase 07) · **Finanças (Fase 08)** · **Loja / Lista de Desejos (Fase 09)** — cada um com domínio próprio, casos de uso próprios, contrato IPC documentado e testes próprios. A Loja não tem carteira própria: toda movimentação financeira da compra passa pelo serviço da Fase 08 (ver ADR-011).
 
-**Planejados (nenhum implementado):** `Loja · Serviços · Habilidades · Música · Mapa · Conquistas`
+**Planejados (nenhum implementado):** `Serviços · Habilidades · Música · Mapa · Conquistas`
 
 Quando implementados, cada módulo deverá ter: domínio próprio, casos de uso próprios, contrato público documentado e testes próprios. A granularidade exata será decidida fase a fase.
 
@@ -138,6 +138,14 @@ Quando implementados, cada módulo deverá ter: domínio próprio, casos de uso 
 **Motivos:** elimina erros de arredondamento em binário; garante a invariante "saldo = resultado do histórico" (não há valor editável para dessincronizar); consultas agregam poucos registros (perfil local-first, uma carteira).
 
 **Consequências:** regra única de saldo em `src/core/dominio/financa.js` (`calcularResumo`) e aplicada via `ServicoFinanca`; a interface formata (`R$ 1.234,56`) mas nunca calcula saldo; orçamentos comparam apenas limite planejado × despesas reais do período (limites inclusivos). Saldo negativo é permitido e apenas sinalizado — o sistema registra a realidade financeira, não a controla à força. Múltiplas carteiras, TRANSFERÊNCIA, auditoria persistida de exclusões e categorias personalizadas ficam como pendências registradas (arquitetura já preparada).
+
+### ADR-011 — Compra da Loja atômica via ServicoFinanca (Fase 09)
+
+**Decisão:** a Loja **não possui carteira nem lógica monetária própria**. O registro da compra (`ServicoLoja.comprar`) roda dentro de uma transação SQLite (`BEGIN IMMEDIATE`/`COMMIT`/`ROLLBACK`, via `comTransacao`) que: (1) cria a despesa **exclusivamente** por `ServicoFinanca.criarTransacao` (categoria roteada de `MAPA_CATEGORIA_FINANCEIRA`, descrição `Compra: <título>`); (2) marca o desejo como `COMPRADO` com preço final, diferença, data e `transacao_id` (referência rastreável à transação financeira, `ON DELETE SET NULL`). Qualquer falha em qualquer passo desfaz tudo — nunca fica um item comprado sem despesa, nem despesa sem item comprado.
+
+**Motivos:** o desejo é planejamento e não movimenta dinheiro; só a compra é realidade — e a realidade deve passar pelo motor financeiro da Fase 08 (saldo derivado das transações, orçamentos recalculados). Roteamento de categoria em vez de duplicar categorias financeiras preserva o histórico compreensível sem criar um segundo sistema.
+
+**Consequências:** a Loja nunca faz `wallet.balance -= valor` (saldo é derivado, ADR-010); saldo negativo não bloqueia a compra; recompra de item `COMPRADO` é bloqueada por máquina de estados; cancelamento não gera efeito financeiro. Sem estoque, marketplace, busca automática de preços, parcelamento, cartão, financiamento, assinaturas, notificações, XP por compra ou integração com missão — pendências/adiados conforme o roadmap.
 
 ## 6. Fundação implementada (Fase 01)
 

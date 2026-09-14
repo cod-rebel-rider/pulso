@@ -1320,3 +1320,138 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Loja / Lista de Desejos (Fase 09) ───────────────────────────────── */
+.loja-filtros-extras {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.loja-filtros-extras select {
+  background: var(--pulso-preto);
+  border: 1px solid var(--pulso-cinza-escuro);
+  color: var(--pulso-branco);
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  padding: 6px 8px;
+}
+
+.desejo-item .desejo-topo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.desejo-prioridade {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  padding: 3px 8px;
+  border: 1px solid var(--pulso-cinza-escuro);
+  color: var(--pulso-cinza);
+}
+
+.desejo-prioridade.baixa {
+  color: var(--pulso-cinza);
+}
+
+.desejo-prioridade.normal {
+  color: var(--pulso-branco);
+}
+
+.desejo-prioridade.alta {
+  color: var(--pulso-vermelho);
+  border-color: var(--pulso-vermelho);
+}
+
+.desejo-prioridade.critica {
+  color: var(--pulso-branco);
+  background: var(--pulso-vermelho-escuro);
+  border-color: var(--pulso-vermelho);
+}
+
+.desejo-meta {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--pulso-cinza);
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.desejo-estado.comprado {
+  color: var(--pulso-vermelho);
+  border-color: var(--pulso-vermelho);
+}
+
+.desejo-estado.cancelado {
+  color: var(--pulso-cinza);
+  text-decoration: line-through;
+}
+
+.desejo-diferenca.desejo-economia {
+  color: var(--pulso-branco);
+}
+
+.desejo-diferenca.desejo-custo {
+  color: var(--pulso-vermelho);
+}
+
+.loja-detalhes {
+  margin: 12px 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 18px;
+  font-size: 13px;
+}
+
+.loja-detalhes dt {
+  color: var(--pulso-cinza);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  margin-bottom: 2px;
+}
+
+.loja-detalhes dd {
+  margin: 0;
+  color: var(--pulso-branco);
+}
+
+.loja-detalhes dd.desejo-economia {
+  color: var(--pulso-branco);
+}
+
+.loja-detalhes dd.desejo-custo {
+  color: var(--pulso-vermelho);
+}
+
+.loja-descricao {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-cinza-escuro);
+  background: var(--pulso-superficie);
+  color: var(--pulso-cinza);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.loja-compra-resumo {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--pulso-cinza-escuro);
+  border-left: 3px solid var(--pulso-vermelho);
+  background: var(--pulso-superficie);
+  font-size: 12px;
+  color: var(--pulso-branco);
+  display: grid;
+  gap: 4px;
+}
+
+@media (max-width: 720px) {
+  .loja-detalhes {
+    grid-template-columns: 1fr;
+  }
+}
+

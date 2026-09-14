@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { abrirConexao, fecharConexao } from '../../src/core/database/conexao.js';
 import { aplicarMigracoes, versaoAtual, MIGRACOES } from '../../src/core/database/migracoes.js';
 
-test('banco vazio recebe as migrações oficiais: schema v7 com infraestrutura, jogador, status, missões, progressão, projetos e finanças', () => {
+test('banco vazio recebe as migrações oficiais: schema v8 com infraestrutura, jogador, status, missões, progressão, projetos, finanças e lista de desejos', () => {
   const banco = abrirConexao({ caminho: ':memory:' });
   try {
     const resultado = aplicarMigracoes(banco);
@@ -19,9 +19,10 @@ test('banco vazio recebe as migrações oficiais: schema v7 com infraestrutura, 
       { versao: 5, nome: 'criar-tabelas-progressao' },
       { versao: 6, nome: 'criar-tabela-projetos' },
       { versao: 7, nome: 'criar-tabelas-financas' },
+      { versao: 8, nome: 'criar-tabela-desejo' },
     ]);
-    assert.equal(resultado.versaoAtual, 7);
-    assert.equal(versaoAtual(banco), 7);
+    assert.equal(resultado.versaoAtual, 8);
+    assert.equal(versaoAtual(banco), 8);
 
     assert.equal(banco.prepare("SELECT valor FROM meta WHERE chave = 'aplicacao'").get().valor, 'PULSO');
     // a tabela do jogador existe e aceita inserção mínima
@@ -49,6 +50,13 @@ test('banco vazio recebe as migrações oficiais: schema v7 com infraestrutura, 
     assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM transacao').get().n, 1);
     banco.prepare("INSERT INTO orcamento (jogador_id, categoria, valor_centavos, inicio, fim) VALUES (1, 'alimentacao', 50000, '2026-09-01', '2026-09-30')").run();
     assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM orcamento').get().n, 1);
+    // a tabela da lista de desejos existe, aceita inserção mínima e valida CHECKs
+    banco.prepare("INSERT INTO desejo (jogador_id, titulo, categoria, prioridade, estado, valor_esperado_centavos) VALUES (1, 'SSD NVMe', 'tecnologia', 'alta', 'desejado', 45000)").run();
+    assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM desejo').get().n, 1);
+    assert.throws(
+      () => banco.prepare("INSERT INTO desejo (jogador_id, titulo, categoria, prioridade, estado, valor_esperado_centavos) VALUES (1, 'X', 'tecnologia', 'alta', 'estado_invalido', 100)").run(),
+      /CHECK/,
+    );
   } finally {
     fecharConexao(banco);
   }
@@ -71,7 +79,7 @@ test('migrações já aplicadas não são executadas novamente', () => {
     assert.equal(registroDepois.aplicada_em, registroOriginal.aplicada_em, 'registro inalterado');
     assert.equal(
       banco.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get().n,
-      7,
+      8,
       'todas as migrações oficiais registradas uma única vez',
     );
   } finally {

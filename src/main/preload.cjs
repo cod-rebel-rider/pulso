@@ -55,6 +55,17 @@ const CANAL_FINANCA_CRIAR_ORCAMENTO = 'financa:criar-orcamento'; // igual a cana
 const CANAL_FINANCA_ATUALIZAR_ORCAMENTO = 'financa:atualizar-orcamento'; // igual a canais.cjs → FINANCA_ATUALIZAR_ORCAMENTO
 const CANAL_FINANCA_EXCLUIR_ORCAMENTO = 'financa:excluir-orcamento'; // igual a canais.cjs → FINANCA_EXCLUIR_ORCAMENTO
 const CANAL_FINANCA_SITUACAO_ORCAMENTO = 'financa:situacao-orcamento'; // igual a canais.cjs → FINANCA_SITUACAO_ORCAMENTO
+const CANAL_LOJA_LISTAR = 'loja:listar'; // igual a canais.cjs → LOJA_LISTAR
+const CANAL_LOJA_OBTER = 'loja:obter'; // igual a canais.cjs → LOJA_OBTER
+const CANAL_LOJA_CRIAR = 'loja:criar'; // igual a canais.cjs → LOJA_CRIAR
+const CANAL_LOJA_ATUALIZAR = 'loja:atualizar'; // igual a canais.cjs → LOJA_ATUALIZAR
+const CANAL_LOJA_ANALISAR = 'loja:analisar'; // igual a canais.cjs → LOJA_ANALISAR
+const CANAL_LOJA_PLANEJAR = 'loja:planejar'; // igual a canais.cjs → LOJA_PLANEJAR
+const CANAL_LOJA_COMPRAR = 'loja:comprar'; // igual a canais.cjs → LOJA_COMPRAR
+const CANAL_LOJA_CANCELAR = 'loja:cancelar'; // igual a canais.cjs → LOJA_CANCELAR
+const CANAL_LOJA_HISTORICO = 'loja:historico'; // igual a canais.cjs → LOJA_HISTORICO
+const CANAL_LOJA_RESUMO = 'loja:resumo'; // igual a canais.cjs → LOJA_RESUMO
+const CANAL_LOJA_CONFIG = 'loja:config'; // igual a canais.cjs → LOJA_CONFIG
 
 const { contextBridge, ipcRenderer } = require('electron');
 
@@ -220,6 +231,25 @@ contextBridge.exposeInMainWorld(
       atualizarOrcamento: (dados) => ipcRenderer.invoke(CANAL_FINANCA_ATUALIZAR_ORCAMENTO, dados),
       excluirOrcamento: (id) => ipcRenderer.invoke(CANAL_FINANCA_EXCLUIR_ORCAMENTO, { id }),
       situacaoOrcamento: (id) => ipcRenderer.invoke(CANAL_FINANCA_SITUACAO_ORCAMENTO, { id }),
+    }),
+
+    /**
+     * Operacoes da Loja / Lista de Desejos (Fase 09).
+     * Valores em CENTAVOS; a compra gera despesa via financas (Fase 08).
+     */
+    loja: Object.freeze({
+      listar: (jogadorId, filtros = {}) =>
+        ipcRenderer.invoke(CANAL_LOJA_LISTAR, { jogadorId, ...filtros }),
+      obter: (id) => ipcRenderer.invoke(CANAL_LOJA_OBTER, { id }),
+      criar: (dados) => ipcRenderer.invoke(CANAL_LOJA_CRIAR, dados),
+      atualizar: (dados) => ipcRenderer.invoke(CANAL_LOJA_ATUALIZAR, dados),
+      analisar: (id) => ipcRenderer.invoke(CANAL_LOJA_ANALISAR, { id }),
+      planejar: (id) => ipcRenderer.invoke(CANAL_LOJA_PLANEJAR, { id }),
+      comprar: (id, compra) => ipcRenderer.invoke(CANAL_LOJA_COMPRAR, { id, ...compra }),
+      cancelar: (id) => ipcRenderer.invoke(CANAL_LOJA_CANCELAR, { id }),
+      historico: (jogadorId) => ipcRenderer.invoke(CANAL_LOJA_HISTORICO, { jogadorId }),
+      resumo: (jogadorId) => ipcRenderer.invoke(CANAL_LOJA_RESUMO, { jogadorId }),
+      config: () => ipcRenderer.invoke(CANAL_LOJA_CONFIG),
     }),
   }),
 );

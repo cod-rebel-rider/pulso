@@ -15,8 +15,8 @@ Pirâmide clássica, respeitando o ritmo das fases:
 
 ```text
 tests/
-├── unidade/      → ambiente, configuração, registro, canais IPC, conexão, migrações, jogador, status, missão, projeto, finança
-└── integracao/   → inicialização da aplicação (fumaça), persistência real do banco, jogador, status, missão, projeto, finança
+├── unidade/      → ambiente, configuração, registro, canais IPC, conexão, migrações, jogador, status, missão, projeto, finança, loja
+└── integracao/   → inicialização da aplicação (fumaça), persistência real do banco, jogador, status, missão, projeto, finança, loja
 ```
 
 ## 3.4 Fase 08 — Finanças
@@ -31,6 +31,39 @@ tests/
   carteira → receitas/despesas → saldo → edição (recálculo) → exclusão →
   orçamentos (gasto por período, estouro, persistência) e ciclo
   salvar → fechar → reabrir → consultar.
+
+## 3.5 Fase 09 — Loja / Lista de Desejos
+
+- `tests/unidade/loja.test.mjs` — regras puras do domínio: máquina de estados do
+  desejo (transições válidas e inválidas, terminalidade de COMPRADO/CANCELADO),
+  validações de criação/edição/compra (nome, preços em centavos, categoria,
+  prioridade), comparação esperado × pago (economia `1000/900 → −100 · −10%`,
+  gasto acima `1000/1100 → +100 · +10%`), valores grandes sem perda de precisão,
+  mapeamento de categoria do desejo → categoria financeira da Fase 08 e
+  descrição da transação gerada.
+- `tests/integracao/loja.test.mjs` — ciclo completo com banco real: criar →
+  consultar → editar → persistir (reabrir banco); bloqueio de transições
+  inválidas; **compra atômica** (despesa criada via Fase 08 + item marcado como
+  COMPRADO + vínculo `transacaoId` + saldo atualizado; rollback quando o
+  financeiro falha — nada fica meio-aplicado); histórico ordenado (mais
+  recente primeiro); cancelamento sem transação e sem movimento de carteira;
+  recompra bloqueada; cenário completo desejo → planejar → comprar → despesa →
+  saldo → histórico.
+
+## 3.6 Testes manuais — Fase 09 (executados)
+
+Cenários da fase executados em banco SQLite temporário (ciclo completo, com reabertura do arquivo):
+
+| # | Cenário | Resultado |
+| --- | --- | --- |
+| 1 | Criar desejo "SSD NVMe 1 TB" R$ 500,00 | status `DESEJADO`; carteira, saldo e histórico de transações **inalterados** |
+| 2 | Editar preço esperado para R$ 450,00 (após `PLANEJADO`) | valor persistido; estado mantido |
+| 3 | Registrar compra por R$ 399,90 | item `COMPRADO`; esperado R$ 450,00 · pago R$ 399,90 · **economia R$ 50,10**; despesa `Compra: SSD NVMe 1 TB` criada na Fase 08 |
+| 4 | Consultar carteira | saldo reduzido em **R$ 399,90** (o pago), não em R$ 450,00 |
+| 5 | Esperado R$ 100,00 · pago R$ 120,00 | diferença **+R$ 20,00** · **+10% acima do esperado** |
+| 6 | Comprar novamente o mesmo item | **bloqueado** (`ErroTransicao` — item já comprado) |
+| 7 | Cancelar um desejo | item permanece no banco (`CANCELADO`); nenhuma transação criada; carteira intacta |
+| 8 | Fechar e reabrir o aplicativo (novo arquivo → reler) | histórico, estados e saldo **permanecem** |
 
 ## 4. Teste de fumaça (Fases 01–02)
 
@@ -68,6 +101,7 @@ Ele inicia a aplicação, cria a janela, carrega o renderer, valida a ponte IPC,
 | Aplicação | unidade/integração | casos de uso com repositórios simulados ou banco temporário |
 | Persistência | integração | SQLite em arquivo temporário (Fase 02+) |
 | Finanças (Fase 08) | unidade + integração | `financa.test.mjs` — domínio (centavos, categorias, saldo, período, orçamento) e ciclo completo com banco real (carteira, transações, edição/exclusão, orçamentos, persistência) |
+| Loja / Lista de Desejos (Fase 09) | unidade + integração | `loja.test.mjs` — domínio (estados, transições, validações, diferença/percentual, mapeamento financeiro) e ciclo completo com banco real (compra atômica via Fase 08, rollback, histórico, cancelamento, persistência) |
 | Processo principal + janela | integração | teste de fumaça (Fase 01) |
 | Persistência (SQLite) | unidade + integração | conexão/PRAGMAs, migrações e ciclo salvar→reabrir→ler em bancos isolados (Fase 02) |
 | Interface | e2e | automação dedicada (Fase 17) |
