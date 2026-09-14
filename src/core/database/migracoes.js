@@ -16,6 +16,8 @@
  * missões, finanças…) nascerão em migrações das próprias fases.
  */
 
+import { calcularNivel } from '../dominio/progressao.js';
+
 const CRIAR_TABELA_CONTROLE = `
   CREATE TABLE IF NOT EXISTS schema_migrations (
     versao      INTEGER PRIMARY KEY,
@@ -286,6 +288,132 @@ const MIGRACAO_008 = Object.freeze({
   },
 });
 
+/**
+ * Migração 009 — conciliação do schema legado de progressão (Fase 06).
+ *
+ * Bancos criados pela PRIMEIRA implementação da Fase 06 registraram a
+ * versão 5 com outra forma das tabelas:
+ *   - `jogador_progressao` SEM a coluna `nivel`;
+ *   - `jogador_atributo` (nome no singular).
+ * Como o controle de migrações pula a versão já registrada ("nunca
+ * reexecuta"), essas tabelas ficaram legadas mesmo com o schema marcado
+ * como atual — e qualquer operação de progressão quebrava com
+ * "no such column: nivel".
+ *
+ * Esta migração RECONSTRÓI as tabelas no formato atual da Migração 005:
+ *   - `jogador_progressao` ganha `nivel`, derivado do XP acumulado pela
+ *     MESMA regra do domínio (`calcularNivel`) — nenhum dado é perdido;
+ *   - `jogador_atributo` é reconstruída como `jogador_atributos`.
+ * Em bancos novos (ou já corretos) ela não altera nada: cada passo só age
+ * quando detecta a forma legada.
+ */
+const MIGRACAO_009 = Object.freeze({
+  versao: 9,
+  nome: 'conciliar-progressao-legado',
+  cima(banco) {
+    const tabelas = new Set(
+      banco
+        .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
+        .all()
+        .map((linha) => linha.name),
+    );
+    conciliarProgressaoLegada(banco, tabelas);
+    conciliarAtributosLegados(banco, tabelas);
+  },
+});
+
+/** Reconstrói `jogador_progressao` com `nivel` se estiver na forma legada. */
+function conciliarProgressaoLegada(banco, tabelas) {
+  if (!tabelas.has('jogador_progressao')) return;
+  const colunas = banco
+    .prepare('PRAGMA table_info(jogador_progressao)')
+    .all()
+    .map((coluna) => coluna.name);
+  if (colunas.includes('nivel')) return; // formato atual — nada a fazer
+
+  // Cópia em tabela nova no formato EXATO da Migração 005; o nível vem do
+  // XP acumulado pela regra do domínio (nunca duplicada em SQL).
+  banco.exec(`
+    CREATE TABLE jogador_progressao_conciliada (
+      id                 INTEGER PRIMARY KEY,
+      jogador_id         INTEGER NOT NULL UNIQUE REFERENCES jogador(id) ON DELETE CASCADE,
+      xp_total           INTEGER NOT NULL CHECK (xp_total >= 0),
+      nivel              INTEGER NOT NULL CHECK (nivel >= 1),
+      pontos_disponiveis INTEGER NOT NULL CHECK (pontos_disponiveis >= 0),
+      criado_em          TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+      atualizado_em      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+    ) STRICT
+  `);
+  const linhas = banco
+    .prepare(
+      `SELECT id, jogador_id, xp_total, pontos_disponiveis, criado_em, atualizado_em
+         FROM jogador_progressao`,
+    )
+    .all();
+  const inserir = banco.prepare(`
+    INSERT INTO jogador_progressao_conciliada
+      (id, jogador_id, nivel, xp_total, pontos_disponiveis, criado_em, atualizado_em)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+  for (const linha of linhas) {
+    inserir.run(
+      linha.id,
+      linha.jogador_id,
+      calcularNivel(linha.xp_total),
+      linha.xp_total,
+      linha.pontos_disponiveis,
+      linha.criado_em,
+      linha.atualizado_em,
+    );
+  }
+  // DROP remove junto os índices legados (idx_progressao_jogador…); a tabela
+  // nova reproduz a 005, que não cria índices extras (UNIQUE já indexa).
+  banco.exec('DROP TABLE jogador_progressao');
+  banco.exec('ALTER TABLE jogador_progressao_conciliada RENAME TO jogador_progressao');
+}
+
+/** Reconstrói `jogador_atributo` (singular, legada) como `jogador_atributos`. */
+function conciliarAtributosLegados(banco, tabelas) {
+  if (!tabelas.has('jogador_atributo')) return; // nome legado não existe — nada a fazer
+  if (!tabelas.has('jogador_atributos')) {
+    banco.exec(`
+      CREATE TABLE jogador_atributos_conciliada (
+        id             INTEGER PRIMARY KEY,
+        jogador_id     INTEGER NOT NULL UNIQUE REFERENCES jogador(id) ON DELETE CASCADE,
+        tecnologia     INTEGER NOT NULL CHECK (tecnologia >= 1),
+        criatividade   INTEGER NOT NULL CHECK (criatividade >= 1),
+        musica         INTEGER NOT NULL CHECK (musica >= 1),
+        social         INTEGER NOT NULL CHECK (social >= 1),
+        energia        INTEGER NOT NULL CHECK (energia >= 1),
+        foco           INTEGER NOT NULL CHECK (foco >= 1),
+        disciplina     INTEGER NOT NULL CHECK (disciplina >= 1),
+        criado_em      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+      ) STRICT
+    `);
+    banco.exec(`
+      INSERT INTO jogador_atributos_conciliada
+        (id, jogador_id, tecnologia, criatividade, musica, social, energia, foco, disciplina,
+         criado_em, atualizado_em)
+      SELECT id, jogador_id, tecnologia, criatividade, musica, social, energia, foco, disciplina,
+             criado_em, atualizado_em
+        FROM jogador_atributo
+    `);
+    banco.exec('DROP TABLE jogador_atributo');
+    banco.exec('ALTER TABLE jogador_atributos_conciliada RENAME TO jogador_atributos');
+    return;
+  }
+  // Caso raro: plural E singular existem. Só descarta a legada se vazia;
+  // com dados, bloqueia com instrução clara em vez de perder histórico.
+  const { total } = banco.prepare('SELECT COUNT(*) AS total FROM jogador_atributo').get();
+  if (total > 0) {
+    throw new Error(
+      'Conciliação bloqueada: "jogador_atributo" e "jogador_atributos" existem com dados. Mescle manualmente antes de iniciar o PULSO.',
+    );
+  }
+  banco.exec('DROP TABLE jogador_atributo');
+}
+
 /** Lista oficial de migracoes — fases futuras ACRESCENTAM ao final. */
 export const MIGRACOES = Object.freeze([
   MIGRACAO_001,
@@ -296,6 +424,7 @@ export const MIGRACOES = Object.freeze([
   MIGRACAO_006,
   MIGRACAO_007,
   MIGRACAO_008,
+  MIGRACAO_009,
 ]);
 
 function validarLista(migracoes) {
