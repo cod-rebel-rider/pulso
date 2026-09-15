@@ -412,6 +412,7 @@ function conciliarAtributosLegados(banco, tabelas) {
     );
   }
   banco.exec('DROP TABLE jogador_atributo');
+}
 
 /**
  * Migração 010 — serviços (Fase 10.1 — Estrutura de Serviços).
@@ -457,9 +458,6 @@ const MIGRACAO_010 = Object.freeze({
     banco.exec('CREATE INDEX IF NOT EXISTS idx_servico_estado ON servico(jogador_id, estado)');
   },
 });
-
-
-}
 
 /** Lista oficial de migracoes — fases futuras ACRESCENTAM ao final. */
 export const MIGRACOES = Object.freeze([

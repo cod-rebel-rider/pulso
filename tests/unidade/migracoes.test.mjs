@@ -8,7 +8,7 @@ import { abrirConexao, fecharConexao } from '../../src/core/database/conexao.js'
 import { aplicarMigracoes, versaoAtual, MIGRACOES } from '../../src/core/database/migracoes.js';
 import { calcularNivel } from '../../src/core/dominio/progressao.js';
 
-test('banco vazio recebe as migrações oficiais: schema v9 com infraestrutura, jogador, status, missões, progressão, projetos, finanças, lista de desejos e conciliação legada', () => {
+test('banco vazio recebe as migrações oficiais: schema v10 com infraestrutura, jogador, status, missões, progressão, projetos, finanças, lista de desejos, conciliação legada e serviços', () => {
   const banco = abrirConexao({ caminho: ':memory:' });
   try {
     const resultado = aplicarMigracoes(banco);
@@ -22,9 +22,10 @@ test('banco vazio recebe as migrações oficiais: schema v9 com infraestrutura, 
       { versao: 7, nome: 'criar-tabelas-financas' },
       { versao: 8, nome: 'criar-tabela-desejo' },
       { versao: 9, nome: 'conciliar-progressao-legado' },
+      { versao: 10, nome: 'criar-tabela-servico' },
     ]);
-    assert.equal(resultado.versaoAtual, 9);
-    assert.equal(versaoAtual(banco), 9);
+    assert.equal(resultado.versaoAtual, 10);
+    assert.equal(versaoAtual(banco), 10);
 
     assert.equal(banco.prepare("SELECT valor FROM meta WHERE chave = 'aplicacao'").get().valor, 'PULSO');
     // a tabela do jogador existe e aceita inserção mínima
@@ -59,6 +60,21 @@ test('banco vazio recebe as migrações oficiais: schema v9 com infraestrutura, 
       () => banco.prepare("INSERT INTO desejo (jogador_id, titulo, categoria, prioridade, estado, valor_esperado_centavos) VALUES (1, 'X', 'tecnologia', 'alta', 'estado_invalido', 100)").run(),
       /CHECK/,
     );
+    // a tabela de serviços existe, aceita inserção mínima e valida CHECKs
+    banco.prepare("INSERT INTO servico (jogador_id, nome, categoria, valor_esperado_centavos, estado) VALUES (1, 'Internet', 'telecomunicacoes', 12000, 'ativo')").run();
+    assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM servico').get().n, 1);
+    assert.throws(
+      () => banco.prepare("INSERT INTO servico (jogador_id, nome, categoria, valor_esperado_centavos, estado) VALUES (1, 'X', 'categoria_invalida', 12000, 'ativo')").run(),
+      /CHECK/,
+    );
+    assert.throws(
+      () => banco.prepare("INSERT INTO servico (jogador_id, nome, categoria, valor_esperado_centavos, estado) VALUES (1, 'X', 'contas', 0, 'ativo')").run(),
+      /CHECK/,
+    );
+    assert.throws(
+      () => banco.prepare("INSERT INTO servico (jogador_id, nome, categoria, valor_esperado_centavos, estado) VALUES (1, 'X', 'contas', 12000, 'estado_invalido')").run(),
+      /CHECK/,
+    );
   } finally {
     fecharConexao(banco);
   }
@@ -81,7 +97,7 @@ test('migrações já aplicadas não são executadas novamente', () => {
     assert.equal(registroDepois.aplicada_em, registroOriginal.aplicada_em, 'registro inalterado');
     assert.equal(
       banco.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get().n,
-      9,
+      10,
       'todas as migrações oficiais registradas uma única vez',
     );
   } finally {
@@ -222,10 +238,13 @@ test('migração 009 concilia banco legado da Fase 06: restaura nivel e jogador_
     const registrar = banco.prepare('INSERT INTO schema_migrations (versao, nome) VALUES (?, ?)');
     for (let versao = 5; versao <= 8; versao += 1) registrar.run(versao, `legado-${versao}`);
 
-    // 5) A aplicação atual aplica SOMENTE a conciliação (v9).
+    // 5) A aplicação atual aplica a conciliação (v9) e os serviços (v10).
     const resultado = aplicarMigracoes(banco);
-    assert.deepEqual(resultado.aplicadas, [{ versao: 9, nome: 'conciliar-progressao-legado' }]);
-    assert.equal(versaoAtual(banco), 9);
+    assert.deepEqual(resultado.aplicadas, [
+      { versao: 9, nome: 'conciliar-progressao-legado' },
+      { versao: 10, nome: 'criar-tabela-servico' },
+    ]);
+    assert.equal(versaoAtual(banco), 10);
 
     // 6) Progressão reconstruída: nivel derivado do XP pela regra do domínio.
     const colunas = banco
