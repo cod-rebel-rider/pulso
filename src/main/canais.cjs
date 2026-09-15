@@ -58,4 +58,12 @@ module.exports = Object.freeze({
   LOJA_HISTORICO: 'loja:historico',
   LOJA_RESUMO: 'loja:resumo',
   LOJA_CONFIG: 'loja:config',
+  SERVICO_LISTAR: 'servico:listar',
+  SERVICO_OBTER: 'servico:obter',
+  SERVICO_CRIAR: 'servico:criar',
+  SERVICO_ATUALIZAR: 'servico:atualizar',
+  SERVICO_ATIVAR: 'servico:ativar',
+  SERVICO_DESATIVAR: 'servico:desativar',
+  SERVICO_ARQUIVAR: 'servico:arquivar',
+  SERVICO_CONFIG: 'servico:config',
 });

@@ -104,6 +104,7 @@
         <button type="button" id="botao-ver-projetos" class="botao-secundario" disabled>VER PROJETOS</button>
         <button type="button" id="botao-ver-financas" class="botao-secundario" disabled>VER FINANÇAS</button>
         <button type="button" id="botao-ver-loja" class="botao-secundario" disabled>VER LOJA</button>
+        <button type="button" id="botao-ver-servicos" class="botao-secundario" disabled>VER SERVIÇOS</button>
       </div>
     </section>
 
@@ -610,6 +611,128 @@
       </form>
     </section>
 
+    <!-- Serviços: catálogo vivo do jogador (Fase 10.1) -->
+    <section class="nucleo visao oculto" id="visao-servicos">
+      <p class="rotulo-secao">SERVIÇOS</p>
+      <h1 class="titulo-secao">OBRIGAÇÕES E CONTRATAÇÕES</h1>
+      <p class="descricao-secao">O que existe e normalmente custa dinheiro. O valor esperado é uma estimativa — nenhuma movimentação financeira é feita aqui.</p>
+
+      <section class="financa-resumo" aria-label="Resumo dos serviços">
+        <div class="financa-cartao">
+          <p class="rotulo-secao">ATIVOS</p>
+          <p class="financa-metrica" id="servico-ativos">0</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">INATIVOS</p>
+          <p class="financa-metrica" id="servico-inativos">0</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">ARQUIVADOS</p>
+          <p class="financa-metrica" id="servico-arquivados">0</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">CUSTO ESTIMADO (ATIVOS)</p>
+          <p class="financa-metrica" id="servico-custo-estimado">R$ 0,00</p>
+        </div>
+      </section>
+
+      <p class="aviso" id="aviso-servicos" role="alert"></p>
+
+      <div class="toolbar-missoes">
+        <div class="filtros" id="filtros-servicos" role="tablist" aria-label="Filtros de serviços">
+          <button type="button" class="filtro ativo" data-filtro="">TODOS</button>
+          <button type="button" class="filtro" data-filtro="ativo">ATIVOS</button>
+          <button type="button" class="filtro" data-filtro="inativo">INATIVOS</button>
+          <button type="button" class="filtro" data-filtro="arquivado">ARQUIVADOS</button>
+        </div>
+        <div class="loja-filtros-extras">
+          <select id="filtro-categoria-servicos" aria-label="Filtrar por categoria">
+            <option value="">TODAS AS CATEGORIAS</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="lista-missoes" id="lista-servicos"></div>
+
+      <div class="acoes-missao">
+        <button type="button" id="botao-novo-servico" class="botao-primario">NOVO SERVIÇO</button>
+        <button type="button" id="botao-voltar-servicos" class="botao-secundario">VOLTAR AO PAINEL</button>
+      </div>
+    </section>
+
+    <!-- Serviços: detalhe (Fase 10.1) -->
+    <section class="nucleo visao oculto" id="visao-servico-detalhe">
+      <p class="rotulo-secao">SERVIÇOS</p>
+      <h1 class="titulo-secao" id="servico-detalhe-titulo">DETALHE DO SERVIÇO</h1>
+
+      <dl class="loja-detalhes">
+        <div>
+          <dt>FORNECEDOR</dt>
+          <dd id="servico-detalhe-fornecedor">—</dd>
+        </div>
+        <div>
+          <dt>CATEGORIA</dt>
+          <dd id="servico-detalhe-categoria">—</dd>
+        </div>
+        <div>
+          <dt>VALOR ESPERADO</dt>
+          <dd id="servico-detalhe-valor">—</dd>
+        </div>
+        <div>
+          <dt>STATUS</dt>
+          <dd id="servico-detalhe-status">—</dd>
+        </div>
+        <div>
+          <dt>CRIADO EM</dt>
+          <dd id="servico-detalhe-criado">—</dd>
+        </div>
+        <div>
+          <dt>ATUALIZADO EM</dt>
+          <dd id="servico-detalhe-atualizado">—</dd>
+        </div>
+        <div id="linha-servico-arquivado">
+          <dt>ARQUIVADO EM</dt>
+          <dd id="servico-detalhe-arquivado">—</dd>
+        </div>
+      </dl>
+
+      <p class="loja-descricao" id="servico-detalhe-descricao"></p>
+      <p class="aviso" id="aviso-servico-detalhe" role="alert"></p>
+
+      <div class="acoes-missao" id="acoes-servico-detalhe"></div>
+    </section>
+
+    <!-- Serviços: formulário (Fase 10.1) -->
+    <section class="nucleo visao oculto" id="visao-formulario-servico">
+      <p class="rotulo-secao" id="formulario-servico-titulo-secao">NOVO SERVIÇO</p>
+      <h1 class="titulo-secao" id="formulario-servico-titulo">REGISTRAR SERVIÇO</h1>
+
+      <form id="formulario-servico" novalidate>
+        <label for="campo-servico-nome">NOME <span class="obrigatorio">*</span></label>
+        <input id="campo-servico-nome" name="nome" maxlength="120" autocomplete="off" spellcheck="false" />
+
+        <label for="campo-servico-fornecedor">FORNECEDOR <span class="opcional">(opcional)</span></label>
+        <input id="campo-servico-fornecedor" name="fornecedor" maxlength="120" autocomplete="off" spellcheck="false" />
+
+        <label for="campo-servico-categoria">CATEGORIA <span class="obrigatorio">*</span></label>
+        <select id="campo-servico-categoria" name="categoria"></select>
+
+        <label for="campo-servico-valor">VALOR ESPERADO <span class="obrigatorio">*</span></label>
+        <input id="campo-servico-valor" name="valorEsperado" inputmode="decimal"
+               placeholder="0,00" autocomplete="off" spellcheck="false" maxlength="14" />
+
+        <label for="campo-servico-descricao">DESCRIÇÃO <span class="opcional">(opcional)</span></label>
+        <textarea id="campo-servico-descricao" name="descricao" maxlength="2000" rows="4"></textarea>
+
+        <p class="aviso" id="aviso-formulario-servico" role="alert"></p>
+
+        <div class="acoes-formulario">
+          <button type="submit" id="botao-salvar-servico">SALVAR</button>
+          <button type="button" id="botao-cancelar-servico" class="botao-secundario">CANCELAR</button>
+        </div>
+      </form>
+    </section>
+
     <footer class="rodape">
       <span id="rodape-ambiente">AMBIENTE: —</span>
       <span class="separador" aria-hidden="true">·</span>
@@ -623,5 +746,6 @@
 
   <script src="js/principal.js"></script>
   <script src="js/loja.js"></script>
+  <script src="js/servicos.js"></script>
 </body>
 </html>

@@ -170,6 +170,7 @@ function mapearElementos() {
   // Finanças (Fase 08)
   elementos.botaoVerFinancas = consultar('botao-ver-financas');
   elementos.botaoVerLoja = consultar('botao-ver-loja');
+  elementos.botaoVerServicos = consultar('botao-ver-servicos');
   elementos.visaoFinancas = consultar('visao-financas');
   elementos.visaoFormularioTransacao = consultar('visao-formulario-transacao');
   elementos.visaoFormularioOrcamento = consultar('visao-formulario-orcamento');
@@ -1535,6 +1536,17 @@ function exibirVisao(nomeVisao) {
       if (visao) visao.classList.add('oculto');
     }
   }
+
+  // Serviços (Fase 10.1) — telas próprias gerenciadas por servicos.js
+  const emServicos = nomeVisao === 'visao-servicos'
+    || nomeVisao === 'visao-servico-detalhe'
+    || nomeVisao === 'visao-formulario-servico';
+  if (!emServicos) {
+    for (const id of ['visao-servicos', 'visao-servico-detalhe', 'visao-formulario-servico']) {
+      const visao = document.getElementById(id);
+      if (visao) visao.classList.add('oculto');
+    }
+  }
 }
 
 /** Vai para a lista de projetos (esconde o painel principal). */
@@ -1595,6 +1607,7 @@ function executarBoot() {
   elementos.botaoVerProjetos.disabled = true;
   elementos.botaoVerFinancas.disabled = true;
   elementos.botaoVerLoja.disabled = true;
+  elementos.botaoVerServicos.disabled = true;
   definirEstado('INICIANDO…');
   const linhas = linhasDoBoot();
   montarLinhasBoot(linhas, false);
@@ -1609,6 +1622,7 @@ function executarBoot() {
     elementos.botaoVerProjetos.disabled = false;
     elementos.botaoVerFinancas.disabled = false;
     elementos.botaoVerLoja.disabled = false;
+    elementos.botaoVerServicos.disabled = false;
     elementos.mensagem.textContent = 'Operador identificado. Aguardando módulos…';
     carregarStatus();
     carregarProgressao();
@@ -1764,6 +1778,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Loja / Lista de Desejos (Fase 09) — navegação delegada ao módulo loja.js
   elementos.botaoVerLoja.addEventListener('click', () => {
     if (typeof window.__irParaLoja === 'function') window.__irParaLoja();
+  });
+  elementos.botaoVerServicos.addEventListener('click', () => {
+    if (typeof window.__irParaServicos === 'function') window.__irParaServicos();
   });
   elementos.financasPainel.addEventListener('click', voltarAoPainelFinancas);
   elementos.filtrosFinanca.addEventListener('click', (evento) => {

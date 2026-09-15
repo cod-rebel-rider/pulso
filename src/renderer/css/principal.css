@@ -1455,3 +1455,23 @@
   }
 }
 
+/* ── Serviços (Fase 10.1) ────────────────────────────────────────────── */
+.servico-estado.ativo {
+  color: var(--pulso-branco);
+}
+
+.servico-estado.inativo {
+  color: var(--pulso-cinza);
+}
+
+.servico-estado.arquivado {
+  color: var(--pulso-cinza);
+  text-decoration: line-through;
+}
+
+.servico-valor-esperado {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--pulso-cinza);
+}
+
