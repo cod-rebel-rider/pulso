@@ -412,6 +412,53 @@ function conciliarAtributosLegados(banco, tabelas) {
     );
   }
   banco.exec('DROP TABLE jogador_atributo');
+
+/**
+ * Migração 010 — serviços (Fase 10.1 — Estrutura de Serviços).
+ *
+ * O serviço é a estrutura PERMANENTE de uma obrigação/contratação
+ * (internet, energia, aluguel…). As futuras contas serão ocorrências
+ * desse serviço (Fase 10.2+) — nada de vencimento, recorrência ou
+ * pagamento aqui.
+ *
+ * - `valor_esperado_centavos`: estimativa de custo em centavos (Fase 08),
+ *   > 0; NÃO representa dívida nem dinheiro movimentado;
+ * - `estado`: 'ativo' | 'inativo' | 'arquivado' (ciclo de vida no domínio);
+ * - `arquivado_em`: preenchido apenas quando o serviço é arquivado;
+ * - `fornecedor`: texto opcional — sem entidade própria nesta subfase;
+ * - categoria: lista controlada do domínio (separada das categorias
+ *   financeiras da Fase 08 — decisão documentada em docs/servicos.md).
+ */
+const MIGRACAO_010 = Object.freeze({
+  versao: 10,
+  nome: 'criar-tabela-servico',
+  cima(banco) {
+    banco.exec(`
+      CREATE TABLE servico (
+        id                      INTEGER PRIMARY KEY,
+        jogador_id              INTEGER NOT NULL REFERENCES jogador(id) ON DELETE CASCADE,
+        nome                    TEXT NOT NULL,
+        descricao               TEXT,
+        fornecedor              TEXT,
+        categoria               TEXT NOT NULL,
+        valor_esperado_centavos INTEGER NOT NULL CHECK (valor_esperado_centavos > 0),
+        estado                  TEXT NOT NULL,
+        criado_em               TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        arquivado_em            TEXT,
+        CHECK (estado IN ('ativo', 'inativo', 'arquivado')),
+        CHECK (categoria IN (
+          'moradia', 'contas', 'telecomunicacoes', 'assinaturas', 'tecnologia',
+          'educacao', 'saude', 'transporte', 'lazer', 'trabalho', 'outros'
+        ))
+      ) STRICT
+    `);
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_servico_jogador ON servico(jogador_id)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_servico_estado ON servico(jogador_id, estado)');
+  },
+});
+
+
 }
 
 /** Lista oficial de migracoes — fases futuras ACRESCENTAM ao final. */
@@ -425,6 +472,7 @@ export const MIGRACOES = Object.freeze([
   MIGRACAO_007,
   MIGRACAO_008,
   MIGRACAO_009,
+  MIGRACAO_010,
 ]);
 
 function validarLista(migracoes) {
