@@ -66,6 +66,14 @@ const CANAL_LOJA_CANCELAR = 'loja:cancelar'; // igual a canais.cjs → LOJA_CANC
 const CANAL_LOJA_HISTORICO = 'loja:historico'; // igual a canais.cjs → LOJA_HISTORICO
 const CANAL_LOJA_RESUMO = 'loja:resumo'; // igual a canais.cjs → LOJA_RESUMO
 const CANAL_LOJA_CONFIG = 'loja:config'; // igual a canais.cjs → LOJA_CONFIG
+const CANAL_SERVICO_LISTAR = 'servico:listar'; // igual a canais.cjs → SERVICO_LISTAR
+const CANAL_SERVICO_OBTER = 'servico:obter'; // igual a canais.cjs → SERVICO_OBTER
+const CANAL_SERVICO_CRIAR = 'servico:criar'; // igual a canais.cjs → SERVICO_CRIAR
+const CANAL_SERVICO_ATUALIZAR = 'servico:atualizar'; // igual a canais.cjs → SERVICO_ATUALIZAR
+const CANAL_SERVICO_ATIVAR = 'servico:ativar'; // igual a canais.cjs → SERVICO_ATIVAR
+const CANAL_SERVICO_DESATIVAR = 'servico:desativar'; // igual a canais.cjs → SERVICO_DESATIVAR
+const CANAL_SERVICO_ARQUIVAR = 'servico:arquivar'; // igual a canais.cjs → SERVICO_ARQUIVAR
+const CANAL_SERVICO_CONFIG = 'servico:config'; // igual a canais.cjs → SERVICO_CONFIG
 
 const { contextBridge, ipcRenderer } = require('electron');
 
@@ -250,6 +258,23 @@ contextBridge.exposeInMainWorld(
       historico: (jogadorId) => ipcRenderer.invoke(CANAL_LOJA_HISTORICO, { jogadorId }),
       resumo: (jogadorId) => ipcRenderer.invoke(CANAL_LOJA_RESUMO, { jogadorId }),
       config: () => ipcRenderer.invoke(CANAL_LOJA_CONFIG),
+    }),
+
+    /**
+     * Operacoes de Servicos (Fase 10.1).
+     * Valores em CENTAVOS; o valor esperado e ESTIMATIVA — criar/editar/
+     * arquivar um servico NAO cria transacao e NAO altera o saldo.
+     */
+    servico: Object.freeze({
+      listar: (jogadorId, filtros = {}) =>
+        ipcRenderer.invoke(CANAL_SERVICO_LISTAR, { jogadorId, ...filtros }),
+      obter: (id) => ipcRenderer.invoke(CANAL_SERVICO_OBTER, { id }),
+      criar: (dados) => ipcRenderer.invoke(CANAL_SERVICO_CRIAR, dados),
+      atualizar: (dados) => ipcRenderer.invoke(CANAL_SERVICO_ATUALIZAR, dados),
+      ativar: (id) => ipcRenderer.invoke(CANAL_SERVICO_ATIVAR, { id }),
+      desativar: (id) => ipcRenderer.invoke(CANAL_SERVICO_DESATIVAR, { id }),
+      arquivar: (id) => ipcRenderer.invoke(CANAL_SERVICO_ARQUIVAR, { id }),
+      config: () => ipcRenderer.invoke(CANAL_SERVICO_CONFIG),
     }),
   }),
 );
