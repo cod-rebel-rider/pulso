@@ -14,7 +14,9 @@ Fases conhecidas do projeto. Nenhuma fase antecipa o conteúdo da seguinte; o de
 | 07 | Projetos | Gestão de projetos | ✅ Concluída |
 | 08 | Finanças | Transações, carteira, orçamento | ✅ Concluída |
 | 09 | Loja / Lista de Desejos | Itens, desejos e compras | ✅ Concluída |
-| 10 | Serviços e Despesas | Recorrências, contas e serviços | ⬜ Pendente |
+| 10.1 | Serviços (estrutura) | Estrutura permanente de serviços recorrentes | ✅ Concluída |
+| 10.2 | Contas e Despesas | Ocorrências concretas de serviços, sem movimentar dinheiro | ✅ Concluída |
+| 10 | Serviços e Despesas (total) | Recorrências, contas e serviços (subfases 10.3–10.6 restantes) | 🟡 Parcial (10.1–10.2 prontas) |
 | 11 | Habilidades | Árvore de habilidades | ⬜ Pendente |
 | 12 | Música | Acompanhamento musical | ⬜ Pendente |
 | 13 | Mapa / Trilha | Visualização em rede / trilha | ⬜ Pendente |
