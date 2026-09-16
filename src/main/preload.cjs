@@ -74,6 +74,12 @@ const CANAL_SERVICO_ATIVAR = 'servico:ativar'; // igual a canais.cjs → SERVICO
 const CANAL_SERVICO_DESATIVAR = 'servico:desativar'; // igual a canais.cjs → SERVICO_DESATIVAR
 const CANAL_SERVICO_ARQUIVAR = 'servico:arquivar'; // igual a canais.cjs → SERVICO_ARQUIVAR
 const CANAL_SERVICO_CONFIG = 'servico:config'; // igual a canais.cjs → SERVICO_CONFIG
+const CANAL_CONTA_LISTAR = 'conta:listar'; // igual a canais.cjs → CONTA_LISTAR
+const CANAL_CONTA_OBTER = 'conta:obter'; // igual a canais.cjs → CONTA_OBTER
+const CANAL_CONTA_CRIAR = 'conta:criar'; // igual a canais.cjs → CONTA_CRIAR
+const CANAL_CONTA_ATUALIZAR = 'conta:atualizar'; // igual a canais.cjs → CONTA_ATUALIZAR
+const CANAL_CONTA_CANCELAR = 'conta:cancelar'; // igual a canais.cjs → CONTA_CANCELAR
+const CANAL_CONTA_CONFIG = 'conta:config'; // igual a canais.cjs → CONTA_CONFIG
 
 const { contextBridge, ipcRenderer } = require('electron');
 
@@ -275,6 +281,22 @@ contextBridge.exposeInMainWorld(
       desativar: (id) => ipcRenderer.invoke(CANAL_SERVICO_DESATIVAR, { id }),
       arquivar: (id) => ipcRenderer.invoke(CANAL_SERVICO_ARQUIVAR, { id }),
       config: () => ipcRenderer.invoke(CANAL_SERVICO_CONFIG),
+    }),
+
+    /**
+     * Operacoes de Contas / Despesas (Fase 10.2).
+     * Valores em CENTAVOS. Uma conta e a OCORRENCIA de um servico:
+     * criar/editar/cancelar NAO cria transacao e NAO altera o saldo.
+     * `situacao` (pendente | vencida | cancelada) e DERIVADA do vencimento.
+     */
+    conta: Object.freeze({
+      listar: (jogadorId, filtros = {}) =>
+        ipcRenderer.invoke(CANAL_CONTA_LISTAR, { jogadorId, ...filtros }),
+      obter: (id) => ipcRenderer.invoke(CANAL_CONTA_OBTER, { id }),
+      criar: (dados) => ipcRenderer.invoke(CANAL_CONTA_CRIAR, dados),
+      atualizar: (dados) => ipcRenderer.invoke(CANAL_CONTA_ATUALIZAR, dados),
+      cancelar: (id) => ipcRenderer.invoke(CANAL_CONTA_CANCELAR, { id }),
+      config: () => ipcRenderer.invoke(CANAL_CONTA_CONFIG),
     }),
   }),
 );

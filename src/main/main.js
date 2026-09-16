@@ -32,6 +32,7 @@ import { RepositorioTransacao } from '../core/database/repositorios/transacao.js
 import { RepositorioOrcamento } from '../core/database/repositorios/orcamento.js';
 import { RepositorioDesejo } from '../core/database/repositorios/desejo.js';
 import { RepositorioServico } from '../core/database/repositorios/servico.js';
+import { RepositorioConta } from '../core/database/repositorios/conta.js';
 import { ServicoJogador } from '../core/aplicacao/servico-jogador.js';
 import { ServicoStatus } from '../core/aplicacao/servico-status.js';
 import { ServicoMissao } from '../core/aplicacao/servico-missao.js';
@@ -40,6 +41,7 @@ import { ServicoProgressao } from '../core/aplicacao/servico-progressao.js';
 import { ServicoFinanca } from '../core/aplicacao/servico-financa.js';
 import { ServicoLoja } from '../core/aplicacao/servico-loja.js';
 import { ServicoServicos } from '../core/aplicacao/servico-servicos.js';
+import { ServicoContas } from '../core/aplicacao/servico-contas.js';
 import {
   CATEGORIAS_DESEJO,
   PRIORIDADES_DESEJO_ORDEM,
@@ -52,6 +54,13 @@ import {
   ESTADOS_SERVICO_ORDEM,
   ESTADOS_SERVICO_ROTULOS,
 } from '../core/dominio/servico.js';
+import {
+  ESTADOS_CONTA_ORDEM,
+  ESTADOS_CONTA_ROTULOS,
+  FORMATO_REFERENCIA,
+  SITUACOES_CONTA_ORDEM,
+  SITUACOES_CONTA_ROTULOS,
+} from '../core/dominio/conta.js';
 
 const CATEGORIAS_DESEJO_LOJA = CATEGORIAS_DESEJO;
 const PRIORIDADES_DESEJO_LOJA = PRIORIDADES_DESEJO_ORDEM;
@@ -87,6 +96,7 @@ let servicoProgressao = null;
 let servicoFinanca = null;
 let servicoLoja = null;
 let servicoServicos = null;
+let servicoContas = null;
 
 // ── Teste de fumaça ─────────────────────────────────────────────────────
 const resultadosFumaca = {
@@ -217,6 +227,17 @@ function configServico() {
     categorias: CATEGORIAS_SERVICO,
     estados: ESTADOS_SERVICO_ORDEM,
     rotulosEstados: ESTADOS_SERVICO_ROTULOS,
+  });
+}
+
+/** Configuração somente leitura das contas/despesas para a interface (Fase 10.2). */
+function configConta() {
+  return Object.freeze({
+    estados: ESTADOS_CONTA_ORDEM,
+    rotulosEstados: ESTADOS_CONTA_ROTULOS,
+    situacoes: SITUACOES_CONTA_ORDEM,
+    rotulosSituacoes: SITUACOES_CONTA_ROTULOS,
+    formatoReferencia: FORMATO_REFERENCIA,
   });
 }
 
@@ -595,6 +616,30 @@ function registrarIpc() {
     traduzirResultadoOperacao(() => ({ ok: true, servico: servicoServicos.desativar(Number(id ?? 0)) })));
   ipcMain.handle(canais.SERVICO_ARQUIVAR, (_evento, { id } = {}) =>
     traduzirResultadoOperacao(() => ({ ok: true, servico: servicoServicos.arquivar(Number(id ?? 0)) })));
+
+  // ── Contas / Despesas (Fase 10.2) — sem integração financeira ─────────
+  // Criar/editar/cancelar uma conta NÃO cria transação e NÃO altera saldo.
+  ipcMain.handle(canais.CONTA_CONFIG, () =>
+    traduzirResultadoOperacao(() => ({ ok: true, config: configConta() })));
+  ipcMain.handle(canais.CONTA_LISTAR, (_evento, { jogadorId, servicoId = null, situacao = null } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      contas: servicoContas.listar(Number(jogadorId ?? 0), { servicoId, situacao }),
+    })));
+  ipcMain.handle(canais.CONTA_OBTER, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => ({ ok: true, conta: servicoContas.obter(Number(id ?? 0)) })));
+  ipcMain.handle(canais.CONTA_CRIAR, (_evento, dados = {}) =>
+    traduzirResultadoOperacao(() => {
+      const conta = servicoContas.criar(Number(dados.jogadorId ?? 0), dados);
+      return { ok: true, conta };
+    }));
+  ipcMain.handle(canais.CONTA_ATUALIZAR, (_evento, dados = {}) =>
+    traduzirResultadoOperacao(() => {
+      const conta = servicoContas.atualizar(Number(dados.id ?? 0), dados);
+      return { ok: true, conta };
+    }));
+  ipcMain.handle(canais.CONTA_CANCELAR, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => ({ ok: true, conta: servicoContas.cancelar(Number(id ?? 0)) })));
 }
 
 /**
@@ -677,6 +722,7 @@ async function aoIniciar() {
   const repositorioOrcamento = new RepositorioOrcamento(estadoBanco.banco);
   const repositorioDesejo = new RepositorioDesejo(estadoBanco.banco);
   const repositorioServico = new RepositorioServico(estadoBanco.banco);
+  const repositorioConta = new RepositorioConta(estadoBanco.banco);
 
   // Criação atômica: jogador + status + progressão + carteira em uma transação.
   servicoStatus = new ServicoStatus({ repositorio: repositorioStatus, repositorioJogador });
@@ -717,6 +763,11 @@ async function aoIniciar() {
   });
   servicoServicos = new ServicoServicos({
     repositorio: repositorioServico,
+    repositorioJogador,
+  });
+  servicoContas = new ServicoContas({
+    repositorio: repositorioConta,
+    repositorioServico,
     repositorioJogador,
   });
   servicoProjeto = new ServicoProjeto({
