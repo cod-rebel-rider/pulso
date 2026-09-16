@@ -459,6 +459,55 @@ const MIGRACAO_010 = Object.freeze({
   },
 });
 
+/**
+ * Migração 011 — contas / despesas (Fase 10.2).
+ *
+ * A CONTA é a OCORRÊNCIA CONCRETA de um SERVIÇO (estrutura permanente):
+ * "Internet · Setembro/2026 · vence 15/09 · R$ 120,00". Registra apenas a
+ * EXPECTATIVA — não paga, não cria transação e não altera saldo/carteira
+ * (o pagamento é operação financeira futura, Fase 10.5).
+ *
+ * - `servico_id`: obrigatório — uma conta só existe se o serviço existir
+ *   (`RESTRICT` impede apagar um serviço que tenha contas; serviços são
+ *   arquivados, nunca apagados);
+ * - `referencia`: competência canônica `AAAA-MM` (ex.: '2026-09'); junto do
+ *   `servico_id` compõe `UNIQUE`, evitando duplicar a mesma ocorrência;
+ * - `valor_esperado_centavos`: expectativa em centavos (Fase 08), > 0;
+ * - `vencimento`: data civil `AAAA-MM-DD`;
+ * - `estado`: 'pendente' | 'cancelada' — `VENCIDA` é DERIVADA do vencimento
+ *   em consulta e NUNCA gravada automaticamente (decisão em
+ *   docs/contas-despesas.md);
+ * - `cancelado_em`: preenchido no cancelamento (registro nunca é apagado).
+ */
+const MIGRACAO_011 = Object.freeze({
+  versao: 11,
+  nome: 'criar-tabela-servico-conta',
+  cima(banco) {
+    banco.exec(`
+      CREATE TABLE servico_conta (
+        id                      INTEGER PRIMARY KEY,
+        jogador_id              INTEGER NOT NULL REFERENCES jogador(id) ON DELETE CASCADE,
+        servico_id              INTEGER NOT NULL REFERENCES servico(id) ON DELETE RESTRICT,
+        referencia              TEXT NOT NULL,
+        descricao               TEXT,
+        valor_esperado_centavos INTEGER NOT NULL CHECK (valor_esperado_centavos > 0),
+        vencimento              TEXT NOT NULL,
+        estado                  TEXT NOT NULL,
+        criado_em               TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        cancelado_em            TEXT,
+        CHECK (estado IN ('pendente', 'cancelada')),
+        CHECK (referencia GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]'),
+        CHECK (vencimento GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+        UNIQUE (servico_id, referencia)
+      ) STRICT
+    `);
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_servico_conta_jogador ON servico_conta(jogador_id)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_servico_conta_servico ON servico_conta(servico_id)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_servico_conta_vencimento ON servico_conta(jogador_id, vencimento)');
+  },
+});
+
 /** Lista oficial de migracoes — fases futuras ACRESCENTAM ao final. */
 export const MIGRACOES = Object.freeze([
   MIGRACAO_001,
@@ -471,6 +520,7 @@ export const MIGRACOES = Object.freeze([
   MIGRACAO_008,
   MIGRACAO_009,
   MIGRACAO_010,
+  MIGRACAO_011,
 ]);
 
 function validarLista(migracoes) {
