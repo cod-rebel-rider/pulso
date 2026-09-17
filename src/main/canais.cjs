@@ -72,4 +72,12 @@ module.exports = Object.freeze({
   CONTA_ATUALIZAR: 'conta:atualizar',
   CONTA_CANCELAR: 'conta:cancelar',
   CONTA_CONFIG: 'conta:config',
+  RECURRENCIA_LISTAR: 'recorrencia:listar',
+  RECURRENCIA_OBTER: 'recorrencia:obter',
+  RECURRENCIA_CRIAR: 'recorrencia:criar',
+  RECURRENCIA_ATUALIZAR: 'recorrencia:atualizar',
+  RECURRENCIA_ATIVAR: 'recorrencia:ativar',
+  RECURRENCIA_DESATIVAR: 'recorrencia:desativar',
+  RECURRENCIA_ARQUIVAR: 'recorrencia:arquivar',
+  RECURRENCIA_CONFIG: 'recorrencia:config',
 });

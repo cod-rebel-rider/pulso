@@ -33,6 +33,7 @@ import { RepositorioOrcamento } from '../core/database/repositorios/orcamento.js
 import { RepositorioDesejo } from '../core/database/repositorios/desejo.js';
 import { RepositorioServico } from '../core/database/repositorios/servico.js';
 import { RepositorioConta } from '../core/database/repositorios/conta.js';
+import { RepositorioRecorrencia } from '../core/database/repositorios/recorrencia.js';
 import { ServicoJogador } from '../core/aplicacao/servico-jogador.js';
 import { ServicoStatus } from '../core/aplicacao/servico-status.js';
 import { ServicoMissao } from '../core/aplicacao/servico-missao.js';
@@ -42,6 +43,7 @@ import { ServicoFinanca } from '../core/aplicacao/servico-financa.js';
 import { ServicoLoja } from '../core/aplicacao/servico-loja.js';
 import { ServicoServicos } from '../core/aplicacao/servico-servicos.js';
 import { ServicoContas } from '../core/aplicacao/servico-contas.js';
+import { ServicoRecorrencias } from '../core/aplicacao/servico-recorrencias.js';
 import {
   CATEGORIAS_DESEJO,
   PRIORIDADES_DESEJO_ORDEM,
@@ -61,6 +63,11 @@ import {
   SITUACOES_CONTA_ORDEM,
   SITUACOES_CONTA_ROTULOS,
 } from '../core/dominio/conta.js';
+import {
+  ESTADOS_RECORRENCIA_ORDEM,
+  ESTADOS_RECORRENCIA_ROTULOS,
+  FREQUENCIAS_RECORRENCIA,
+} from '../core/dominio/recorrencia.js';
 
 const CATEGORIAS_DESEJO_LOJA = CATEGORIAS_DESEJO;
 const PRIORIDADES_DESEJO_LOJA = PRIORIDADES_DESEJO_ORDEM;
@@ -97,6 +104,7 @@ let servicoFinanca = null;
 let servicoLoja = null;
 let servicoServicos = null;
 let servicoContas = null;
+let servicoRecorrencias = null;
 
 // ── Teste de fumaça ─────────────────────────────────────────────────────
 const resultadosFumaca = {
@@ -238,6 +246,15 @@ function configConta() {
     situacoes: SITUACOES_CONTA_ORDEM,
     rotulosSituacoes: SITUACOES_CONTA_ROTULOS,
     formatoReferencia: FORMATO_REFERENCIA,
+  });
+}
+
+/** Configuração somente leitura das recorrências para a interface (Fase 10.3). */
+function configRecorrencia() {
+  return Object.freeze({
+    frequencias: FREQUENCIAS_RECORRENCIA.map((f) => Object.freeze({ valor: f.valor, rotulo: f.rotulo })),
+    estados: ESTADOS_RECORRENCIA_ORDEM,
+    rotulosEstados: ESTADOS_RECORRENCIA_ROTULOS,
   });
 }
 
@@ -640,6 +657,35 @@ function registrarIpc() {
     }));
   ipcMain.handle(canais.CONTA_CANCELAR, (_evento, { id } = {}) =>
     traduzirResultadoOperacao(() => ({ ok: true, conta: servicoContas.cancelar(Number(id ?? 0)) })));
+
+  // ── Recorrências (Fase 10.3) — sem integração financeira ───────────────
+  // Criar/editar/ativar/desativar/arquivar uma recorrência NÃO gera conta,
+  // NÃO cria transação e NÃO altera saldo (geração de contas é a Fase 10.4).
+  ipcMain.handle(canais.RECURRENCIA_CONFIG, () =>
+    traduzirResultadoOperacao(() => ({ ok: true, config: configRecorrencia() })));
+  ipcMain.handle(canais.RECURRENCIA_LISTAR, (_evento, { jogadorId, servicoId = null, estado = null } = {}) =>
+    traduzirResultadoOperacao(() => ({
+      ok: true,
+      recorrencias: servicoRecorrencias.listar(Number(jogadorId ?? 0), { servicoId, estado }),
+    })));
+  ipcMain.handle(canais.RECURRENCIA_OBTER, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => ({ ok: true, recorrencia: servicoRecorrencias.obter(Number(id ?? 0)) })));
+  ipcMain.handle(canais.RECURRENCIA_CRIAR, (_evento, dados = {}) =>
+    traduzirResultadoOperacao(() => {
+      const recorrencia = servicoRecorrencias.criar(Number(dados.jogadorId ?? 0), dados);
+      return { ok: true, recorrencia };
+    }));
+  ipcMain.handle(canais.RECURRENCIA_ATUALIZAR, (_evento, dados = {}) =>
+    traduzirResultadoOperacao(() => {
+      const recorrencia = servicoRecorrencias.atualizar(Number(dados.id ?? 0), dados);
+      return { ok: true, recorrencia };
+    }));
+  ipcMain.handle(canais.RECURRENCIA_ATIVAR, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => ({ ok: true, recorrencia: servicoRecorrencias.ativar(Number(id ?? 0)) })));
+  ipcMain.handle(canais.RECURRENCIA_DESATIVAR, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => ({ ok: true, recorrencia: servicoRecorrencias.desativar(Number(id ?? 0)) })));
+  ipcMain.handle(canais.RECURRENCIA_ARQUIVAR, (_evento, { id } = {}) =>
+    traduzirResultadoOperacao(() => ({ ok: true, recorrencia: servicoRecorrencias.arquivar(Number(id ?? 0)) })));
 }
 
 /**
@@ -723,6 +769,7 @@ async function aoIniciar() {
   const repositorioDesejo = new RepositorioDesejo(estadoBanco.banco);
   const repositorioServico = new RepositorioServico(estadoBanco.banco);
   const repositorioConta = new RepositorioConta(estadoBanco.banco);
+  const repositorioRecorrencia = new RepositorioRecorrencia(estadoBanco.banco);
 
   // Criação atômica: jogador + status + progressão + carteira em uma transação.
   servicoStatus = new ServicoStatus({ repositorio: repositorioStatus, repositorioJogador });
@@ -767,6 +814,11 @@ async function aoIniciar() {
   });
   servicoContas = new ServicoContas({
     repositorio: repositorioConta,
+    repositorioServico,
+    repositorioJogador,
+  });
+  servicoRecorrencias = new ServicoRecorrencias({
+    repositorio: repositorioRecorrencia,
     repositorioServico,
     repositorioJogador,
   });
