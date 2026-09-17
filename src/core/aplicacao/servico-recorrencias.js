@@ -16,6 +16,7 @@ import {
   ESTADO_RECORRENCIA_INICIAL,
   exigirTransicaoRecorrencia,
   recorrenciaArquivada,
+  validarEstadoRecorrencia,
   validarPeriodoRecorrencia,
   validarRecorrenciaCriacao,
   validarRecorrenciaEdicao,
@@ -56,6 +57,7 @@ export class ServicoRecorrencias {
 
   listar(jogadorId, { servicoId = null, estado = null } = {}) {
     this._garantirJogador(jogadorId);
+    if (estado !== null) validarEstadoRecorrencia(estado);
     return this._recorrencias.listarPorJogador(jogadorId, { servicoId, estado });
   }
 

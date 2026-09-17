@@ -170,8 +170,10 @@ test("recorrência: nasce ativa, desativa, reativa e arquiva (terminal)", () => 
 test("recorrência: serviço inexistente ou de outro jogador é rejeitado", () => {
   const ambiente = criarAmbiente();
   try {
-    const { jogador, servico } = prepararCenario(ambiente, "Dono");
-    const outroJogador = ambiente.servicoJogador.criar({ nome: "Outro" });
+    const { jogador, servico } = prepararCenario(ambiente);
+    // segundo jogador inserido direto no repositório (a aplicação é single-player;
+    // aqui testamos o isolamento da REGRA de recorrência, não o limite de jogador)
+    const outro = ambiente.repositorioJogador.criar({ nome: "Outro", codinome: null });
 
     assert.throws(
       () =>
@@ -188,7 +190,7 @@ test("recorrência: serviço inexistente ou de outro jogador é rejeitado", () =
 
     assert.throws(
       () =>
-        ambiente.servicoRecorrencias.criar(outroJogador.id, {
+        ambiente.servicoRecorrencias.criar(outro.id, {
           servicoId: servico.id,
           frequencia: "mensal",
           dataInicio: "2026-09-01",
@@ -234,10 +236,21 @@ test("recorrência: valida datas (término antes do início), frequência e valo
       "início em data inexistente é rejeitado",
     );
     assert.throws(
+      () => ambiente.servicoRecorrencias.criar(jogador.id, { ...base, dataInicio: null }),
+      ErroValidacao,
+      "data de início é obrigatória",
+    );
+    assert.throws(
       () => ambiente.servicoRecorrencias.criar(jogador.id, { ...base, dataFim: "2026-08-31" }),
       ErroValidacao,
       "término anterior ao início é rejeitado",
     );
+    // término IGUAL ao início é válido (regra: não pode ser ANTERIOR)
+    const mesmoDia = ambiente.servicoRecorrencias.criar(jogador.id, {
+      ...base, dataFim: base.dataInicio,
+    });
+    assert.equal(mesmoDia.dataFim, base.dataInicio);
+
     // frequência inválida (fora da lista controlada)
     assert.throws(
       () => ambiente.servicoRecorrencias.criar(jogador.id, { ...base, frequencia: "quinzenal" }),
@@ -291,6 +304,11 @@ test("recorrência: valida datas (término antes do início), frequência e valo
       () => ambiente.servicoRecorrencias.atualizar(recorrencia.id, { servicoId: servico.id + 999 }),
       ErroValidacao,
     );
+    // jogador dono não pode ser trocado na edição
+    assert.throws(
+      () => ambiente.servicoRecorrencias.atualizar(recorrencia.id, { jogadorId: jogador.id + 999 }),
+      ErroValidacao,
+    );
   } finally {
     liberar(ambiente);
   }
@@ -301,7 +319,8 @@ test("recorrência: isolamento por jogador e filtros por estado/serviço", () =>
   const ambiente = criarAmbiente();
   try {
     const { jogador: joao, servico: internet } = prepararCenario(ambiente, "João");
-    const maria = ambiente.servicoJogador.criar({ nome: "Maria" });
+    // segundo jogador direto no repositório (single-player da aplicação)
+    const maria = ambiente.repositorioJogador.criar({ nome: "Maria", codinome: null });
     const academia = ambiente.servicoServicos.criar(maria.id, {
       nome: "Academia", categoria: "saude", valorEsperado: 10000,
     });
