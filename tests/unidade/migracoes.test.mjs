@@ -8,7 +8,7 @@ import { abrirConexao, fecharConexao } from '../../src/core/database/conexao.js'
 import { aplicarMigracoes, versaoAtual, MIGRACOES } from '../../src/core/database/migracoes.js';
 import { calcularNivel } from '../../src/core/dominio/progressao.js';
 
-test('banco vazio recebe as migrações oficiais: schema v11 com infraestrutura, jogador, status, missões, progressão, projetos, finanças, lista de desejos, conciliação legada, serviços e contas', () => {
+test('banco vazio recebe as migrações oficiais: schema v12 com infraestrutura, jogador, status, missões, progressão, projetos, finanças, lista de desejos, conciliação legada, serviços, contas e recorrências', () => {
   const banco = abrirConexao({ caminho: ':memory:' });
   try {
     const resultado = aplicarMigracoes(banco);
@@ -24,9 +24,10 @@ test('banco vazio recebe as migrações oficiais: schema v11 com infraestrutura,
       { versao: 9, nome: 'conciliar-progressao-legado' },
       { versao: 10, nome: 'criar-tabela-servico' },
       { versao: 11, nome: 'criar-tabela-servico-conta' },
+      { versao: 12, nome: 'criar-tabela-servico-recorrencia' },
     ]);
-    assert.equal(resultado.versaoAtual, 11);
-    assert.equal(versaoAtual(banco), 11);
+    assert.equal(resultado.versaoAtual, 12);
+    assert.equal(versaoAtual(banco), 12);
 
     assert.equal(banco.prepare("SELECT valor FROM meta WHERE chave = 'aplicacao'").get().valor, 'PULSO');
     // a tabela do jogador existe e aceita inserção mínima
@@ -97,6 +98,39 @@ test('banco vazio recebe as migrações oficiais: schema v11 com infraestrutura,
       /FOREIGN KEY/,
       'a conta exige um serviço existente',
     );
+    // a tabela de recorrências existe, aceita inserção mínima e valida CHECKs
+    banco.prepare("INSERT INTO servico_recorrencia (jogador_id, servico_id, frequencia, data_inicio, data_fim, dia_vencimento, valor_esperado_centavos, estado) VALUES (1, 1, 'mensal', '2026-09-01', NULL, 15, 12000, 'ativa')").run();
+    assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM servico_recorrencia').get().n, 1);
+    assert.throws(
+      () => banco.prepare("INSERT INTO servico_recorrencia (jogador_id, servico_id, frequencia, data_inicio, data_fim, dia_vencimento, valor_esperado_centavos, estado) VALUES (1, 1, 'quinzenal', '2026-09-01', NULL, 15, 12000, 'ativa')").run(),
+      /CHECK/,
+      'frequência fora da lista controlada é rejeitada',
+    );
+    assert.throws(
+      () => banco.prepare("INSERT INTO servico_recorrencia (jogador_id, servico_id, frequencia, data_inicio, data_fim, dia_vencimento, valor_esperado_centavos, estado) VALUES (1, 1, 'mensal', '2026-09-01', NULL, 0, 12000, 'ativa')").run(),
+      /CHECK/,
+      'dia de vencimento fora de 1–31 é rejeitado',
+    );
+    assert.throws(
+      () => banco.prepare("INSERT INTO servico_recorrencia (jogador_id, servico_id, frequencia, data_inicio, data_fim, dia_vencimento, valor_esperado_centavos, estado) VALUES (1, 1, 'mensal', '2026-09-01', NULL, 15, -100, 'ativa')").run(),
+      /CHECK/,
+      'valor esperado negativo é rejeitado',
+    );
+    assert.throws(
+      () => banco.prepare("INSERT INTO servico_recorrencia (jogador_id, servico_id, frequencia, data_inicio, data_fim, dia_vencimento, valor_esperado_centavos, estado) VALUES (1, 1, 'mensal', '2026-09-01', NULL, 15, 12000, 'ativa2')").run(),
+      /CHECK/,
+      'estado fora da lista controlada é rejeitado',
+    );
+    assert.throws(
+      () => banco.prepare("INSERT INTO servico_recorrencia (jogador_id, servico_id, frequencia, data_inicio, data_fim, dia_vencimento, valor_esperado_centavos, estado) VALUES (1, 1, 'mensal', '1-9-2026', NULL, 15, 12000, 'ativa')").run(),
+      /CHECK/,
+      'data fora do formato AAAA-MM-DD é rejeitada',
+    );
+    assert.throws(
+      () => banco.prepare("INSERT INTO servico_recorrencia (jogador_id, servico_id, frequencia, data_inicio, data_fim, dia_vencimento, valor_esperado_centavos, estado) VALUES (1, 999, 'mensal', '2026-09-01', NULL, 15, 12000, 'ativa')").run(),
+      /FOREIGN KEY/,
+      'a recorrência exige um serviço existente',
+    );
   } finally {
     fecharConexao(banco);
   }
@@ -119,7 +153,7 @@ test('migrações já aplicadas não são executadas novamente', () => {
     assert.equal(registroDepois.aplicada_em, registroOriginal.aplicada_em, 'registro inalterado');
     assert.equal(
       banco.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get().n,
-      11,
+      12,
       'todas as migrações oficiais registradas uma única vez',
     );
   } finally {
@@ -260,14 +294,16 @@ test('migração 009 concilia banco legado da Fase 06: restaura nivel e jogador_
     const registrar = banco.prepare('INSERT INTO schema_migrations (versao, nome) VALUES (?, ?)');
     for (let versao = 5; versao <= 8; versao += 1) registrar.run(versao, `legado-${versao}`);
 
-    // 5) A aplicação atual aplica a conciliação (v9), os serviços (v10) e as contas (v11).
+    // 5) A aplicação atual aplica a conciliação (v9), os serviços (v10),
+    //    as contas (v11) e as recorrências (v12).
     const resultado = aplicarMigracoes(banco);
     assert.deepEqual(resultado.aplicadas, [
       { versao: 9, nome: 'conciliar-progressao-legado' },
       { versao: 10, nome: 'criar-tabela-servico' },
       { versao: 11, nome: 'criar-tabela-servico-conta' },
+      { versao: 12, nome: 'criar-tabela-servico-recorrencia' },
     ]);
-    assert.equal(versaoAtual(banco), 11);
+    assert.equal(versaoAtual(banco), 12);
 
     // 6) Progressão reconstruída: nivel derivado do XP pela regra do domínio.
     const colunas = banco
