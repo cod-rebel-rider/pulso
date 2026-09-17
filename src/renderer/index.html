@@ -106,6 +106,7 @@
         <button type="button" id="botao-ver-loja" class="botao-secundario" disabled>VER LOJA</button>
         <button type="button" id="botao-ver-servicos" class="botao-secundario" disabled>VER SERVIÇOS</button>
         <button type="button" id="botao-ver-contas" class="botao-secundario" disabled>VER CONTAS</button>
+        <button type="button" id="botao-ver-recorrencias" class="botao-secundario" disabled>VER RECORRÊNCIAS</button>
       </div>
     </section>
 
@@ -860,6 +861,147 @@
       </form>
     </section>
 
+    <!-- Recorrências: visão principal (Fase 10.3) -->
+    <section class="nucleo visao oculto" id="visao-recorrencias">
+      <p class="rotulo-secao">RECORRÊNCIAS</p>
+      <h1 class="titulo-secao">REGRAS DE REPETIÇÃO</h1>
+      <p class="descricao-secao">Como os serviços se repetem. A recorrência é uma REGRA — nenhuma conta é gerada aqui e nenhuma movimentação financeira é feita.</p>
+
+      <section class="financa-resumo" aria-label="Resumo das recorrências">
+        <div class="financa-cartao">
+          <p class="rotulo-secao">ATIVAS</p>
+          <p class="financa-metrica" id="recorrencia-ativas">0</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">INATIVAS</p>
+          <p class="financa-metrica" id="recorrencia-inativas">0</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">ARQUIVADAS</p>
+          <p class="financa-metrica" id="recorrencia-arquivadas">0</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">VALOR ESPERADO (ATIVAS)</p>
+          <p class="financa-metrica" id="recorrencia-valor-ativas">R$ 0,00</p>
+        </div>
+      </section>
+
+      <p class="aviso" id="aviso-recorrencias" role="alert"></p>
+
+      <div class="toolbar-missoes">
+        <div class="filtros" id="filtros-recorrencias" role="tablist" aria-label="Filtros de recorrências">
+          <button type="button" class="filtro ativo" data-filtro="">TODAS</button>
+          <button type="button" class="filtro" data-filtro="ativa">ATIVAS</button>
+          <button type="button" class="filtro" data-filtro="inativa">INATIVAS</button>
+          <button type="button" class="filtro" data-filtro="arquivada">ARQUIVADAS</button>
+        </div>
+        <div class="loja-filtros-extras">
+          <select id="filtro-servico-recorrencias" aria-label="Filtrar por serviço">
+            <option value="">TODOS OS SERVIÇOS</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="lista-missoes" id="lista-recorrencias"></div>
+
+      <div class="acoes-missao">
+        <button type="button" id="botao-nova-recorrencia" class="botao-primario">NOVA RECORRÊNCIA</button>
+        <button type="button" id="botao-voltar-recorrencias" class="botao-secundario">VOLTAR AO PAINEL</button>
+      </div>
+    </section>
+
+    <!-- Recorrências: detalhe (Fase 10.3) -->
+    <section class="nucleo visao oculto" id="visao-recorrencia-detalhe">
+      <p class="rotulo-secao">RECORRÊNCIAS</p>
+      <h1 class="titulo-secao" id="recorrencia-detalhe-titulo">DETALHE DA RECORRÊNCIA</h1>
+
+      <dl class="loja-detalhes">
+        <div>
+          <dt>SERVIÇO</dt>
+          <dd id="recorrencia-detalhe-servico">—</dd>
+        </div>
+        <div>
+          <dt>FREQUÊNCIA</dt>
+          <dd id="recorrencia-detalhe-frequencia">—</dd>
+        </div>
+        <div>
+          <dt>INÍCIO</dt>
+          <dd id="recorrencia-detalhe-inicio">—</dd>
+        </div>
+        <div>
+          <dt>TÉRMINO</dt>
+          <dd id="recorrencia-detalhe-fim">—</dd>
+        </div>
+        <div>
+          <dt>DIA DE VENCIMENTO</dt>
+          <dd id="recorrencia-detalhe-dia">—</dd>
+        </div>
+        <div>
+          <dt>VALOR ESPERADO</dt>
+          <dd id="recorrencia-detalhe-valor">—</dd>
+        </div>
+        <div>
+          <dt>STATUS</dt>
+          <dd id="recorrencia-detalhe-estado">—</dd>
+        </div>
+        <div>
+          <dt>CRIADA EM</dt>
+          <dd id="recorrencia-detalhe-criada">—</dd>
+        </div>
+        <div>
+          <dt>ATUALIZADA EM</dt>
+          <dd id="recorrencia-detalhe-atualizada">—</dd>
+        </div>
+        <div id="linha-recorrencia-arquivada">
+          <dt>ARQUIVADA EM</dt>
+          <dd id="recorrencia-detalhe-arquivada">—</dd>
+        </div>
+      </dl>
+
+      <p class="loja-descricao" id="recorrencia-detalhe-descricao"></p>
+      <p class="aviso" id="aviso-recorrencia-detalhe" role="alert"></p>
+
+      <div class="acoes-missao" id="acoes-recorrencia-detalhe"></div>
+    </section>
+
+    <!-- Recorrências: formulário (Fase 10.3) -->
+    <section class="nucleo visao oculto" id="visao-formulario-recorrencia">
+      <p class="rotulo-secao" id="formulario-recorrencia-titulo-secao">NOVA RECORRÊNCIA</p>
+      <h1 class="titulo-secao" id="formulario-recorrencia-titulo">REGISTRAR RECORRÊNCIA</h1>
+
+      <form id="formulario-recorrencia" novalidate>
+        <label for="campo-recorrencia-servico">SERVIÇO <span class="obrigatorio">*</span></label>
+        <select id="campo-recorrencia-servico" name="servicoId"></select>
+
+        <label for="campo-recorrencia-frequencia">FREQUÊNCIA <span class="obrigatorio">*</span></label>
+        <select id="campo-recorrencia-frequencia" name="frequencia"></select>
+
+        <label for="campo-recorrencia-inicio">INÍCIO <span class="obrigatorio">*</span></label>
+        <input id="campo-recorrencia-inicio" name="dataInicio" type="date" />
+
+        <label for="campo-recorrencia-fim">TÉRMINO <span class="opcional">(opcional)</span></label>
+        <input id="campo-recorrencia-fim" name="dataFim" type="date" />
+
+        <label for="campo-recorrencia-dia">DIA DE VENCIMENTO <span class="obrigatorio">*</span></label>
+        <input id="campo-recorrencia-dia" name="diaVencimento" inputmode="numeric" maxlength="2"
+               placeholder="1–31" autocomplete="off" spellcheck="false" />
+
+        <label for="campo-recorrencia-valor">VALOR ESPERADO <span class="obrigatorio">*</span></label>
+        <input id="campo-recorrencia-valor" name="valorEsperado" inputmode="decimal"
+               placeholder="0,00" autocomplete="off" spellcheck="false" maxlength="14" />
+
+        <label for="campo-recorrencia-descricao">DESCRIÇÃO <span class="opcional">(opcional)</span></label>
+        <textarea id="campo-recorrencia-descricao" name="descricao" maxlength="2000" rows="4"></textarea>
+
+        <p class="aviso" id="aviso-formulario-recorrencia" role="alert"></p>
+
+        <div class="acoes-formulario">
+          <button type="submit" id="botao-salvar-recorrencia">SALVAR</button>
+          <button type="button" id="botao-cancelar-recorrencia" class="botao-secundario">CANCELAR</button>
+        </div>
+      </form>
+    </section>
+
     <footer class="rodape">
       <span id="rodape-ambiente">AMBIENTE: —</span>
       <span class="separador" aria-hidden="true">·</span>
@@ -875,5 +1017,6 @@
   <script src="js/loja.js"></script>
   <script src="js/servicos.js"></script>
   <script src="js/contas.js"></script>
+  <script src="js/recorrencias.js"></script>
 </body>
 </html>
