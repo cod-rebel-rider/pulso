@@ -961,6 +961,40 @@
       <p class="loja-descricao" id="recorrencia-detalhe-descricao"></p>
       <p class="aviso" id="aviso-recorrencia-detalhe" role="alert"></p>
 
+      <!-- Geração de ocorrências (Fase 10.4): regra → contas pendentes -->
+      <section id="secao-gerar-ocorrencias">
+        <h2 class="titulo-secao">GERAR OCORRÊNCIAS</h2>
+        <p class="descricao-secao">Transforma esta regra em contas PENDENTES dentro do período. A geração não paga nada: não cria transação e não altera o saldo (pagamento: Fase 10.5).</p>
+        <form id="formulario-geracao" novalidate>
+          <label for="campo-gerar-inicio">GERAR DE <span class="obrigatorio">*</span></label>
+          <input id="campo-gerar-inicio" name="periodoInicio" type="date" />
+
+          <label for="campo-gerar-fim">ATÉ <span class="obrigatorio">*</span></label>
+          <input id="campo-gerar-fim" name="periodoFim" type="date" />
+
+          <p class="aviso" id="aviso-geracao" role="alert"></p>
+
+          <div class="acoes-formulario">
+            <button type="submit" id="botao-gerar-ocorrencias" class="botao-primario">GERAR OCORRÊNCIAS</button>
+          </div>
+        </form>
+
+        <dl class="loja-detalhes oculto" id="resultado-geracao" aria-live="polite">
+          <div>
+            <dt>OCORRÊNCIAS ENCONTRADAS</dt>
+            <dd id="geracao-encontradas">0</dd>
+          </div>
+          <div>
+            <dt>NOVAS CONTAS CRIADAS</dt>
+            <dd id="geracao-criadas">0</dd>
+          </div>
+          <div>
+            <dt>JÁ EXISTENTES</dt>
+            <dd id="geracao-existentes">0</dd>
+          </div>
+        </dl>
+      </section>
+
       <div class="acoes-missao" id="acoes-recorrencia-detalhe"></div>
     </section>
 
