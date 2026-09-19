@@ -72,6 +72,7 @@ module.exports = Object.freeze({
   CONTA_ATUALIZAR: 'conta:atualizar',
   CONTA_CANCELAR: 'conta:cancelar',
   CONTA_CONFIG: 'conta:config',
+  CONTA_PAGAR: 'conta:pagar',
   RECURRENCIA_LISTAR: 'recorrencia:listar',
   RECURRENCIA_OBTER: 'recorrencia:obter',
   RECURRENCIA_CRIAR: 'recorrencia:criar',

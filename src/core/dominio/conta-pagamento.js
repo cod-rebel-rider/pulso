@@ -1,1 +1,37 @@
-/**\n * PULSO — Domínio: Validação de conta para pagamento (Fase 10.5)\n *\n * Funções de validação específicas para pagamento de conta.\n * Separadas do dominio/conta.js porque envolvem contexto de jogador\n * e regras de negócio que não se aplicam a outras operações.\n */\n\nimport { ErroNaoEncontrado, ErroPermissao, ErroConflito } from './erros.js';\nimport { podePagareLancar } from './pagamento.js';\n\n/**\n * Busca e valida uma conta para pagamento.\n *\n * @param {import('../database/repositorios/conta.js').RepositorioConta} repositorioConta\n * @param {number} jogadorId\n * @param {number} contaId\n * @returns {object} conta válida para pagamento\n * @throws {ErroNaoEncontrado} se conta não existe\n * @throws {ErroPermissao} se conta não pertence ao jogador\n * @throws {ErroConflito} se conta cancelada ou já paga\n */\nexport function buscarContaEValidarParaPagamento(repositorioConta, jogadorId, contaId) {\n  const conta = repositorioConta.buscarPorId(contaId);\n  if (!conta) {\n    throw new ErroNaoEncontrado(`Conta não encontrada: ${contaId}.`);\n  }\n  if (conta.jogadorId !== jogadorId) {\n    throw new ErroPermissao(\n      `Você não tem permissão para pagar esta conta (pertence a outro jogador).`,\n    );\n  }\n  // Valida estado: não cancelada, não paga, deve estar em estado pagável.\n  podePagareLancar(conta);\n  return conta;\n}\n
+/**
+ * PULSO — Domínio: Validação de conta para pagamento (Fase 10.5)
+ *
+ * Separa a lógica de validação da conta para pagamento do serviço de
+ * aplicação, mantendo o domínio puro (sem dependência de repositório).
+ */
+
+import { ErroConflito, ErroValidacao } from '../erros.js';
+import { podePagareLancar } from './pagamento.js';
+
+/**
+ * Busca a conta e valida que pode ser paga.
+ *
+ * @param {import('../database/repositorios/conta.js').RepositorioConta} repositorio
+ * @param {number} jogadorId
+ * @param {number} contaId
+ * @returns {Object} conta encontrada (já validada para pagamento)
+ * @throws {ErroConflito|ErroValidacao} se a conta não pode ser paga
+ */
+export function buscarContaEValidarParaPagamento(repositorio, jogadorId, contaId) {
+  const linha = repositorio.buscarPorId(contaId);
+  if (!linha) {
+    throw new ErroConflito('Conta não encontrada.');
+  }
+
+  const conta = repositorio.paraConta(linha);
+
+  // Propriedade do jogador
+  if (conta.jogadorId !== jogadorId) {
+    throw new ErroConflito('Esta conta pertence a outro jogador.');
+  }
+
+  // Validação de regra de pagamento
+  podePagareLancar(conta);
+
+  return Object.freeze(conta);
+}

@@ -1,1 +1,120 @@
-/**\n * PULSO — Serviço de aplicação: Pagamentos (Fase 10.5 — Pagamentos)\n *\n * Transforma uma CONTA (obrigação registrada) em uma DESPESA concreta no\n * sistema financeiro da FASE 08. Registra o pagamento de uma conta existente,\n * cria a transação de despesa, vincula conta↔transação e atualiza a carteira\n * pelo mecanismo financeiro já existente — tudo em UMA transação SQLite.\n *\n * Regras 포착adas aqui (não no domínio):\n * - conta deve ser PENDENTE ou VENCIDA (estado persistido `pendente`);\n * - valor pago pode diferir do esperado (a DESPESA registra o REAL);\n * - idempotência: conta já paga → erro (bloqueia duplicata);\n * - atomicidade: se a transação falhar, a conta volta a `pendente` (ROLLBACK);\n * - a carteira é atualizada pelo mecanismo financeiro (nunca diretamente);\n * - o vínculo é `conta.transaction_id → transacao.id`.\n *\n * Limitações desta subfase:\n * - não implementa estorno (Fase futura);\n * - não altera valor esperado da conta (só o estado + campos de pagamento);\n * - a categoria da despesa é fixa em `contas` (serviços).\n */\n\nimport { ServicoFinanca } from './servico-financa.js';\nimport { RepositorioConta } from '../database/repositorios/conta.js';\nimport { comTransacao } from '../database/transacao.js';\nimport {\n  podePagareLancar,\n  validarPagamento,\n} from '../dominio/pagamento.js';\nimport {\n  buscarContaEValidarParaPagamento,\n} from '../dominio/conta-pagamento.js';\nimport { ErroConflito, ErroValidacao } from '../erros.js';\nimport { CATEGORIAS_DESPESA } from '../dominio/financa.js';\n\n// Categoria padrão para pagamento de serviços (FASE 10.5).\nconst CATEGORIA_PAGAMENTO_SERVICO = 'contas';\n\nconst categoriaPagamento = CATEGORIAS_DESPESA.find(\n  (c) => c.valor === CATEGORIA_PAGAMENTO_SERVICO,\n);\nif (!categoriaPagamento) {\n  throw new Error(\n    `Categoria de pagamento de serviço "${CATEGORIA_PAGAMENTO_SERVICO}" não encontrada nas categorias de despesa.`,\n  );\n}\n\n/**\n * @param {object} deps\n * @param {import('../database/repositorios/conta.js').RepositorioConta} deps.repositorioConta\n * @param {{ repositorioCarteira: any, repositorioTransacao: any, repositorioOrcamento: any, repositorioJogador?: any }} deps.financa\n * @param {import('node:sqlite').DatabaseSync} deps.banco\n */\nexport class ServicoPagamentos {\n  constructor({ repositorioConta, financa, banco }) {\n    this._contas = repositorioConta;\n    this._financa = new ServicoFinanca(financa);\n    this._banco = banco;\n  }\n\n  /**\n   * Registra o pagamento de uma conta.\n   *\n   * @param {number} jogadorId\n   * @param {number} contaId\n   * @param {object} dados\n   * @param {number} dados.valorPagoCentavos - valor efetivamente pago (centavos)\n   * @param {string} dados.paidAt - data do pagamento (AAAA-MM-DD)\n   * @param {string} [dados.paymentDescription] - observação opcional (máx 500)\n   * @returns {Object} resultado com conta paga, transação criada e resumo\n   */\n  registrarPagamento(jogadorId, contaId, dados) {\n    // 1. Validar a conta (existe, pertence ao jogador, não cancelada, não paga).\n    const conta = buscarContaEValidarParaPagamento(\n      this._contas,\n      jogadorId,\n      contaId,\n    );\n\n    // 2. Validar os dados de pagamento.\n    const pagamentoValidado = validarPagamento(dados);\n\n    // 3. Executar em transação atômica: criar DESPESA + marcar conta como PAGA.\n    const resultado = comTransacao(this._banco, () => {\n      // 3a. Criar a DESPESA no sistema financeiro (atualiza carteira/saldo).\n      const transacao = this._financa.criarTransacao(jogadorId, {\n        tipo: 'despesa',\n        valorCentavos: pagamentoValidado.valorPagoCentavos,\n        categoria: CATEGORIA_PAGAMENTO_SERVICO,\n        descricao: montarDescricaoPagamento(conta, pagamentoValidado),\n        data: pagamentoValidado.paidAt,\n      });\n\n      // 3b. Marcar a conta como PAGA, vinculando a transação.\n      const contaPaga = this._contas.marcarComoPaga(contaId, {\n        paidAmount: pagamentoValidado.valorPagoCentavos,\n        paidAt: pagamentoValidado.paidAt,\n        paymentDescription: pagamentoValidado.paymentDescription,\n        transactionId: transacao.id,\n      });\n\n      return Object.freeze({\n        conta: contaPaga,\n        transacao,\n        resumo: this._financa.obterResumo(jogadorId),\n      });\n    });\n\n    return resultado;\n  }\n}\n\n/** Monta a descrição da transação de despesa para rastreabilidade. */\nfunction montarDescricaoPagamento(conta, pagamento) {\n  const referencia = conta.referencia ? `[${conta.referencia}] ` : '';\n  const observacao = pagamento.paymentDescription\n    ? ` — ${pagamento.paymentDescription}`\n    : '';\n  return `${referencia}Pagamento da conta${observacao}`;\n}\n
+/**
+ * PULSO — Serviço de aplicação: Pagamentos (Fase 10.5 — Pagamentos)
+ *
+ * Transforma uma CONTA (obrigação registrada) em uma DESPESA concreta no
+ * sistema financeiro da FASE 08. Registra o pagamento de uma conta existente,
+ * cria a transação de despesa, vincula conta↔transação e atualiza a carteira
+ * pelo mecanismo financeiro já existente — tudo em UMA transação SQLite.
+ *
+ * Regras capturadas aqui (não no domínio):
+ * - conta deve ser PENDENTE ou VENCIDA (estado persistido `pendente`);
+ * - valor pago pode diferir do esperado (a DESPESA registra o REAL);
+ * - idempotência: conta já paga → erro (bloqueia duplicata);
+ * - atomicidade: se a transação falhar, a conta volta a `pendente` (ROLLBACK);
+ * - a carteira é atualizada pelo mecanismo financeiro (nunca diretamente);
+ * - o vínculo é `conta.transaction_id → transacao.id`.
+ *
+ * Limitações desta subfase:
+ * - não implementa estorno (Fase futura);
+ * - não altera valor esperado da conta (só o estado + campos de pagamento);
+ * - a categoria da despesa é fixa em `contas` (serviços).
+ */
+
+import { ServicoFinanca } from './servico-financa.js';
+import { RepositorioConta } from '../database/repositorios/conta.js';
+import { comTransacao } from '../database/transacao.js';
+import {
+  podePagareLancar,
+  validarPagamento,
+} from '../dominio/pagamento.js';
+import {
+  buscarContaEValidarParaPagamento,
+} from '../dominio/conta-pagamento.js';
+import { ErroConflito, ErroValidacao } from '../erros.js';
+import { CATEGORIAS_DESPESA } from '../dominio/financa.js';
+
+// Categoria padrão para pagamento de serviços (FASE 10.5).
+const CATEGORIA_PAGAMENTO_SERVICO = 'contas';
+
+const categoriaPagamento = CATEGORIAS_DESPESA.find(
+  (c) => c.valor === CATEGORIA_PAGAMENTO_SERVICO,
+);
+if (!categoriaPagamento) {
+  throw new Error(
+    `Categoria de pagamento de serviço "${CATEGORIA_PAGAMENTO_SERVICO}" não encontrada nas categorias de despesa.`,
+  );
+}
+
+/**
+ * @param {object} deps
+ * @param {import('../database/repositorios/conta.js').RepositorioConta} deps.repositorioConta
+ * @param {{ repositorioCarteira: any, repositorioTransacao: any, repositorioOrcamento: any, repositorioJogador?: any }} deps.financa
+ * @param {import('node:sqlite').DatabaseSync} deps.banco
+ */
+export class ServicoPagamentos {
+  constructor({ repositorioConta, financa, banco }) {
+    this._contas = repositorioConta;
+    this._financa = new ServicoFinanca(financa);
+    this._banco = banco;
+  }
+
+  /**
+   * Registra o pagamento de uma conta.
+   *
+   * @param {number} jogadorId
+   * @param {number} contaId
+   * @param {object} dados
+   * @param {number} dados.valorPagoCentavos - valor efetivamente pago (centavos)
+   * @param {string} dados.paidAt - data do pagamento (AAAA-MM-DD)
+   * @param {string} [dados.paymentDescription] - observação opcional (máx 500)
+   * @returns {Object} resultado com conta paga, transação criada e resumo
+   */
+  registrarPagamento(jogadorId, contaId, dados) {
+    // 1. Validar a conta (existe, pertence ao jogador, não cancelada, não paga).
+    const conta = buscarContaEValidarParaPagamento(
+      this._contas,
+      jogadorId,
+      contaId,
+    );
+
+    // 2. Validar os dados de pagamento.
+    const pagamentoValidado = validarPagamento(dados);
+
+    // 3. Executar em transação atômica: criar DESPESA + marcar conta como PAGA.
+    const resultado = comTransacao(this._banco, () => {
+      // 3a. Criar a DESPESA no sistema financeiro (atualiza carteira/saldo).
+      const transacao = this._financa.criarTransacao(jogadorId, {
+        tipo: 'despesa',
+        valorCentavos: pagamentoValidado.valorPagoCentavos,
+        categoria: CATEGORIA_PAGAMENTO_SERVICO,
+        descricao: montarDescricaoPagamento(conta, pagamentoValidado),
+        data: pagamentoValidado.paidAt,
+      });
+
+      // 3b. Marcar a conta como PAGA, vinculando a transação.
+      const contaPaga = this._contas.marcarComoPaga(contaId, {
+        paidAmount: pagamentoValidado.valorPagoCentavos,
+        paidAt: pagamentoValidado.paidAt,
+        paymentDescription: pagamentoValidado.paymentDescription,
+        transactionId: transacao.id,
+      });
+
+      return Object.freeze({
+        conta: contaPaga,
+        transacao,
+        resumo: this._financa.obterResumo(jogadorId),
+      });
+    });
+
+    return resultado;
+  }
+}
+
+/** Monta a descrição da transação de despesa para rastreabilidade. */
+function montarDescricaoPagamento(conta, pagamento) {
+  const referencia = conta.referencia ? `[${conta.referencia}] ` : '';
+  const observacao = pagamento.paymentDescription
+    ? ` — ${pagamento.paymentDescription}`
+    : '';
+  return `${referencia}Pagamento da conta${observacao}`;
+}
