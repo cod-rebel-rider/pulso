@@ -72,16 +72,19 @@ test("dataHojeIso: data local em AAAA-MM-DD", () => {
 });
 
 // ---- Estados e situações ----
-test("estados persistidos: pendente/cancelada; VENCIDA não é persistida", () => {
-  assert.deepEqual(ESTADOS_CONTA_ORDEM, ["pendente", "cancelada"]);
+test("estados persistidos: pendente/paga/cancelada; VENCIDA não é persistida", () => {
+  assert.deepEqual(ESTADOS_CONTA_ORDEM, ["pendente", "paga", "cancelada"]);
   assert.equal(ESTADO_CONTA_INICIAL, "pendente");
   assert.equal(ESTADOS_CONTA_ROTULOS.cancelada, "Cancelada");
+  assert.equal(ESTADOS_CONTA_ROTULOS.paga, "Paga");
   assert.equal(ESTADOS_CONTA.VENCIDA, undefined, "VENCIDA não existe como estado persistido");
-  assert.deepEqual(SITUACOES_CONTA_ORDEM, ["pendente", "vencida", "cancelada"]);
+  assert.deepEqual(SITUACOES_CONTA_ORDEM, ["pendente", "vencida", "paga", "cancelada"]);
   assert.equal(SITUACOES_CONTA_ROTULOS.vencida, "Vencida");
+  assert.equal(SITUACOES_CONTA_ROTULOS.paga, "Paga");
   assert.equal(validarEstadoConta("pendente"), "pendente");
+  assert.equal(validarEstadoConta("paga"), "paga");
   assert.throws(() => validarEstadoConta("vencida"), ErroValidacao);
-  assert.throws(() => validarEstadoConta("paga"), ErroValidacao);
+  assert.throws(() => validarEstadoConta(" desconhecido"), ErroValidacao);
 });
 
 test("situacaoConta: vencida é DERIVADA do vencimento, sem alterar o registro", () => {
