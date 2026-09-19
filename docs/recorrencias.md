@@ -1,8 +1,8 @@
 # Recorrências — PULSO
 
-**Fase:** 10.3 — Recorrências (implementada). Define a **regra de repetição** de um **Serviço** (estrutura permanente, Fase 10.1) — sem gerar nenhuma conta.
+**Fase:** 10.3 — Recorrências (implementada). Define a **regra de repetição** de um **Serviço** (estrutura permanente, Fase 10.1). A transformação da regra em contas concretas é a **Fase 10.4** (ver `docs/geracao-ocorrencias.md`).
 
-> **Princípio:** a recorrência **não é uma conta**. É a regra que ensina o PULSO a saber **quando** uma nova conta poderá existir. Nesta subfase: `Recorrência criada → Regra armazenada → NENHUMA CONTA É GERADA`. Criar, editar, ativar, desativar ou arquivar **não** cria conta, **não** cria transação financeira e **não** altera carteira ou saldo.
+> **Princípio:** a recorrência **não é uma conta**. É a regra que ensina o PULSO a saber **quando** uma nova conta poderá existir. Criar, editar, ativar, desativar ou arquivar **não** cria conta, **não** cria transação financeira e **não** altera carteira ou saldo — transformar a regra em contas é a geração (Fase 10.4), sempre manual e por período.
 
 ## Conceito — SERVIÇO × RECORRÊNCIA × CONTA
 
@@ -72,4 +72,4 @@ Enquanto não arquivada: `frequencia`, `dataInicio`, `dataFim`, `diaVencimento`,
 
 ## Limitações da subfase (deliberadas)
 
-Sem geração automática de contas (Fase 10.4), pagamento, transações, alteração de carteira/saldo, notificações, lembretes, calendário, juros/multas, parcelamentos, cartão, Open Finance ou integrações externas.
+Sem geração **automática** de contas (a geração existe desde a Fase 10.4, mas é sempre manual e por período — ver `docs/geracao-ocorrencias.md`), sem pagamento, transações, alteração de carteira/saldo, notificações, lembretes, calendário, juros/multas, parcelamentos, cartão, Open Finance ou integrações externas.

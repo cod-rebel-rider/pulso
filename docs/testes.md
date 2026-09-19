@@ -15,8 +15,8 @@ Pirâmide clássica, respeitando o ritmo das fases:
 
 ```text
 tests/
-├── unidade/      → ambiente, configuração, registro, canais IPC, conexão, migrações, jogador, status, missão, projeto, finança, loja, serviço, conta, recorrência
-└── integracao/   → inicialização da aplicação (fumaça), persistência real do banco, jogador, status, missão, projeto, finança, loja, serviço, conta, recorrência
+├── unidade/      → ambiente, configuração, registro, canais IPC, conexão, migrações, jogador, status, missão, projeto, finança, loja, serviço, conta, recorrência, geração
+└── integracao/   → inicialização da aplicação (fumaça), persistência real do banco, jogador, status, missão, projeto, finança, loja, serviço, conta, recorrência, geração
 ```
 
 ## 3.4 Fase 08 — Finanças
@@ -82,6 +82,29 @@ Cenários da fase executados em banco SQLite temporário (ciclo completo, com re
   **teste financeiro obrigatório** (criar/editar/ativar recorrência de R$ 120,00 →
   saldo inalterado, **zero contas** e **zero transações** criadas); persistência
   fechar → reabrir.
+
+## 3.8 Fase 10.4 — Geração de Ocorrências
+
+- `tests/unidade/geracao.test.mjs` — regras puras do domínio: período De/Até
+  (obrigatório, inclusivo, invertido e data inexistente rejeitados), elegibilidade
+  (só recorrência `ATIVA` gera — inativa está pausada, arquivada encerrada),
+  cálculo das ocorrências por frequência (mensal, bimestral, trimestral,
+  semestral, anual com cadência ancorada no mês de `data_inicio`), respeito a
+  `start_date`/`end_date`, período limitado, comparação pela DATA do vencimento
+  (fim no dia 10 exclui a conta que vence dia 15) e **meses com menos dias**
+  (dia 31 → fev 28/29, abr/jun/nov 30 — nunca descarta nem desloca).
+- `tests/integracao/geracao.test.mjs` — ciclo completo com banco real:
+  geração mensal (contas pendentes com valor copiado, vínculo `recorrencia_id`,
+  serviço e jogador corretos, situação derivada da Fase 10.2); idempotência
+  (mesma geração repetida → 0 novas / 3 existentes; período sobreposto → só os
+  meses novos); duplicidade com conta manual preservada (não sobrescreve, não
+  duplica); todas as frequências persistidas; `start_date`/`end_date` e períodos
+  fora da validade; meses curtos com bissexto (fev/2024 → 29); recorrência
+  inativa/arquivada/inexistente e período inválido recusados sem criar nada;
+  valor vigente usado nas gerações futuras sem tocar nas contas antigas;
+  isolamento por jogador; **teste financeiro obrigatório** (3 contas de R$ 120,00
+  → saldo R$ 1.000,00 inalterado, carteira intacta, zero transações) e
+  persistência fechar → reabrir → regerar sem duplicar.
 
 ## 4. Teste de fumaça (Fases 01–02)
 
