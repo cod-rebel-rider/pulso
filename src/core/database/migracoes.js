@@ -562,6 +562,34 @@ const MIGRACAO_012 = Object.freeze({
   },
 });
 
+/**
+ * Migração 013 — vínculo da conta com a recorrência (Fase 10.4).
+ *
+ * A GERAÇÃO transforma a regra (recorrência) em ocorrências concretas
+ * (contas). Para rastrear a origem, cada conta gerada guarda a recorrência
+ * que a criou em `recorrencia_id` (nulo para contas criadas manualmente na
+ * Fase 10.2). `SET NULL` preserva a conta se a regra for removida no
+ * futuro — o histórico nunca é apagado por causa da regra.
+ *
+ * A unicidade da ocorrência CONTINUA sendo (servico_id, referencia) da
+ * Fase 10.2 — é ela que garante a idempotência da geração: executar de
+ * novo não duplica a mesma conta. Esta migração só acrescenta rastreio.
+ */
+const MIGRACAO_013 = Object.freeze({
+  versao: 13,
+  nome: 'adicionar-recorrencia-id-em-servico-conta',
+  cima(banco) {
+    // ALTER TABLE com REFERENCES: permitido no SQLite (coluna nullable,
+    // sem default não nulo). Dados existentes permanecem com NULL.
+    banco.exec(`
+      ALTER TABLE servico_conta
+      ADD COLUMN recorrencia_id
+        INTEGER REFERENCES servico_recorrencia(id) ON DELETE SET NULL
+    `);
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_servico_conta_recorrencia ON servico_conta(recorrencia_id)');
+  },
+});
+
 /** Lista oficial de migracoes — fases futuras ACRESCENTAM ao final. */
 export const MIGRACOES = Object.freeze([
   MIGRACAO_001,
@@ -576,6 +604,7 @@ export const MIGRACOES = Object.freeze([
   MIGRACAO_010,
   MIGRACAO_011,
   MIGRACAO_012,
+  MIGRACAO_013,
 ]);
 
 function validarLista(migracoes) {

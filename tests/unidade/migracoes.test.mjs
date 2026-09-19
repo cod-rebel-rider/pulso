@@ -8,7 +8,7 @@ import { abrirConexao, fecharConexao } from '../../src/core/database/conexao.js'
 import { aplicarMigracoes, versaoAtual, MIGRACOES } from '../../src/core/database/migracoes.js';
 import { calcularNivel } from '../../src/core/dominio/progressao.js';
 
-test('banco vazio recebe as migrações oficiais: schema v12 com infraestrutura, jogador, status, missões, progressão, projetos, finanças, lista de desejos, conciliação legada, serviços, contas e recorrências', () => {
+test('banco vazio recebe as migrações oficiais: schema v13 com infraestrutura, jogador, status, missões, progressão, projetos, finanças, lista de desejos, conciliação legada, serviços, contas, recorrências e vínculo da geração', () => {
   const banco = abrirConexao({ caminho: ':memory:' });
   try {
     const resultado = aplicarMigracoes(banco);
@@ -25,9 +25,10 @@ test('banco vazio recebe as migrações oficiais: schema v12 com infraestrutura,
       { versao: 10, nome: 'criar-tabela-servico' },
       { versao: 11, nome: 'criar-tabela-servico-conta' },
       { versao: 12, nome: 'criar-tabela-servico-recorrencia' },
+      { versao: 13, nome: 'adicionar-recorrencia-id-em-servico-conta' },
     ]);
-    assert.equal(resultado.versaoAtual, 12);
-    assert.equal(versaoAtual(banco), 12);
+    assert.equal(resultado.versaoAtual, 13);
+    assert.equal(versaoAtual(banco), 13);
 
     assert.equal(banco.prepare("SELECT valor FROM meta WHERE chave = 'aplicacao'").get().valor, 'PULSO');
     // a tabela do jogador existe e aceita inserção mínima
@@ -131,6 +132,24 @@ test('banco vazio recebe as migrações oficiais: schema v12 com infraestrutura,
       /FOREIGN KEY/,
       'a recorrência exige um serviço existente',
     );
+    // vínculo da geração (Fase 10.4): servico_conta.recorrencia_id existe,
+    // aceita NULL (contas manuais) e valida a chave estrangeira
+    const colunasConta = banco
+      .prepare('PRAGMA table_info(servico_conta)')
+      .all()
+      .map((coluna) => coluna.name);
+    assert.ok(colunasConta.includes('recorrencia_id'), 'servico_conta deve ter recorrencia_id');
+    banco.prepare("INSERT INTO servico_conta (jogador_id, servico_id, referencia, valor_esperado_centavos, vencimento, estado, recorrencia_id) VALUES (1, 1, '2026-12', 12000, '2026-12-31', 'pendente', 1)").run();
+    assert.equal(
+      banco.prepare("SELECT recorrencia_id FROM servico_conta WHERE referencia = '2026-12'").get().recorrencia_id,
+      1,
+      'a conta gerada guarda a recorrência de origem',
+    );
+    assert.throws(
+      () => banco.prepare("INSERT INTO servico_conta (jogador_id, servico_id, referencia, valor_esperado_centavos, vencimento, estado, recorrencia_id) VALUES (1, 1, '2027-01', 12000, '2027-01-31', 'pendente', 999)").run(),
+      /FOREIGN KEY/,
+      'recorrencia_id exige uma recorrência existente',
+    );
   } finally {
     fecharConexao(banco);
   }
@@ -153,7 +172,7 @@ test('migrações já aplicadas não são executadas novamente', () => {
     assert.equal(registroDepois.aplicada_em, registroOriginal.aplicada_em, 'registro inalterado');
     assert.equal(
       banco.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get().n,
-      12,
+      13,
       'todas as migrações oficiais registradas uma única vez',
     );
   } finally {
@@ -295,15 +314,16 @@ test('migração 009 concilia banco legado da Fase 06: restaura nivel e jogador_
     for (let versao = 5; versao <= 8; versao += 1) registrar.run(versao, `legado-${versao}`);
 
     // 5) A aplicação atual aplica a conciliação (v9), os serviços (v10),
-    //    as contas (v11) e as recorrências (v12).
+    //    as contas (v11), as recorrências (v12) e o vínculo da geração (v13).
     const resultado = aplicarMigracoes(banco);
     assert.deepEqual(resultado.aplicadas, [
       { versao: 9, nome: 'conciliar-progressao-legado' },
       { versao: 10, nome: 'criar-tabela-servico' },
       { versao: 11, nome: 'criar-tabela-servico-conta' },
       { versao: 12, nome: 'criar-tabela-servico-recorrencia' },
+      { versao: 13, nome: 'adicionar-recorrencia-id-em-servico-conta' },
     ]);
-    assert.equal(versaoAtual(banco), 12);
+    assert.equal(versaoAtual(banco), 13);
 
     // 6) Progressão reconstruída: nivel derivado do XP pela regra do domínio.
     const colunas = banco

@@ -1,5 +1,5 @@
 /**
- * PULSO — Repositório de Contas / Despesas (Fase 10.2)
+ * PULSO — Repositório de Contas / Despesas (Fase 10.2; vínculo 10.4)
  *
  * SQL exclusivo aqui, sem regras de negócio (validações e derivação da
  * situação vivem em src/core/dominio/conta.js). Valores em centavos.
@@ -7,6 +7,9 @@
  * Importante: cancelar uma conta apenas grava `estado`/`cancelado_em` —
  * NÃO cria transação e NÃO toca em carteira/saldo. A listagem por
  * "vencida" NÃO é feita aqui (é condição derivada, ver domínio).
+ * Desde a Fase 10.4, `recorrencia_id` registra a recorrência que gerou a
+ * conta (nulo nas contas manuais) — somente leitura: edição e cancelamento
+ * nunca alteram o vínculo.
  */
 
 import { paraConta } from '../../dominio/conta.js';
@@ -14,13 +17,14 @@ import { paraConta } from '../../dominio/conta.js';
 const COLUNAS = [
   'id', 'jogador_id', 'servico_id', 'referencia', 'descricao',
   'valor_esperado_centavos', 'vencimento', 'estado',
-  'criado_em', 'atualizado_em', 'cancelado_em',
+  'criado_em', 'atualizado_em', 'cancelado_em', 'recorrencia_id',
 ].join(', ');
 
 const INSERIR = `
   INSERT INTO servico_conta
-    (jogador_id, servico_id, referencia, descricao, valor_esperado_centavos, vencimento, estado)
-  VALUES (?, ?, ?, ?, ?, ?, ?)
+    (jogador_id, servico_id, referencia, descricao, valor_esperado_centavos,
+     vencimento, estado, recorrencia_id)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
 const BUSCAR_POR_ID = `SELECT ${COLUNAS} FROM servico_conta WHERE id = ?`;
@@ -68,6 +72,7 @@ export class RepositorioConta {
       dados.valorEsperado,
       dados.vencimento,
       estado,
+      dados.recorrenciaId ?? null,
     );
     const linha = this._banco.prepare('SELECT last_insert_rowid() AS id').get();
     return this.buscarPorId(linha.id);
