@@ -590,6 +590,22 @@ const MIGRACAO_013 = Object.freeze({
   },
 });
 
+const MIGRACAO_014 = Object.freeze({
+  versao: 14,
+  nome: 'adicionar-campos-de-pagamento-em-servico-conta',
+  cima(banco) {
+    banco.exec(`ALTER TABLE servico_conta ADD COLUMN paid_amount INTEGER`);
+    banco.exec(`ALTER TABLE servico_conta ADD COLUMN paid_at TEXT`);
+    banco.exec(`ALTER TABLE servico_conta ADD COLUMN payment_description TEXT`);
+    banco.exec(`
+      ALTER TABLE servico_conta
+      ADD COLUMN transaction_id INTEGER
+        REFERENCES transacao(id) ON DELETE SET NULL
+    `);
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_servico_conta_transaction ON servico_conta(transaction_id)');
+  },
+});
+
 /** Lista oficial de migracoes — fases futuras ACRESCENTAM ao final. */
 export const MIGRACOES = Object.freeze([
   MIGRACAO_001,
@@ -605,6 +621,7 @@ export const MIGRACOES = Object.freeze([
   MIGRACAO_011,
   MIGRACAO_012,
   MIGRACAO_013,
+  MIGRACAO_014,
 ]);
 
 function validarLista(migracoes) {

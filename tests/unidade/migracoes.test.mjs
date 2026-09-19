@@ -8,7 +8,7 @@ import { abrirConexao, fecharConexao } from '../../src/core/database/conexao.js'
 import { aplicarMigracoes, versaoAtual, MIGRACOES } from '../../src/core/database/migracoes.js';
 import { calcularNivel } from '../../src/core/dominio/progressao.js';
 
-test('banco vazio recebe as migrações oficiais: schema v13 com infraestrutura, jogador, status, missões, progressão, projetos, finanças, lista de desejos, conciliação legada, serviços, contas, recorrências e vínculo da geração', () => {
+test('banco vazio recebe as migrações oficiais: schema v14 com infraestrutura, jogador, status, missões, progressão, projetos, finanças, lista de desejos, conciliação legada, serviços, contas, recorrências, vínculo da geração e campos de pagamento', () => {
   const banco = abrirConexao({ caminho: ':memory:' });
   try {
     const resultado = aplicarMigracoes(banco);
@@ -26,9 +26,10 @@ test('banco vazio recebe as migrações oficiais: schema v13 com infraestrutura,
       { versao: 11, nome: 'criar-tabela-servico-conta' },
       { versao: 12, nome: 'criar-tabela-servico-recorrencia' },
       { versao: 13, nome: 'adicionar-recorrencia-id-em-servico-conta' },
+      { versao: 14, nome: 'adicionar-campos-de-pagamento-em-servico-conta' },
     ]);
-    assert.equal(resultado.versaoAtual, 13);
-    assert.equal(versaoAtual(banco), 13);
+    assert.equal(resultado.versaoAtual, 14);
+    assert.equal(versaoAtual(banco), 14);
 
     assert.equal(banco.prepare("SELECT valor FROM meta WHERE chave = 'aplicacao'").get().valor, 'PULSO');
     // a tabela do jogador existe e aceita inserção mínima
@@ -172,7 +173,7 @@ test('migrações já aplicadas não são executadas novamente', () => {
     assert.equal(registroDepois.aplicada_em, registroOriginal.aplicada_em, 'registro inalterado');
     assert.equal(
       banco.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get().n,
-      13,
+      14,
       'todas as migrações oficiais registradas uma única vez',
     );
   } finally {
@@ -314,7 +315,8 @@ test('migração 009 concilia banco legado da Fase 06: restaura nivel e jogador_
     for (let versao = 5; versao <= 8; versao += 1) registrar.run(versao, `legado-${versao}`);
 
     // 5) A aplicação atual aplica a conciliação (v9), os serviços (v10),
-    //    as contas (v11), as recorrências (v12) e o vínculo da geração (v13).
+    //    as contas (v11), as recorrências (v12), o vínculo da geração (v13)
+    //    e os campos de pagamento (v14).
     const resultado = aplicarMigracoes(banco);
     assert.deepEqual(resultado.aplicadas, [
       { versao: 9, nome: 'conciliar-progressao-legado' },
@@ -322,8 +324,9 @@ test('migração 009 concilia banco legado da Fase 06: restaura nivel e jogador_
       { versao: 11, nome: 'criar-tabela-servico-conta' },
       { versao: 12, nome: 'criar-tabela-servico-recorrencia' },
       { versao: 13, nome: 'adicionar-recorrencia-id-em-servico-conta' },
+      { versao: 14, nome: 'adicionar-campos-de-pagamento-em-servico-conta' },
     ]);
-    assert.equal(versaoAtual(banco), 13);
+    assert.equal(versaoAtual(banco), 14);
 
     // 6) Progressão reconstruída: nivel derivado do XP pela regra do domínio.
     const colunas = banco

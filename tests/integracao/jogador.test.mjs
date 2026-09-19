@@ -157,8 +157,9 @@ test('evolução: banco da Fase 02 recebe as migrações pendentes sem repetir a
         { versao: 11, nome: 'criar-tabela-servico-conta' },
         { versao: 12, nome: 'criar-tabela-servico-recorrencia' },
         { versao: 13, nome: 'adicionar-recorrencia-id-em-servico-conta' },
+        { versao: 14, nome: 'adicionar-campos-de-pagamento-em-servico-conta' },
       ]);
-      assert.equal(atual.versaoSchema, 13);
+      assert.equal(atual.versaoSchema, 14);
 
       // a tabela do jogador está disponível ao serviço
       const servico = new ServicoJogador({ repositorio: new RepositorioJogador(atual.banco) });
@@ -171,7 +172,7 @@ test('evolução: banco da Fase 02 recebe as migrações pendentes sem repetir a
     const terceira = inicializarBanco({ diretorioDados: diretorio });
     try {
       assert.deepEqual(terceira.migracoesAplicadas, []);
-      assert.equal(terceira.versaoSchema, 13);
+      assert.equal(terceira.versaoSchema, 14);
     } finally {
       terceira.fechar();
     }
