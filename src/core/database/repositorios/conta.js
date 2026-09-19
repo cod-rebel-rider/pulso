@@ -52,6 +52,17 @@ const CANCELAR = `
   WHERE id = ?
 `;
 
+const MARCAR_COMO_PAGA = `
+  UPDATE servico_conta
+  SET estado = 'paga',
+      paid_amount = ?,
+      paid_at = ?,
+      payment_description = ?,
+      transaction_id = ?,
+      atualizado_em = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+  WHERE id = ?
+`;
+
 export class RepositorioConta {
   /** @param {import('node:sqlite').DatabaseSync} banco conexao ja inicializada */
   constructor(banco) {
@@ -61,6 +72,7 @@ export class RepositorioConta {
     this._porServicoReferencia = banco.prepare(BUSCAR_POR_SERVICO_REFERENCIA);
     this._atualizarCampos = banco.prepare(ATUALIZAR_CAMPOS);
     this._cancelar = banco.prepare(CANCELAR);
+    this._marcarComoPaga = banco.prepare(MARCAR_COMO_PAGA);
   }
 
   criar(jogadorId, dados, estado = 'pendente') {
@@ -115,6 +127,22 @@ export class RepositorioConta {
 
   cancelar(id) {
     this._cancelar.run(id);
+    return this.buscarPorId(id);
+  }
+
+  /**
+   * Marca a conta como paga (FASE 10.5). Preenche paid_amount, paid_at,
+   * payment_description e transaction_id. Deve ser chamado dentro de uma
+   * transação que também cria a transação financeira correspondente.
+   */
+  marcarComoPaga(id, dados) {
+    this._marcarComoPaga.run(
+      dados.paidAmount,
+      dados.paidAt,
+      dados.paymentDescription ?? null,
+      dados.transactionId ?? null,
+      id,
+    );
     return this.buscarPorId(id);
   }
 }
