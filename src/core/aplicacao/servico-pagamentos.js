@@ -1,16 +1,16 @@
 /**
- * PULSO — Serviço de aplicação: Pagamentos (Fase 10.5 — Pagamentos)
+ * PULSO — Aplicação: Pagamentos (Fase 10.5 — Pagamentos)
  *
- * Transforma uma CONTA (obrigação registrada) em uma DESPESA concreta no
- * sistema financeiro da FASE 08. Registra o pagamento de uma conta existente,
- * cria a transação de despesa, vincula conta↔transação e atualiza a carteira
- * pelo mecanismo financeiro já existente — tudo em UMA transação SQLite.
+ * Transforma uma CONTA (obrigação registrada) em uma DESPESA financeira real
+ * (Fase 08). Registra o pagamento de uma conta existente, cria a transação de
+ * despesa, vincula conta↔transação e atualiza a carteira pelo mecanismo
+ * financeiro já existente — tudo em UMA transação SQLite.
  *
  * Regras capturadas aqui (não no domínio):
  * - conta deve ser PENDENTE ou VENCIDA (estado persistido `pendente`);
  * - valor pago pode diferir do esperado (a DESPESA registra o REAL);
  * - idempotência: conta já paga → erro (bloqueia duplicata);
- * - atomicidade: se a transação falhar, a conta volta a `pendente` (ROLLBACK);
+ * - atomicidade: se criar a transação falhar, nada persiste (ROLLBACK);
  * - a carteira é atualizada pelo mecanismo financeiro (nunca diretamente);
  * - o vínculo é `conta.transaction_id → transacao.id`.
  *
@@ -20,41 +20,24 @@
  * - a categoria da despesa é fixa em `contas` (serviços).
  */
 
-import { ServicoFinanca } from './servico-financa.js';
-import { RepositorioConta } from '../database/repositorios/conta.js';
 import { comTransacao } from '../database/transacao.js';
-import {
-  podePagareLancar,
-  validarPagamento,
-} from '../dominio/pagamento.js';
-import {
-  buscarContaEValidarParaPagamento,
-} from '../dominio/conta-pagamento.js';
-import { ErroConflito, ErroValidacao } from '../erros.js';
-import { CATEGORIAS_DESPESA } from '../dominio/financa.js';
+import { podePagareLancar, validarPagamento } from '../dominio/pagamento.js';
 
 // Categoria padrão para pagamento de serviços (FASE 10.5).
 const CATEGORIA_PAGAMENTO_SERVICO = 'contas';
 
-const categoriaPagamento = CATEGORIAS_DESPESA.find(
-  (c) => c.valor === CATEGORIA_PAGAMENTO_SERVICO,
-);
-if (!categoriaPagamento) {
-  throw new Error(
-    `Categoria de pagamento de serviço "${CATEGORIA_PAGAMENTO_SERVICO}" não encontrada nas categorias de despesa.`,
-  );
-}
-
 /**
  * @param {object} deps
- * @param {import('../database/repositorios/conta.js').RepositorioConta} deps.repositorioConta
- * @param {{ repositorioCarteira: any, repositorioTransacao: any, repositorioOrcamento: any, repositorioJogador?: any }} deps.financa
+ * @param {import('../database/repositorios/conta.js').RepositorioConta} deps.repositorio
+ * @param {import('./servico-financa.js').ServicoFinanca} deps.servicoFinanca
+ *   instância já construída do serviço financeiro da FASE 08 — a carteira é
+ *   atualizada por ela, nunca por SQL direto aqui.
  * @param {import('node:sqlite').DatabaseSync} deps.banco
  */
 export class ServicoPagamentos {
-  constructor({ repositorioConta, financa, banco }) {
-    this._contas = repositorioConta;
-    this._financa = new ServicoFinanca(financa);
+  constructor({ repositorio, servicoFinanca, banco }) {
+    this._contas = repositorio;
+    this._financa = servicoFinanca;
     this._banco = banco;
   }
 
@@ -71,11 +54,8 @@ export class ServicoPagamentos {
    */
   registrarPagamento(jogadorId, contaId, dados) {
     // 1. Validar a conta (existe, pertence ao jogador, não cancelada, não paga).
-    const conta = buscarContaEValidarParaPagamento(
-      this._contas,
-      jogadorId,
-      contaId,
-    );
+    const conta = this._contas.buscarPorId(contaId);
+    podePagareLancar(conta, Number(jogadorId));
 
     // 2. Validar os dados de pagamento.
     const pagamentoValidado = validarPagamento(dados);
@@ -102,7 +82,7 @@ export class ServicoPagamentos {
       return Object.freeze({
         conta: contaPaga,
         transacao,
-        resumo: this._financa.obterResumo(jogadorId),
+        resumo: { tipo: 'despesa', categoria: CATEGORIA_PAGAMENTO_SERVICO },
       });
     });
 
