@@ -53,9 +53,9 @@ Em outros sistemas operacionais o caminho acompanha o padrão da plataforma(Fase
 | `busy_timeout` | `5000` | locks transitórios esperam até 5 s em vez de falhar de imediato |
 | `synchronous` | `NORMAL` | par recomendado com WAL: seguro contra falha da aplicação; risco residual apenas em queda de energia(janela mínima) |
 
-##  ̈5. Schema atual(versão 12
+##  ̈5. Schema atual(versão 14
 
-Infraestrutura + entidades de negócio implementadas até a **Fase 10.3** (cada fase acrescenta sua migração ao final da lista — ver `src/core/database/migracoes.js`).
+Infraestrutura + entidades de negócio implementadas até a **Fase 10.5** (cada fase acrescenta sua migração ao final da lista — ver `src/core/database/migracoes.js`).
 
 
 
@@ -284,9 +284,50 @@ ALTER TABLE servico_conta
     INTEGER REFERENCES servico_recorrencia(id) ON DELETE SET NULL;
 
 CREATE INDEX IF NOT EXISTS idx_servico_conta_recorrencia ON servico_conta(recorrencia_id);
+
+-- migração 014 "campos-de-pagamento-e-estado-paga-em-servico-conta" — Fase 10.5 (ver docs/pagamentos.md)
+-- SQLite não altera CHECK por ALTER TABLE e a v11 limitava estado a
+-- ('pendente', 'cancelada') → servico_conta é RECONSTRUÍDA no formato completo
+-- (padrão da conciliação da v9), preservando linhas, UNIQUE(servico_id,
+-- referencia) e recorrencia_id. Passa a aceitar 'paga' e guardar o desfecho.
+CREATE TABLE servico_conta_pagamento (
+  id                      INTEGER PRIMARY KEY,
+  jogador_id              INTEGER NOT NULL REFERENCES jogador(id) ON DELETE CASCADE,
+  servico_id              INTEGER NOT NULL REFERENCES servico(id) ON DELETE RESTRICT,
+  referencia              TEXT NOT NULL,
+  descricao               TEXT,
+  valor_esperado_centavos INTEGER NOT NULL CHECK (valor_esperado_centavos > 0),
+  vencimento              TEXT NOT NULL,
+  estado                  TEXT NOT NULL,
+  criado_em               TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  atualizado_em           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  cancelado_em            TEXT,
+  recorrencia_id          INTEGER REFERENCES servico_recorrencia(id) ON DELETE SET NULL,
+  paid_amount             INTEGER,
+  paid_at                 TEXT,
+  payment_description     TEXT,
+  transaction_id          INTEGER REFERENCES transacao(id) ON DELETE SET NULL,
+  CHECK (estado IN ('pendente', 'paga', 'cancelada')),
+  CHECK (referencia GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]'),
+  CHECK (vencimento GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+  CHECK (paid_amount IS NULL OR paid_amount > 0),
+  CHECK (paid_at IS NULL OR paid_at GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+  CHECK (estado <> 'paga' OR (paid_amount IS NOT NULL AND paid_at IS NOT NULL)),
+  UNIQUE (servico_id, referencia)
+) STRICT;
+
+INSERT INTO servico_conta_pagamento (...colunas originais...)
+  SELECT ...colunas originais..., NULL, NULL, NULL, NULL FROM servico_conta;
+DROP TABLE servico_conta;
+ALTER TABLE servico_conta_pagamento RENAME TO servico_conta;
+
+-- índices originais recriados + vínculo rastreado CONTA → TRANSAÇÃO:
+-- UMA transação só pode estar vinculada a UMA conta (não duplica o débito)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_servico_conta_transaction
+  ON servico_conta(transaction_id) WHERE transaction_id IS NOT NULL;
 ```
 
-- `schema_migrations` responde "qual é a versão atual do banco?" (`SELECT MAX(versao)` . Atual: **v13**..
+- `schema_migrations` responde "qual é a versão atual do banco?" (`SELECT MAX(versao)` . Atual: **v14**..
 - `meta` guarda metadados técnico-operacionais(chave/valor. **Não** é configuração de ambiente(,isso vive em `config/*.json`) nem dado de sistema de jogo..
 
 - `jogador` (ver `docs/jogador.md`): identidade do operador — entidade central do PULSO; single-player imposta pelo Serviço,, com schema aberto a evolução futura.
@@ -295,7 +336,7 @@ CREATE INDEX IF NOT EXISTS idx_servico_conta_recorrencia ON servico_conta(recorr
 - `orcamento` (ver `docs/financas.md`): planejamento por categoria de despesa num período (limites inclusivos; `CHECK fim >= inicio`) — não cria dinheiro e não altera saldo.
 - `desejo` (ver `docs/loja.md`): item da lista de desejos (Fase 09) — preço esperado/pago em centavos inteiros positivos, estado com `CHECK` de domínio e `transacao_id` apontando para a despesa criada pela compra (`ON DELETE SET NULL` preserva o histórico do desejo mesmo se a transação for excluída manualmente no financeiro). Desejo **nunca** movimenta saldo por si só — só a compra, via transação.
 - `servico` (Fase 10.1): estrutura permanente de serviço recorrente (ex.: Internet) — o "molde" do qual as contas derivam.
-- `servico_conta` (ver `docs/contas-despesas.md`, Fase 10.2, migração 011, schema **v11**): ocorrência concreta de um serviço (ex.: Internet · `2026-09` · vence `2026-09-15` · R$ 120,00 em centavos). `servico_id` com `ON DELETE RESTRICT`, `UNIQUE(servico_id, referencia)` contra duplicatas, estado persistido `pendente`/`cancelada` (`VENCIDA` é derivada, nunca gravada). Criar/editar/cancelar **não** cria transação e **não** altera carteira/saldo.
+- `servico_conta` (ver `docs/contas-despesas.md` e `docs/pagamentos.md`, Fases 10.2 e 10.5, migrações 011 e 014, schema **v14**): ocorrência concreta de um serviço (ex.: Internet · `2026-09` · vence `2026-09-15` · R$ 120,00 em centavos). `servico_id` com `ON DELETE RESTRICT`, `UNIQUE(servico_id, referencia)` contra duplicatas, estado persistido `pendente`/`paga`/`cancelada` (`VENCIDA` é derivada, nunca gravada). A Fase 10.5 acrescenta o desfecho do pagamento: `paid_amount` (> 0 — o valor REALMENTE pago, pode diferir do esperado), `paid_at`, `payment_description` e `transaction_id` → `transacao(id)` (`ON DELETE SET NULL` + índice único parcial: uma transação só debita uma conta), com `CHECK estado <> 'paga' OR (paid_amount IS NOT NULL AND paid_at IS NOT NULL)`. Criar/editar/cancelar **não** cria transação e **não** altera carteira/saldo — só o PAGAMENTO o faz, pelo fluxo da Fase 08.
 - `servico_recorrencia` (ver `docs/recorrencias.md`, Fase 10.3, migração 012, schema **v12**): a REGRA DE REPETIÇÃO de um serviço (frequência `mensal`…`anual` com `CHECK`, início obrigatório, término opcional, dia de vencimento 1–31, valor esperado > 0 em centavos). `servico_id` com `ON DELETE RESTRICT`; estado persistido `ativa`/`inativa`/`arquivada` com `CHECK`; `arquivado_em` marca o fim. É apenas **regra** — nenhuma conta, transação ou movimento de saldo é derivado dela nesta subfase (geração na Fase 10.4).
 - `STRICT` impõe tipagem real nas colunas(SQLite ≥  3.37; embutido aqui: 3.50.4.
 

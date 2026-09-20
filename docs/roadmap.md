@@ -18,7 +18,8 @@ Fases conhecidas do projeto. Nenhuma fase antecipa o conteúdo da seguinte; o de
 | 10.2 | Contas e Despesas | Ocorrências concretas de serviços, sem movimentar dinheiro | ✅ Concluída |
 | 10.3 | Recorrências | Regra de repetição de serviços (frequência, período, vencimento, valor esperado) | ✅ Concluída |
 | 10.4 | Geração de Ocorrências | Transforma a regra em contas pendentes num período (idempotente, sem movimentar dinheiro) | ✅ Concluída |
-| 10 | Serviços e Despesas (total) | Recorrências, contas e serviços (subfases restantes: pagamento) | 🟡 Parcial (10.1–10.4 prontas) |
+| 10.5 | Pagamentos | Registra o pagamento da conta: transação de despesa via Fase 08, vínculo conta↔transação, saldo atualizado (atômico, sem duplicidade) | ✅ Concluída |
+| 10 | Serviços e Despesas (total) | Recorrências, contas, serviços e pagamentos (restam refinamentos futuros, ex.: estorno) | 🟡 Parcial (10.1–10.5 prontas) |
 | 11 | Habilidades | Árvore de habilidades | ⬜ Pendente |
 | 12 | Música | Acompanhamento musical | ⬜ Pendente |
 | 13 | Mapa / Trilha | Visualização em rede / trilha | ⬜ Pendente |
