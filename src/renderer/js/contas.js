@@ -31,6 +31,11 @@ function jogadorAtualConta() {
   return window.__pulsoJogadorAtual ?? null;
 }
 
+/** Nome legível de um serviço a partir do mapa em cache do renderer. */
+function nomeServico(servicoId) {
+  return estadoConta.servicoPorId.get(servicoId)?.nome ?? `Serviço ${servicoId}`;
+}
+
 function ponteConta() {
   if (!window.pulso || typeof window.pulso.conta?.listar !== "function") {
     throw new Error("A ponte window.pulso.conta não está disponível.");
@@ -127,6 +132,7 @@ function mapearContas() {
   elementosConta.contasPendentes = consultarElementoConta("conta-pendentes");
   elementosConta.contasVencidas = consultarElementoConta("conta-vencidas");
   elementosConta.contasCanceladas = consultarElementoConta("conta-canceladas");
+  elementosConta.contasPagas = consultarElementoConta("conta-pagas");
   elementosConta.contasValorAberto = consultarElementoConta("conta-valor-aberto");
   elementosConta.botaoNovaConta = consultarElementoConta("botao-nova-conta");
   elementosConta.botaoVoltarContas = consultarElementoConta("botao-voltar-contas");
@@ -156,6 +162,27 @@ function mapearContas() {
   elementosConta.avisoFormulario = consultarElementoConta("aviso-formulario-conta");
   elementosConta.botaoSalvarConta = consultarElementoConta("botao-salvar-conta");
   elementosConta.botaoCancelarConta = consultarElementoConta("botao-cancelar-conta");
+  // pagamento (Fase 10.5)
+  elementosConta.visaoFormularioPagamentoConta = consultarElementoConta("visao-formulario-pagamento-conta");
+  elementosConta.resultadoPagamento = consultarElementoConta("resultado-pagamento");
+  elementosConta.pagamentoDetalheConta = consultarElementoConta("pagamento-detalhe-conta");
+  elementosConta.pagamentoDetalheServico = consultarElementoConta("pagamento-detalhe-servico");
+  elementosConta.pagamentoDetalheValorEsperado = consultarElementoConta("pagamento-detalhe-valor-esperado");
+  elementosConta.pagamentoDetalheVencimento = consultarElementoConta("pagamento-detalhe-vencimento");
+  elementosConta.campoPagamentoContaId = consultarElementoConta("campo-pagamento-conta-id");
+  elementosConta.campoPagamentoValor = consultarElementoConta("campo-pagamento-valor");
+  elementosConta.campoPagamentoData = consultarElementoConta("campo-pagamento-data");
+  elementosConta.campoPagamentoObservacao = consultarElementoConta("campo-pagamento-observacao");
+  elementosConta.avisoFormularioPagamento = consultarElementoConta("aviso-formulario-pagamento");
+  elementosConta.formularioPagamentoConta = consultarElementoConta("formulario-pagamento-conta");
+  elementosConta.botaoSalvarPagamento = consultarElementoConta("botao-salvar-pagamento");
+  elementosConta.botaoCancelarPagamento = consultarElementoConta("botao-cancelar-pagamento");
+  elementosConta.pagamentoResultadoStatus = consultarElementoConta("pagamento-resultado-status");
+  elementosConta.pagamentoResultadoValorEsperado = consultarElementoConta("pagamento-resultado-valor-esperado");
+  elementosConta.pagamentoResultadoValorPago = consultarElementoConta("pagamento-resultado-valor-pago");
+  elementosConta.pagamentoResultadoData = consultarElementoConta("pagamento-resultado-data");
+  elementosConta.pagamentoResultadoTransacao = consultarElementoConta("pagamento-resultado-transacao");
+  elementosConta.pagamentoResultadoObservacao = consultarElementoConta("pagamento-resultado-observacao");
 }
 
 // ── Config (situações controladas pelo núcleo) ────────────────────────────
@@ -231,9 +258,11 @@ async function carregarResumoContas() {
     const pendentes = todas.filter((c) => c.situacao === "pendente");
     const vencidas = todas.filter((c) => c.situacao === "vencida");
     const canceladas = todas.filter((c) => c.situacao === "cancelada");
+    const pagas = todas.filter((c) => c.situacao === "paga");
     elementosConta.contasPendentes.textContent = String(pendentes.length);
     elementosConta.contasVencidas.textContent = String(vencidas.length);
     elementosConta.contasCanceladas.textContent = String(canceladas.length);
+    elementosConta.contasPagas.textContent = String(pagas.length);
     const emAberto = [...pendentes, ...vencidas].reduce((soma, c) => soma + c.valorEsperado, 0);
     elementosConta.contasValorAberto.textContent = formatarCentavosConta(emAberto);
   } catch (erro) {
@@ -370,12 +399,80 @@ function montarAcoesDetalheConta(conta) {
     cancelar.textContent = "CANCELAR CONTA";
     cancelar.addEventListener("click", () => acaoCancelarConta(conta.id));
     acoes.push(cancelar);
+
+    const pagar = document.createElement("button");
+    pagar.type = "button";
+    pagar.className = "botao-primario";
+    pagar.textContent = "REGISTRAR PAGAMENTO";
+    pagar.addEventListener("click", () => exibirFormularioPagamentoConta(conta));
+    acoes.push(pagar);
   }
 
   elementosConta.acoesContaDetalhe.append(...acoes);
 }
 
-/** Cancelar grava estado/cancelado_em — não cria transação e não altera saldo. */
+/** Registrar pagamento: transforma obrigação (conta) em DESPESA financeira. */
+async function acaoPagamentoConta(id) {
+  try {
+    const valorCentavos = lerCentavosConta(elementosConta.campoPagamentoValor.value);
+    const dados = {
+      valorPagoCentavos: valorCentavos,
+      paidAt: elementosConta.campoPagamentoData.value,
+      paymentDescription: elementosConta.campoPagamentoObservacao.value || null,
+    };
+    const resultado = await ponteConta().pagar(id, dados);
+    if (!resultado.ok) {
+      elementosConta.avisoFormularioPagamento.textContent = resultado.mensagem ?? "Não foi possível registrar o pagamento.";
+      return;
+    }
+    // Exibir resultado
+    elementosConta.pagamentoResultadoStatus.textContent = "PAGA";
+    elementosConta.pagamentoResultadoValorEsperado.textContent = formatarCentavosConta(resultado.conta.valorEsperado);
+    elementosConta.pagamentoResultadoValorPago.textContent = formatarCentavosConta(resultado.conta.paidAmount);
+    elementosConta.pagamentoResultadoData.textContent = resultado.conta.paidAt;
+    elementosConta.pagamentoResultadoTransacao.textContent = resultado.transacao?.id ? `ID ${resultado.transacao.id}` : "—";
+    elementosConta.pagamentoResultadoObservacao.textContent = resultado.conta.paymentDescription || "—";
+    elementosConta.avisoFormularioPagamento.textContent = "";
+    // Limpar formulário
+    elementosConta.campoPagamentoContaId.value = "";
+    elementosConta.campoPagamentoValor.value = "";
+    elementosConta.campoPagamentoData.value = "";
+    elementosConta.campoPagamentoObservacao.value = "";
+  } catch (erro) {
+    console.error(`PULSO: falha ao registrar pagamento da conta ${id} — ${erro.message}`, erro);
+    elementosConta.avisoFormularioPagamento.textContent = "Falha interna ao registrar pagamento.";
+  }
+}
+
+// ── Formulário de pagamento ────────────────────────────────────────────────
+function exibirFormularioPagamentoConta(conta) {
+  estadoConta.modoPagamentoConta = true;
+  estadoConta.contaAtualId = conta?.id ?? null;
+  elementosConta.visaoFormularioPagamentoConta.classList.remove("oculto");
+  elementosConta.resultadoPagamento.classList.add("oculto");
+  elementosConta.campoPagamentoContaId.value = String(conta.id);
+  elementosConta.campoPagamentoValor.value = formatarCentavosParaEntradaConta(conta.valorEsperado);
+  elementosConta.campoPagamentoData.value = conta.vencimento;
+  elementosConta.campoPagamentoObservacao.value = "";
+  elementosConta.avisoFormularioPagamento.textContent = "";
+  // Preencher detalhes da conta no formulário
+  elementosConta.pagamentoDetalheConta.textContent = `ID ${conta.id}`;
+  elementosConta.pagamentoDetalheServico.textContent = nomeServico(conta.servicoId);
+  elementosConta.pagamentoDetalheValorEsperado.textContent = formatarCentavosConta(conta.valorEsperado);
+  elementosConta.pagamentoDetalheVencimento.textContent = formatarDataSimplesConta(conta.vencimento);
+}
+
+function esconderFormularioPagamentoConta() {
+  estadoConta.modoPagamentoConta = false;
+  estadoConta.contaAtualId = null;
+  elementosConta.visaoFormularioPagamentoConta.classList.add("oculto");
+  elementosConta.resultadoPagamento.classList.add("oculto");
+  elementosConta.campoPagamentoContaId.value = "";
+  elementosConta.campoPagamentoValor.value = "";
+  elementosConta.campoPagamentoData.value = "";
+  elementosConta.campoPagamentoObservacao.value = "";
+  elementosConta.avisoFormularioPagamento.textContent = "";
+}
 async function acaoCancelarConta(id) {
   try {
     const resultado = await ponteConta().cancelar(id);
@@ -476,6 +573,16 @@ function registrarEventosContas() {
       carregarContas();
     }
   });
+  // Pagamento (Fase 10.5)
+  elementosConta.formularioPagamentoConta.addEventListener("submit", (evento) => {
+    evento.preventDefault();
+    acaoPagamentoConta(Number(elementosConta.campoPagamentoContaId.value));
+  });
+  elementosConta.botaoSalvarPagamento.addEventListener("click", (evento) => {
+    evento.preventDefault();
+    acaoPagamentoConta(Number(elementosConta.campoPagamentoContaId.value));
+  });
+  elementosConta.botaoCancelarPagamento.addEventListener("click", esconderFormularioPagamentoConta);
 }
 
 /** Permite que principal.js navegue para as contas (botão do painel). */
