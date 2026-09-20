@@ -171,6 +171,7 @@ function mapearElementos() {
   elementos.botaoVerFinancas = consultar('botao-ver-financas');
   elementos.botaoVerLoja = consultar('botao-ver-loja');
   elementos.botaoVerServicos = consultar('botao-ver-servicos-despesas');
+  elementos.botaoVerPagamento = consultar('botao-ver-pagamento');
   elementos.visaoFinancas = consultar('visao-financas');
   elementos.visaoFormularioTransacao = consultar('visao-formulario-transacao');
   elementos.visaoFormularioOrcamento = consultar('visao-formulario-orcamento');
