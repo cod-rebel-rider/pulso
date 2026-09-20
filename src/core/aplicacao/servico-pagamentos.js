@@ -22,6 +22,7 @@
 
 import { comTransacao } from '../database/transacao.js';
 import { podePagareLancar, validarPagamento } from '../dominio/pagamento.js';
+import { situacaoConta, dataHojeIso } from '../dominio/conta.js';
 
 // Categoria padrão para pagamento de serviços (FASE 10.5).
 const CATEGORIA_PAGAMENTO_SERVICO = 'contas';
@@ -71,7 +72,7 @@ export class ServicoPagamentos {
         data: pagamentoValidado.paidAt,
       });
 
-      // 3b. Marcar a conta como PAGA, vinculando a transação.
+            // 3b. Marcar a conta como PAGA, vinculando a transação.
       const contaPaga = this._contas.marcarComoPaga(contaId, {
         paidAmount: pagamentoValidado.valorPagoCentavos,
         paidAt: pagamentoValidado.paidAt,
@@ -79,8 +80,15 @@ export class ServicoPagamentos {
         transactionId: transacao.id,
       });
 
+      // Anexa a situação derivada (ex.: 'paga') — consistente com o restante
+      // da FASE 10; nada do que é derivado aqui é persistido no banco.
+      const contaComSituacao = Object.freeze({
+        ...contaPaga,
+        situacao: situacaoConta(contaPaga, dataHojeIso()),
+      });
+
       return Object.freeze({
-        conta: contaPaga,
+        conta: contaComSituacao,
         transacao,
         resumo: { tipo: 'despesa', categoria: CATEGORIA_PAGAMENTO_SERVICO },
       });
