@@ -682,10 +682,6 @@ function registrarIpc() {
       };
     }));
 
-  // Consulta pagamento de conta (Fase 10.5) — enriquecimento do objeto conta.
-  ipcMain.handle(canais.CONTA_OBTER_PAGAMENTO, (_evento, { id } = {}) =>
-    traduzirResultadoOperacao(() => ({ ok: true, conta: servicoPagamentos.obterPagamento(Number(id ?? 0)) })));
-
   // ── Recorrências (Fase 10.3) — sem integração financeira ───────────────
   // Criar/editar/ativar/desativar/arquivar uma recorrência NÃO gera conta,
   // NÃO cria transação e NÃO altera saldo (geração de contas é a Fase 10.4).
@@ -868,13 +864,8 @@ async function aoIniciar() {
     banco: estadoBanco.banco,
   });
   servicoPagamentos = new ServicoPagamentos({
-    repositorioConta,
-    financa: {
-      repositorioCarteira,
-      repositorioTransacao,
-      repositorioOrcamento,
-      repositorioJogador,
-    },
+    repositorio: repositorioConta,
+    servicoFinanca,
     banco: estadoBanco.banco,
   });
   servicoProjeto = new ServicoProjeto({
