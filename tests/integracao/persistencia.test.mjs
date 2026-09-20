@@ -47,7 +47,7 @@ test('aplicação inicia sem banco existente → banco criado com schema atual',
           { versao: 11, nome: 'criar-tabela-servico-conta' },
           { versao: 12, nome: 'criar-tabela-servico-recorrencia' },
           { versao: 13, nome: 'adicionar-recorrencia-id-em-servico-conta' },
-          { versao: 14, nome: 'adicionar-campos-de-pagamento-em-servico-conta' },
+          { versao: 14, nome: 'campos-de-pagamento-e-estado-paga-em-servico-conta' },
         ],
       );
     } finally {

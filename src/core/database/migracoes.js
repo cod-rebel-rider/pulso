@@ -590,19 +590,93 @@ const MIGRACAO_013 = Object.freeze({
   },
 });
 
+/**
+ * Migração 014 — campos de pagamento e estado `paga` em servico_conta (Fase 10.5).
+ *
+ * A CONTA é a obrigação registrada; o PAGAMENTO a realiza e vira TRANSAÇÃO
+ * financeira (carteira/saldo são consequência, nunca alterados diretamente).
+ * Para guardar esse desfecho a conta precisa de:
+ *   - `estado` aceitar `'paga'` (novo estado persistido, terminal nesta fase);
+ *   - `paid_amount`  → valor REALMENTE pago em centavos (pode diferir do
+ *     `valor_esperado_centavos`): a transação registra o valor pago, não o
+ *     esperado;
+ *   - `paid_at`      → data civil `AAAA-MM-DD` do pagamento;
+ *   - `payment_description` → observação opcional do pagamento;
+ *   - `transaction_id` → vínculo com `transacao(id)` que permite rastrear
+ *     CONTA → TRANSAÇÃO (SET NULL se a transação sumir; nunca duplica o
+ *     vínculo graças ao índice único parcial abaixo).
+ *
+ * O SQLite não permite alterar um `CHECK` com `ALTER TABLE`, e a Migração 011
+ * limitava `estado` a ('pendente', 'cancelada'). Por isso a tabela é
+ * RECONSTRUÍDA no formato completo (mesmo padrão da conciliação da v9),
+ * preservando todas as linhas, a unicidade `(servico_id, referencia)` que
+ * sustenta a idempotência da geração (10.4) e o `recorrencia_id`.
+ */
 const MIGRACAO_014 = Object.freeze({
   versao: 14,
-  nome: 'adicionar-campos-de-pagamento-em-servico-conta',
+  nome: 'campos-de-pagamento-e-estado-paga-em-servico-conta',
   cima(banco) {
-    banco.exec(`ALTER TABLE servico_conta ADD COLUMN paid_amount INTEGER`);
-    banco.exec(`ALTER TABLE servico_conta ADD COLUMN paid_at TEXT`);
-    banco.exec(`ALTER TABLE servico_conta ADD COLUMN payment_description TEXT`);
+    // Bancos sintéticos/legados podem ter a v7 registrada como aplicada sem a
+    // tabela `transacao`. Com `PRAGMA foreign_keys = ON` o INSERT valida as
+    // FKs, e um alvo inexistente quebraria a migração — por isso o vínculo só
+    // recebe REFERENCES quando a tabela existe (senão fica coluna simples).
+    const temTransacao = Boolean(
+      banco
+        .prepare("SELECT 1 AS existe FROM sqlite_master WHERE type = 'table' AND name = 'transacao'")
+        .get(),
+    );
+    const colunaTransacao = temTransacao
+      ? 'transaction_id INTEGER REFERENCES transacao(id) ON DELETE SET NULL'
+      : 'transaction_id INTEGER';
     banco.exec(`
-      ALTER TABLE servico_conta
-      ADD COLUMN transaction_id INTEGER
-        REFERENCES transacao(id) ON DELETE SET NULL
+      CREATE TABLE servico_conta_pagamento (
+        id                      INTEGER PRIMARY KEY,
+        jogador_id              INTEGER NOT NULL REFERENCES jogador(id) ON DELETE CASCADE,
+        servico_id              INTEGER NOT NULL REFERENCES servico(id) ON DELETE RESTRICT,
+        referencia              TEXT NOT NULL,
+        descricao               TEXT,
+        valor_esperado_centavos INTEGER NOT NULL CHECK (valor_esperado_centavos > 0),
+        vencimento              TEXT NOT NULL,
+        estado                  TEXT NOT NULL,
+        criado_em               TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        cancelado_em            TEXT,
+        recorrencia_id          INTEGER REFERENCES servico_recorrencia(id) ON DELETE SET NULL,
+        paid_amount             INTEGER,
+        paid_at                 TEXT,
+        payment_description     TEXT,
+        ${colunaTransacao},
+        CHECK (estado IN ('pendente', 'paga', 'cancelada')),
+        CHECK (referencia GLOB '[0-9][0-9][0-9][0-9]-[0-1][0-9]'),
+        CHECK (vencimento GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+        CHECK (paid_amount IS NULL OR paid_amount > 0),
+        CHECK (paid_at IS NULL OR paid_at GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+        CHECK (estado <> 'paga' OR (paid_amount IS NOT NULL AND paid_at IS NOT NULL)),
+        UNIQUE (servico_id, referencia)
+      ) STRICT
     `);
-    banco.exec('CREATE INDEX IF NOT EXISTS idx_servico_conta_transaction ON servico_conta(transaction_id)');
+    banco.exec(`
+      INSERT INTO servico_conta_pagamento
+        (id, jogador_id, servico_id, referencia, descricao, valor_esperado_centavos,
+         vencimento, estado, criado_em, atualizado_em, cancelado_em, recorrencia_id,
+         paid_amount, paid_at, payment_description, transaction_id)
+      SELECT id, jogador_id, servico_id, referencia, descricao, valor_esperado_centavos,
+             vencimento, estado, criado_em, atualizado_em, cancelado_em, recorrencia_id,
+             NULL, NULL, NULL, NULL
+        FROM servico_conta
+    `);
+    banco.exec('DROP TABLE servico_conta');
+    banco.exec('ALTER TABLE servico_conta_pagamento RENAME TO servico_conta');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_servico_conta_jogador ON servico_conta(jogador_id)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_servico_conta_servico ON servico_conta(servico_id)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_servico_conta_vencimento ON servico_conta(jogador_id, vencimento)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_servico_conta_recorrencia ON servico_conta(recorrencia_id)');
+    // Uma transação financeira só pode estar vinculada a UMA conta (evita
+    // duplicar o débito); várias contas podem ter transaction_id NULL.
+    banco.exec(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_servico_conta_transaction
+        ON servico_conta(transaction_id) WHERE transaction_id IS NOT NULL
+    `);
   },
 });
 
