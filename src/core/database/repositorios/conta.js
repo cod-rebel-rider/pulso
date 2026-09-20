@@ -18,6 +18,8 @@ const COLUNAS = [
   'id', 'jogador_id', 'servico_id', 'referencia', 'descricao',
   'valor_esperado_centavos', 'vencimento', 'estado',
   'criado_em', 'atualizado_em', 'cancelado_em', 'recorrencia_id',
+  // Campos de pagamento (FASE 10.5).
+  'paid_amount', 'paid_at', 'payment_description', 'transaction_id',
 ].join(', ');
 
 const INSERIR = `

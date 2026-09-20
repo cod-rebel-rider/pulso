@@ -16,12 +16,8 @@
  */
 
 import { ErroValidacao, ErroConflito } from '../erros.js';
-import {
-  validarData as validarDataFinanceira,
-  validarValorCentavos,
-} from './financa.js';
-import { situacaoConta, ESTADOS_CONTA, contaCancelada } from './conta.js';
-import { validarDataIso as validarDataIsoConta } from './conta.js';
+import { validarValorCentavos } from './financa.js';
+import { ESTADOS_CONTA, contaCancelada, validarDataIso } from './conta.js';
 
 // ── Estados de pagamento (persistidos) ───────────────────────────────────
 
@@ -47,41 +43,54 @@ export const CAMPOS_PAGAMENTO = Object.freeze([
 
 /**
  * Estados da conta onde pagamento é permitido.
- * VENCIDA é DERIVED (situaçaoConta) — o estado persistido é 'pendente'.
+ * VENCIDA é DERIVADA (`situacaoConta`) — o estado persistido é `pendente`.
  */
 export const ESTADOS_PAGAMENTO_PERMITIDOS = Object.freeze([
   ESTADOS_CONTA.PENDENTE,
 ]);
 
 /**
- * Valida se a conta pode ser paga. `conta` é o objeto de domínio (com estado).
- * A interface e o serviço convertem a situação derivada (VENCIDA) antes de
- * chamar — mas rejeitamos cancelada e já paga aqui.
+ * Valida se a conta pode ser paga.
+ *
+ * Rejeita, nesta ordem: conta inexistente, conta cancelada, conta já paga
+ * (duplicidade) e conta de outro jogador. VENCIDA é variação de apresentação
+ * de uma conta `pendente` — portanto é pagável.
+ *
+ * @param {object|null} conta objeto de domínio (com `estado` e `jogadorId`)
+ * @param {number} [jogadorId] dono esperado (isolamento por jogador)
+ * @returns {true}
  */
-export function podePagareLancar(conta) {
+export function podePagareLancar(conta, jogadorId) {
   if (!conta) {
     throw new ErroConflito('Conta não encontrada.');
   }
   if (contaCancelada(conta.estado)) {
     throw new ErroConflito('Não é possível pagar uma conta cancelada.');
   }
-  if (conta.estado === 'paga') {
+  if (conta.estado === ESTADOS_CONTA.PAGA) {
     throw new ErroConflito('Esta conta já foi paga.');
   }
   if (!ESTADOS_PAGAMENTO_PERMITIDOS.includes(conta.estado)) {
-    // conta em estado desconhecido/intermediário
     throw new ErroValidacao(
       `Não é possível pagar uma conta no estado "${conta.estado}".`,
       'estado',
     );
   }
-  // Conta está em PENDENTE → pode ser paga (VENCIDA é derivado, não estado persistido).
+  if (jogadorId !== undefined && Number(conta.jogadorId) !== Number(jogadorId)) {
+    throw new ErroConflito('Conta não pertence ao jogador informado.');
+  }
+  return true;
 }
 
 /**
  * Valida os dados de pagamento.
+ *
+ * - valor pago: centavos inteiros > 0 (pode diferir de `expected_amount`);
+ * - data do pagamento: data civil existente em `AAAA-MM-DD`;
+ * - observação: opcional, texto livre truncado em 500 caracteres.
+ *
  * @param {{valorPagoCentavos: number, paidAt: string, observacao?: string}} dados
- * @returns {Object} dados validados
+ * @returns {Readonly<{valorPagoCentavos: number, paidAt: string, paymentDescription: string|null}>}
  */
 export function validarPagamento(dados) {
   const entrada = dados ?? {};
@@ -90,14 +99,18 @@ export function validarPagamento(dados) {
     entrada.valorPagoCentavos ?? entrada.valorPago ?? entrada.valor ?? entrada.amount,
   );
 
-  // `paidAt` pode vir como `data`, `paidAt`, `paid_at`, `paymentDate`.
-  const paidAt = validarDataIsoConta(
+  // `paidAt` pode vir como `data`, `paid_at`, `dataPagamento` ou `paymentDate`.
+  const paidAt = validarDataIso(
     entrada.paidAt ?? entrada.paid_at ?? entrada.data ?? entrada.dataPagamento ?? entrada.paymentDate,
   );
 
+  // A observação pode vir como `observacao`, `paymentDescription` ou `descricao`
+  // (o renderer usa `paymentDescription`; o canal aceita os três).
+  const brutoObservacao =
+    entrada.observacao ?? entrada.paymentDescription ?? entrada.descricao ?? null;
   const observacao =
-    typeof entrada.observacao === 'string'
-      ? entrada.observacao.trim().slice(0, 500) || null
+    typeof brutoObservacao === 'string'
+      ? brutoObservacao.trim().slice(0, 500) || null
       : null;
 
   return Object.freeze({
@@ -107,10 +120,10 @@ export function validarPagamento(dados) {
   });
 }
 
-/** Situação de pagamento derivada: PAGA se estado 'paga' e paid_at presente. */
-export function situacaoPagamento(conta, hoje = new Date()) {
+/** Situação de pagamento derivada: PAGO se estado `paga` e `paid_at` presente. */
+export function situacaoPagamento(conta) {
   if (!conta) return SITUACOES_PAGAMENTO.NAO_APLICAVEL;
-  if (conta.estado === 'paga' && conta.paid_at) {
+  if (conta.estado === ESTADOS_CONTA.PAGA && (conta.paidAt ?? conta.paid_at)) {
     return SITUACOES_PAGAMENTO.PAGO;
   }
   return SITUACOES_PAGAMENTO.A_PAGAR;
