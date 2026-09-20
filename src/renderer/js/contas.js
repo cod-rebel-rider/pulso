@@ -147,6 +147,15 @@ function mapearContas() {
   elementosConta.detalheAtualizada = consultarElementoConta("conta-detalhe-atualizada");
   elementosConta.linhaCancelada = consultarElementoConta("linha-conta-cancelada");
   elementosConta.detalheCancelada = consultarElementoConta("conta-detalhe-cancelada");
+  // Campos de pagamento no detalhe (Fase 10.6 — consolidação da 10.5).
+  elementosConta.linhaPagamento = consultarElementoConta("linha-conta-pagamento");
+  elementosConta.detalhePago = consultarElementoConta("conta-detalhe-pago");
+  elementosConta.linhaPagamentoData = consultarElementoConta("linha-conta-pagamento-data");
+  elementosConta.detalhePagoEm = consultarElementoConta("conta-detalhe-pago-em");
+  elementosConta.linhaPagamentoObs = consultarElementoConta("linha-conta-pagamento-obs");
+  elementosConta.detalhePagamentoObs = consultarElementoConta("conta-detalhe-pagamento-obs");
+  elementosConta.linhaTransacao = consultarElementoConta("linha-conta-transacao");
+  elementosConta.detalheTransacao = consultarElementoConta("conta-detalhe-transacao");
   elementosConta.detalheDescricao = consultarElementoConta("conta-detalhe-descricao");
   elementosConta.avisoContaDetalhe = consultarElementoConta("aviso-conta-detalhe");
   elementosConta.acoesContaDetalhe = consultarElementoConta("acoes-conta-detalhe");
@@ -329,7 +338,11 @@ function criarItemConta(conta) {
 
   const valor = document.createElement("span");
   valor.className = "conta-valor-esperado";
-  valor.textContent = `Valor esperado: ${formatarCentavosConta(conta.valorEsperado)}`;
+  // Fase 10.6: contas PAGAS destacam o valor pago (× o esperado); as demais,
+  // apenas o valor esperado — nenhuma lista aqui movimenta dinheiro.
+  valor.textContent = conta.estado === "paga"
+    ? `Valor pago: ${formatarCentavosConta(conta.paidAmount)} · Esperado: ${formatarCentavosConta(conta.valorEsperado)}`
+    : `Valor esperado: ${formatarCentavosConta(conta.valorEsperado)}`;
   meta.append(valor);
 
   item.append(topo, meta);
@@ -365,6 +378,21 @@ function renderizarDetalheConta(conta) {
   const cancelada = conta.estado === "cancelada";
   elementosConta.linhaCancelada.classList.toggle("oculto", !cancelada);
   if (cancelada) elementosConta.detalheCancelada.textContent = formatarDataSimplesConta(conta.canceladoEm);
+  // Destaque do pagamento (Fase 10.6): valor pago, data, observação e a
+  // transação financeira da Fase 08 — visíveis somente na conta PAGA.
+  const paga = conta.estado === "paga";
+  elementosConta.linhaPagamento.classList.toggle("oculto", !paga);
+  elementosConta.linhaPagamentoData.classList.toggle("oculto", !paga);
+  elementosConta.linhaPagamentoObs.classList.toggle("oculto", !paga);
+  elementosConta.linhaTransacao.classList.toggle("oculto", !paga);
+  if (paga) {
+    elementosConta.detalhePago.textContent = formatarCentavosConta(conta.paidAmount);
+    elementosConta.detalhePagoEm.textContent = formatarDataSimplesConta(conta.paidAt);
+    elementosConta.detalhePagamentoObs.textContent = conta.paymentDescription || "—";
+    elementosConta.detalheTransacao.textContent = conta.transactionId
+      ? `ID ${conta.transactionId} · DESPESA`
+      : "—";
+  }
   elementosConta.detalheDescricao.textContent = conta.descricao || "";
   elementosConta.avisoContaDetalhe.textContent = "";
   montarAcoesDetalheConta(conta);
@@ -413,6 +441,11 @@ function montarAcoesDetalheConta(conta) {
 
 /** Registrar pagamento: transforma obrigação (conta) em DESPESA financeira. */
 async function acaoPagamentoConta(id) {
+  const jogador = jogadorAtualConta();
+  if (!jogador) {
+    elementosConta.avisoFormularioPagamento.textContent = "Nenhum jogador identificado.";
+    return;
+  }
   try {
     const valorCentavos = lerCentavosConta(elementosConta.campoPagamentoValor.value);
     const dados = {
@@ -420,7 +453,9 @@ async function acaoPagamentoConta(id) {
       paidAt: elementosConta.campoPagamentoData.value,
       paymentDescription: elementosConta.campoPagamentoObservacao.value || null,
     };
-    const resultado = await ponteConta().pagar(id, dados);
+    // Assinatura da ponte: pagar(jogadorId, id, dados) — o jogador vem da
+    // sessão (Fase 10.6: correção da integração renderer → preload → main).
+    const resultado = await ponteConta().pagar(jogador.id, id, dados);
     if (!resultado.ok) {
       elementosConta.avisoFormularioPagamento.textContent = resultado.mensagem ?? "Não foi possível registrar o pagamento.";
       return;
