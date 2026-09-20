@@ -170,9 +170,7 @@ function mapearElementos() {
   // Finanças (Fase 08)
   elementos.botaoVerFinancas = consultar('botao-ver-financas');
   elementos.botaoVerLoja = consultar('botao-ver-loja');
-  elementos.botaoVerServicos = consultar('botao-ver-servicos');
-  elementos.botaoVerContas = consultar('botao-ver-contas');
-  elementos.botaoVerRecorrencias = consultar('botao-ver-recorrencias');
+  elementos.botaoVerServicos = consultar('botao-ver-servicos-despesas');
   elementos.visaoFinancas = consultar('visao-financas');
   elementos.visaoFormularioTransacao = consultar('visao-formulario-transacao');
   elementos.visaoFormularioOrcamento = consultar('visao-formulario-orcamento');
@@ -1553,12 +1551,20 @@ function exibirVisao(nomeVisao) {
   // Contas / Despesas (Fase 10.2) — telas próprias gerenciadas por contas.js
   const emContas = nomeVisao === 'visao-contas'
     || nomeVisao === 'visao-conta-detalhe'
-    || nomeVisao === 'visao-formulario-conta';
+    || nomeVisao === 'visao-formulario-conta'
+    || nomeVisao === 'visao-formulario-pagamento-conta';
   if (!emContas) {
-    for (const id of ['visao-contas', 'visao-conta-detalhe', 'visao-formulario-conta']) {
+    for (const id of ['visao-contas', 'visao-conta-detalhe', 'visao-formulario-conta',
+      'visao-formulario-pagamento-conta']) {
       const visao = document.getElementById(id);
       if (visao) visao.classList.add('oculto');
     }
+  }
+
+  // Visão consolidada da FASE 10 (hub "SERVIÇOS E DESPESAS").
+  if (nomeVisao !== 'visao-servicos-despesas') {
+    const hub = document.getElementById('visao-servicos-despesas');
+    if (hub) hub.classList.add('oculto');
   }
 }
 
@@ -1621,8 +1627,6 @@ function executarBoot() {
   elementos.botaoVerFinancas.disabled = true;
   elementos.botaoVerLoja.disabled = true;
   elementos.botaoVerServicos.disabled = true;
-  elementos.botaoVerContas.disabled = true;
-  elementos.botaoVerRecorrencias.disabled = true;
   definirEstado('INICIANDO…');
   const linhas = linhasDoBoot();
   montarLinhasBoot(linhas, false);
@@ -1638,8 +1642,6 @@ function executarBoot() {
     elementos.botaoVerFinancas.disabled = false;
     elementos.botaoVerLoja.disabled = false;
     elementos.botaoVerServicos.disabled = false;
-    elementos.botaoVerContas.disabled = false;
-    elementos.botaoVerRecorrencias.disabled = false;
     elementos.mensagem.textContent = 'Operador identificado. Aguardando módulos…';
     carregarStatus();
     carregarProgressao();
@@ -1797,10 +1799,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof window.__irParaLoja === 'function') window.__irParaLoja();
   });
   elementos.botaoVerServicos.addEventListener('click', () => {
-    if (typeof window.__irParaServicos === 'function') window.__irParaServicos();
-  });
-  elementos.botaoVerRecorrencias.addEventListener('click', () => {
-    if (typeof window.__irParaRecorrencias === 'function') window.__irParaRecorrencias();
+    // Visão consolidada da FASE 10 (hub gerenciado por servicos-despesas.js)
+    if (typeof window.__irParaServicosDespesas === 'function') window.__irParaServicosDespesas();
   });
   elementos.financasPainel.addEventListener('click', voltarAoPainelFinancas);
   elementos.filtrosFinanca.addEventListener('click', (evento) => {

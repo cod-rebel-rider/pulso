@@ -76,9 +76,20 @@ function rotuloEstadoServico(valor) {
 }
 
 // ── Navegação entre as visões de serviço ─────────────────────────────────
+// Fase 10.6: cada módulo esconde também as visões dos outros módulos da
+// FASE 10 (serviços/contas/recorrências) e o hub consolidado — nenhuma
+// visão "vaza" para baixo da tela ao navegar entre eles.
 function exibirVisaoServico(nome) {
   for (const visao of ["visao-servicos", "visao-servico-detalhe", "visao-formulario-servico"]) {
     consultarElementoServico(visao).classList.toggle("oculto", visao !== nome);
+  }
+  for (const visao of [
+    "visao-recorrencias", "visao-recorrencia-detalhe", "visao-formulario-recorrencia",
+    "visao-contas", "visao-conta-detalhe", "visao-formulario-conta",
+    "visao-formulario-pagamento-conta", "visao-servicos-despesas",
+  ]) {
+    const el = document.getElementById(visao);
+    if (el) el.classList.add("oculto");
   }
   consultarElementoServico("visao-configuracao").classList.add("oculto");
   consultarElementoServico("visao-boot").classList.add("oculto");
@@ -97,7 +108,6 @@ function voltarAoPainelServico() {
 
 // ── Mapeamento de elementos ───────────────────────────────────────────────
 function mapearServicos() {
-  elementosServico.botaoVerServicos = consultarElementoServico("botao-ver-servicos");
   // lista
   elementosServico.visaoServicos = consultarElementoServico("visao-servicos");
   elementosServico.avisoServicos = consultarElementoServico("aviso-servicos");
@@ -336,6 +346,32 @@ function montarAcoesDetalhe(servico) {
     acoes.push(arquivar);
   }
 
+  // Navegação cruzada da FASE 10 (Fase 10.6): a partir do serviço, saltar
+  // para as recorrências e as contas DESTE serviço (com filtro aplicado).
+  if (servico.estado !== "arquivado") {
+    const verRecorrencias = document.createElement("button");
+    verRecorrencias.type = "button";
+    verRecorrencias.className = "botao-secundario";
+    verRecorrencias.textContent = "VER RECORRÊNCIAS";
+    verRecorrencias.addEventListener("click", () => {
+      if (typeof window.__irParaRecorrenciasComServico === "function") {
+        window.__irParaRecorrenciasComServico(servico.id);
+      }
+    });
+    acoes.push(verRecorrencias);
+
+    const verContas = document.createElement("button");
+    verContas.type = "button";
+    verContas.className = "botao-secundario";
+    verContas.textContent = "VER CONTAS";
+    verContas.addEventListener("click", () => {
+      if (typeof window.__irParaContasComServico === "function") {
+        window.__irParaContasComServico(servico.id);
+      }
+    });
+    acoes.push(verContas);
+  }
+
   elementosServico.acoesServicoDetalhe.append(...acoes);
 }
 
@@ -348,6 +384,13 @@ async function acaoEstadoServico(acao, id) {
     }
     renderizarDetalhe(resultado.servico);
     carregarResumo();
+    // Feedback de sucesso (Fase 10.6 — consistência entre módulos).
+    const rotulosAcao = {
+      ativar: "Serviço ativado.",
+      desativar: "Serviço desativado.",
+      arquivar: "Serviço arquivado.",
+    };
+    elementosServico.avisoServicoDetalhe.textContent = rotulosAcao[acao] ?? "Operação concluída.";
   } catch (erro) {
     console.error(`PULSO: falha ao executar ${acao} no serviço ${id} — ${erro.message}`, erro);
   }
@@ -401,6 +444,10 @@ async function salvarServico(evento) {
     exibirVisaoServico("visao-servicos");
     carregarResumo();
     carregarServicos();
+    // Feedback de sucesso (Fase 10.6 — consistência entre módulos).
+    elementosServico.avisoServicos.textContent = estadoServico.modoEdicaoServico
+      ? "Serviço atualizado com sucesso."
+      : "Serviço registrado com sucesso.";
   } catch (erro) {
     console.error(`PULSO: falha ao salvar o serviço — ${erro.message}`, erro);
     elementosServico.avisoFormulario.textContent = "Falha interna ao salvar o serviço.";
@@ -417,7 +464,6 @@ function aplicarFiltroEstadoServico(botao) {
 }
 
 function registrarEventosServicos() {
-  elementosServico.botaoVerServicos.addEventListener("click", irParaServicos);
   elementosServico.filtrosServicos.addEventListener("click", (evento) => {
     const botao = evento.target.closest("[data-filtro]");
     if (!botao) return;
@@ -429,6 +475,15 @@ function registrarEventosServicos() {
   });
   elementosServico.botaoNovoServico.addEventListener("click", () => {
     exibirFormularioServico(null);
+  });
+  // Navegação cruzada da FASE 10 (Fase 10.6).
+  elementosServico.botaoServicosIrRecorrencias = consultarElementoServico("botao-servicos-ir-recorrencias");
+  elementosServico.botaoServicosIrRecorrencias.addEventListener("click", () => {
+    if (typeof window.__irParaRecorrencias === "function") window.__irParaRecorrencias();
+  });
+  elementosServico.botaoServicosIrContas = consultarElementoServico("botao-servicos-ir-contas");
+  elementosServico.botaoServicosIrContas.addEventListener("click", () => {
+    if (typeof window.__irParaContas === "function") window.__irParaContas();
   });
   elementosServico.botaoVoltarServicos.addEventListener("click", voltarAoPainelServico);
   elementosServico.formularioServico.addEventListener("submit", salvarServico);
@@ -446,8 +501,10 @@ function registrarEventosServicos() {
   });
 }
 
-/** Permite que principal.js navegue para os serviços (botão do painel). */
+/** Permite que principal.js e os demais módulos naveguem para os serviços. */
 window.__irParaServicos = irParaServicos;
+/** Abre o DETALHE de um serviço direto (navegação cruzada da Fase 10.6). */
+window.__visualizarServico = visualizarServico;
 
 document.addEventListener("DOMContentLoaded", () => {
   mapearServicos();

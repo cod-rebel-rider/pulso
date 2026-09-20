@@ -102,12 +102,29 @@ function nomeServicoConta(servicoId) {
 }
 
 // ── Navegação entre as visões de conta ───────────────────────────────────
+// Fase 10.6: correção do retorno ao painel (antes escondia o visao-boot,
+// deixando a tela em branco) e isolamento entre os módulos da FASE 10.
 function exibirVisaoConta(nome) {
   for (const visao of ["visao-contas", "visao-conta-detalhe", "visao-formulario-conta"]) {
     consultarElementoConta(visao).classList.toggle("oculto", visao !== nome);
   }
+  for (const visao of [
+    "visao-servicos", "visao-servico-detalhe", "visao-formulario-servico",
+    "visao-recorrencias", "visao-recorrencia-detalhe", "visao-formulario-recorrencia",
+    "visao-servicos-despesas",
+  ]) {
+    const el = document.getElementById(visao);
+    if (el) el.classList.add("oculto");
+  }
+  // Formulário e resultado do pagamento (Fase 10.5) são sobreposições:
+  // escondidos em qualquer troca de visão para não "vazar" na lista.
+  if (nome !== "visao-formulario-pagamento-conta") {
+    consultarElementoConta("visao-formulario-pagamento-conta").classList.add("oculto");
+    consultarElementoConta("resultado-pagamento").classList.add("oculto");
+  }
   consultarElementoConta("visao-configuracao").classList.add("oculto");
   consultarElementoConta("visao-boot").classList.add("oculto");
+  if (nome === "visao-boot") consultarElementoConta("visao-boot").classList.remove("oculto");
 }
 
 async function irParaContas() {
@@ -123,7 +140,6 @@ function voltarAoPainelConta() {
 
 // ── Mapeamento de elementos ──────────────────────────────────────────────
 function mapearContas() {
-  elementosConta.botaoVerContas = consultarElementoConta("botao-ver-contas");
   // lista
   elementosConta.avisoContas = consultarElementoConta("aviso-contas");
   elementosConta.filtrosContas = consultarElementoConta("filtros-contas");
@@ -413,6 +429,18 @@ function montarAcoesDetalheConta(conta) {
   });
   acoes.push(voltar);
 
+  // Navegação cruzada da FASE 10 (Fase 10.6): da conta, abrir o serviço.
+  const verServico = document.createElement("button");
+  verServico.type = "button";
+  verServico.className = "botao-secundario";
+  verServico.textContent = "VER SERVIÇO";
+  verServico.addEventListener("click", () => {
+    if (typeof window.__visualizarServico === "function") {
+      window.__visualizarServico(conta.servicoId);
+    }
+  });
+  acoes.push(verServico);
+
   if (conta.estado === "pendente") {
     const editar = document.createElement("button");
     editar.type = "button";
@@ -460,6 +488,9 @@ async function acaoPagamentoConta(id) {
       elementosConta.avisoFormularioPagamento.textContent = resultado.mensagem ?? "Não foi possível registrar o pagamento.";
       return;
     }
+    // Esconde o formulário e exibe o resultado do pagamento (Fase 10.5).
+    elementosConta.avisoFormularioPagamento.textContent = "";
+    elementosConta.visaoFormularioPagamentoConta.classList.add("oculto");
     // Exibir resultado
     elementosConta.pagamentoResultadoStatus.textContent = "PAGA";
     elementosConta.pagamentoResultadoValorEsperado.textContent = formatarCentavosConta(resultado.conta.valorEsperado);
@@ -467,12 +498,19 @@ async function acaoPagamentoConta(id) {
     elementosConta.pagamentoResultadoData.textContent = resultado.conta.paidAt;
     elementosConta.pagamentoResultadoTransacao.textContent = resultado.transacao?.id ? `ID ${resultado.transacao.id}` : "—";
     elementosConta.pagamentoResultadoObservacao.textContent = resultado.conta.paymentDescription || "—";
-    elementosConta.avisoFormularioPagamento.textContent = "";
+    elementosConta.resultadoPagamento.classList.remove("oculto");
     // Limpar formulário
     elementosConta.campoPagamentoContaId.value = "";
     elementosConta.campoPagamentoValor.value = "";
     elementosConta.campoPagamentoData.value = "";
     elementosConta.campoPagamentoObservacao.value = "";
+    // Detalhe atualizado (valor pago, data e transação) + resumo/lista
+    // consistentes (Fase 10.6) + feedback de sucesso.
+    renderizarDetalheConta(resultado.conta);
+    carregarResumoContas();
+    carregarContas();
+    elementosConta.avisoContaDetalhe.textContent =
+      "Pagamento registrado: despesa criada e carteira atualizada.";
   } catch (erro) {
     console.error(`PULSO: falha ao registrar pagamento da conta ${id} — ${erro.message}`, erro);
     elementosConta.avisoFormularioPagamento.textContent = "Falha interna ao registrar pagamento.";
@@ -517,6 +555,9 @@ async function acaoCancelarConta(id) {
     }
     renderizarDetalheConta(resultado.conta);
     carregarResumoContas();
+    // Feedback de sucesso (Fase 10.6 — consistência entre módulos).
+    elementosConta.avisoContaDetalhe.textContent =
+      "Conta cancelada — nenhuma movimentação financeira foi feita.";
   } catch (erro) {
     console.error(`PULSO: falha ao cancelar a conta ${id} — ${erro.message}`, erro);
   }
@@ -568,6 +609,10 @@ async function salvarConta(evento) {
     exibirVisaoConta("visao-contas");
     carregarResumoContas();
     carregarContas();
+    // Feedback de sucesso (Fase 10.6 — consistência entre módulos).
+    elementosConta.avisoContas.textContent = estadoConta.modoEdicaoConta
+      ? "Conta atualizada com sucesso."
+      : "Conta registrada com sucesso — nenhuma movimentação financeira foi feita.";
   } catch (erro) {
     console.error(`PULSO: falha ao salvar a conta — ${erro.message}`, erro);
     elementosConta.avisoFormulario.textContent = "Falha interna ao salvar a conta.";
@@ -594,6 +639,15 @@ function registrarEventosContas() {
     carregarContas();
   });
   elementosConta.botaoNovaConta.addEventListener("click", () => exibirFormularioConta(null));
+  // Navegação cruzada da FASE 10 (Fase 10.6).
+  elementosConta.botaoContasIrServicos = consultarElementoConta("botao-contas-ir-servicos");
+  elementosConta.botaoContasIrServicos.addEventListener("click", () => {
+    if (typeof window.__irParaServicos === "function") window.__irParaServicos();
+  });
+  elementosConta.botaoContasIrRecorrencias = consultarElementoConta("botao-contas-ir-recorrencias");
+  elementosConta.botaoContasIrRecorrencias.addEventListener("click", () => {
+    if (typeof window.__irParaRecorrencias === "function") window.__irParaRecorrencias();
+  });
   elementosConta.botaoVoltarContas.addEventListener("click", voltarAoPainelConta);
   elementosConta.formularioConta.addEventListener("submit", salvarConta);
   elementosConta.botaoSalvarConta.addEventListener("click", (e) => {
@@ -620,8 +674,15 @@ function registrarEventosContas() {
   elementosConta.botaoCancelarPagamento.addEventListener("click", esconderFormularioPagamentoConta);
 }
 
-/** Permite que principal.js navegue para as contas (botão do painel). */
+/** Permite que principal.js e os demais módulos naveguem para as contas. */
 window.__irParaContas = irParaContas;
+/** Contas de um serviço, com o filtro já aplicado (navegação da Fase 10.6). */
+window.__irParaContasComServico = async function (servicoId) {
+  await irParaContas();
+  estadoConta.filtroServico = String(servicoId);
+  elementosConta.filtroServicoContas.value = estadoConta.filtroServico;
+  carregarContas();
+};
 
 document.addEventListener("DOMContentLoaded", () => {
   mapearContas();
