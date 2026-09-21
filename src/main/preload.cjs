@@ -87,6 +87,7 @@ const CANAL_RECURRENCIA_ATUALIZAR = 'recorrencia:atualizar'; // igual a canais.c
 const CANAL_RECURRENCIA_ATIVAR = 'recorrencia:ativar'; // igual a canais.cjs → RECURRENCIA_ATIVAR
 const CANAL_RECURRENCIA_DESATIVAR = 'recorrencia:desativar'; // igual a canais.cjs → RECURRENCIA_DESATIVAR
 const CANAL_RECURRENCIA_ARQUIVAR = 'recorrencia:arquivar'; // igual a canais.cjs → RECURRENCIA_ARQUIVAR
+const CANAL_RECURRENCIA_GERAR = 'recorrencia:gerar'; // igual a canais.cjs → RECURRENCIA_GERAR
 const CANAL_RECURRENCIA_CONFIG = 'recorrencia:config'; // igual a canais.cjs → RECURRENCIA_CONFIG
 
 const { contextBridge, ipcRenderer } = require('electron');
@@ -308,10 +309,12 @@ contextBridge.exposeInMainWorld(
     }),
 
     /**
-     * Operacoes de Recorrencias (Fase 10.3).
-     * A recorrencia e a REGRA DE REPETICAO de um servico: criar/editar/
-     * ativar/desativar/arquivar NAO gera conta, NAO cria transacao e NAO
-     * altera o saldo (a geracao de ocorrencias e da Fase 10.4).
+     * Operacoes de Recorrencias (Fase 10.3) e GERACAO DE OCORRENCIAS
+     * (Fase 10.4). A recorrencia e a REGRA DE REPETICAO de um servico:
+     * criar/editar/ativar/desativar/arquivar NAO gera conta, NAO cria
+     * transacao e NAO altera o saldo. `gerar` transforma a regra em contas
+     * PENDENTES num periodo (idempotente — a mesma ocorrencia nao duplica),
+     * mas NAO paga, NAO cria transacao e NAO altera saldo (Fase 10.5).
      */
     recorrencia: Object.freeze({
       listar: (jogadorId, filtros = {}) =>
@@ -322,6 +325,8 @@ contextBridge.exposeInMainWorld(
       ativar: (id) => ipcRenderer.invoke(CANAL_RECURRENCIA_ATIVAR, { id }),
       desativar: (id) => ipcRenderer.invoke(CANAL_RECURRENCIA_DESATIVAR, { id }),
       arquivar: (id) => ipcRenderer.invoke(CANAL_RECURRENCIA_ARQUIVAR, { id }),
+      gerar: (id, periodo = {}) =>
+        ipcRenderer.invoke(CANAL_RECURRENCIA_GERAR, { id, ...periodo }),
       config: () => ipcRenderer.invoke(CANAL_RECURRENCIA_CONFIG),
     }),
   }),

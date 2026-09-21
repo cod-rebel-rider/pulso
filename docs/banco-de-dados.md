@@ -276,9 +276,17 @@ CREATE TABLE servico_recorrencia (
 CREATE INDEX IF NOT EXISTS idx_servico_recorrencia_jogador ON servico_recorrencia(jogador_id);
 CREATE INDEX IF NOT EXISTS idx_servico_recorrencia_servico ON servico_recorrencia(servico_id);
 CREATE INDEX IF NOT EXISTS idx_servico_recorrencia_estado ON servico_recorrencia(jogador_id, estado);
+
+-- migração 013 "adicionar-recorrencia-id-em-servico-conta" — Fase 10.4 (ver docs/geracao-ocorrencias.md)
+-- rastreabilidade da geração: a conta guarda a recorrência que a criou.
+ALTER TABLE servico_conta
+  ADD COLUMN recorrencia_id
+    INTEGER REFERENCES servico_recorrencia(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_servico_conta_recorrencia ON servico_conta(recorrencia_id);
 ```
 
-- `schema_migrations` responde "qual é a versão atual do banco?" (`SELECT MAX(versao)` . Atual: **v12**..
+- `schema_migrations` responde "qual é a versão atual do banco?" (`SELECT MAX(versao)` . Atual: **v13**..
 - `meta` guarda metadados técnico-operacionais(chave/valor. **Não** é configuração de ambiente(,isso vive em `config/*.json`) nem dado de sistema de jogo..
 
 - `jogador` (ver `docs/jogador.md`): identidade do operador — entidade central do PULSO; single-player imposta pelo Serviço,, com schema aberto a evolução futura.

@@ -1,13 +1,14 @@
 /**
- * PULSO — Renderer: Recorrências (Fase 10.3)
+ * PULSO — Renderer: Recorrências (Fase 10.3) e Geração de Ocorrências (Fase 10.4)
  *
  * Interface das REGRAS DE REPETIÇÃO dos serviços. Nenhuma regra de negócio
- * aqui: validações, máquina de estados e regra de meses curtos vivem no
- * núcleo (dominio/recorrencia.js e aplicacao/servico-recorrencias.js).
+ * aqui: validações, máquina de estados, cálculo de datas e idempotência
+ * vivem no núcleo (dominio/recorrencia.js, dominio/geracao.js e
+ * aplicacao/servico-geracao-ocorrencias.js).
  *
- * Nada nesta tela gera conta ou movimenta dinheiro: criar/editar/ativar/
- * desativar/arquivar uma recorrência NÃO cria conta, NÃO cria transação e
- * NÃO altera a carteira (a geração de ocorrências é a Fase 10.4).
+ * A geração (Fase 10.4) transforma a regra em CONTAS PENDENTES dentro de um
+ * período — e não paga nada: não cria transação e não altera a carteira
+ * (o pagamento é a Fase 10.5).
  */
 
 const elementosRecorrencia = {};
@@ -142,6 +143,17 @@ function mapearRecorrencias() {
   elementosRecorrencia.detalheDescricao = consultarElementoRecorrencia("recorrencia-detalhe-descricao");
   elementosRecorrencia.avisoRecorrenciaDetalhe = consultarElementoRecorrencia("aviso-recorrencia-detalhe");
   elementosRecorrencia.acoesRecorrenciaDetalhe = consultarElementoRecorrencia("acoes-recorrencia-detalhe");
+  // geração de ocorrências (Fase 10.4)
+  elementosRecorrencia.secaoGerarOcorrencias = consultarElementoRecorrencia("secao-gerar-ocorrencias");
+  elementosRecorrencia.formularioGeracao = consultarElementoRecorrencia("formulario-geracao");
+  elementosRecorrencia.campoGerarInicio = consultarElementoRecorrencia("campo-gerar-inicio");
+  elementosRecorrencia.campoGerarFim = consultarElementoRecorrencia("campo-gerar-fim");
+  elementosRecorrencia.avisoGeracao = consultarElementoRecorrencia("aviso-geracao");
+  elementosRecorrencia.botaoGerarOcorrencias = consultarElementoRecorrencia("botao-gerar-ocorrencias");
+  elementosRecorrencia.resultadoGeracao = consultarElementoRecorrencia("resultado-geracao");
+  elementosRecorrencia.geracaoEncontradas = consultarElementoRecorrencia("geracao-encontradas");
+  elementosRecorrencia.geracaoCriadas = consultarElementoRecorrencia("geracao-criadas");
+  elementosRecorrencia.geracaoExistentes = consultarElementoRecorrencia("geracao-existentes");
   // formulário
   elementosRecorrencia.formularioTituloSecao = consultarElementoRecorrencia("formulario-recorrencia-titulo-secao");
   elementosRecorrencia.formularioTitulo = consultarElementoRecorrencia("formulario-recorrencia-titulo");
@@ -362,6 +374,14 @@ function renderizarDetalheRecorrencia(recorrencia) {
     formatarDataSimplesRecorrencia(recorrencia.arquivadoEm);
   elementosRecorrencia.detalheDescricao.textContent = recorrencia.descricao || "";
   elementosRecorrencia.avisoRecorrenciaDetalhe.textContent = "";
+  // Geração (Fase 10.4): disponível apenas para regras ATIVAS — inativa está
+  // pausada e arquivada está encerrada. Cada detalhe recomeça limpo.
+  const podeGerar = recorrencia.estado === "ativa";
+  elementosRecorrencia.secaoGerarOcorrencias.classList.toggle("oculto", !podeGerar);
+  elementosRecorrencia.campoGerarInicio.value = "";
+  elementosRecorrencia.campoGerarFim.value = "";
+  elementosRecorrencia.avisoGeracao.textContent = "";
+  elementosRecorrencia.resultadoGeracao.classList.add("oculto");
   montarAcoesDetalheRecorrencia(recorrencia);
 }
 
@@ -465,6 +485,55 @@ async function acaoArquivarRecorrencia(id) {
   }
 }
 
+// ── Geração de ocorrências (Fase 10.4) ────────────────────────────────────
+// Transforma a regra em contas PENDENTES no período — idempotente no
+// núcleo: repetir a geração do mesmo período não duplica contas. Aqui só
+// coletamos o período e exibimos o resumo; nenhuma regra de datas local.
+async function acaoGerarOcorrencias(evento) {
+  evento.preventDefault();
+  const recorrenciaId = estadoRecorrencia.recorrenciaAtualId;
+  if (!recorrenciaId) return;
+  const periodoInicio = elementosRecorrencia.campoGerarInicio.value;
+  const periodoFim = elementosRecorrencia.campoGerarFim.value;
+  if (!periodoInicio || !periodoFim) {
+    elementosRecorrencia.avisoGeracao.textContent =
+      "Informe o início e o fim do período da geração.";
+    return;
+  }
+  if (periodoFim < periodoInicio) {
+    elementosRecorrencia.avisoGeracao.textContent =
+      "O fim do período não pode ser anterior ao início.";
+    return;
+  }
+  try {
+    const resultado = await ponteRecorrencia().gerar(recorrenciaId, {
+      periodoInicio,
+      periodoFim,
+    });
+    if (!resultado.ok) {
+      elementosRecorrencia.avisoGeracao.textContent =
+        resultado.mensagem ?? "Não foi possível gerar as ocorrências.";
+      return;
+    }
+    const { encontradas, criadas, existentes } = resultado.geracao;
+    elementosRecorrencia.geracaoEncontradas.textContent = String(encontradas);
+    elementosRecorrencia.geracaoCriadas.textContent = String(criadas);
+    elementosRecorrencia.geracaoExistentes.textContent = String(existentes);
+    elementosRecorrencia.resultadoGeracao.classList.remove("oculto");
+    elementosRecorrencia.avisoGeracao.textContent =
+      criadas === 0 && existentes > 0
+        ? "Nenhuma conta nova: as ocorrências deste período já haviam sido geradas."
+        : "";
+  } catch (erro) {
+    console.error(
+      `PULSO: falha ao gerar ocorrências da recorrência ${recorrenciaId} — ${erro.message}`,
+      erro,
+    );
+    elementosRecorrencia.avisoGeracao.textContent =
+      "Falha interna ao gerar as ocorrências.";
+  }
+}
+
 // ── Formulário (criação e edição) ─────────────────────────────────────────
 function exibirFormularioRecorrencia(recorrencia = null) {
   estadoRecorrencia.modoEdicaoRecorrencia = !!recorrencia;
@@ -557,6 +626,7 @@ function registrarEventosRecorrencias() {
   elementosRecorrencia.botaoNovaRecorrencia.addEventListener("click", () => exibirFormularioRecorrencia(null));
   elementosRecorrencia.botaoVoltarRecorrencias.addEventListener("click", voltarAoPainelRecorrencia);
   elementosRecorrencia.formularioRecorrencia.addEventListener("submit", salvarRecorrencia);
+  elementosRecorrencia.formularioGeracao.addEventListener("submit", acaoGerarOcorrencias);
   elementosRecorrencia.botaoSalvarRecorrencia.addEventListener("click", (e) => {
     e.preventDefault();
     salvarRecorrencia(e);

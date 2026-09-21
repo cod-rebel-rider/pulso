@@ -286,5 +286,7 @@ export function paraConta(linha) {
     criadoEm: linha.criado_em,
     atualizadoEm: linha.atualizado_em,
     canceladoEm: linha.cancelado_em ?? null,
+    // Recorrência que gerou a conta (Fase 10.4); null nas contas manuais.
+    recorrenciaId: linha.recorrencia_id ?? null,
   });
 }

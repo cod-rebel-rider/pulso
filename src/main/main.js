@@ -44,6 +44,7 @@ import { ServicoLoja } from '../core/aplicacao/servico-loja.js';
 import { ServicoServicos } from '../core/aplicacao/servico-servicos.js';
 import { ServicoContas } from '../core/aplicacao/servico-contas.js';
 import { ServicoRecorrencias } from '../core/aplicacao/servico-recorrencias.js';
+import { ServicoGeracaoOcorrencias } from '../core/aplicacao/servico-geracao-ocorrencias.js';
 import {
   CATEGORIAS_DESEJO,
   PRIORIDADES_DESEJO_ORDEM,
@@ -105,6 +106,7 @@ let servicoLoja = null;
 let servicoServicos = null;
 let servicoContas = null;
 let servicoRecorrencias = null;
+let servicoGeracaoOcorrencias = null;
 
 // ── Teste de fumaça ─────────────────────────────────────────────────────
 const resultadosFumaca = {
@@ -686,6 +688,18 @@ function registrarIpc() {
     traduzirResultadoOperacao(() => ({ ok: true, recorrencia: servicoRecorrencias.desativar(Number(id ?? 0)) })));
   ipcMain.handle(canais.RECURRENCIA_ARQUIVAR, (_evento, { id } = {}) =>
     traduzirResultadoOperacao(() => ({ ok: true, recorrencia: servicoRecorrencias.arquivar(Number(id ?? 0)) })));
+
+  // ── Geração de ocorrências (Fase 10.4) ────────────────────────────────
+  // Transforma a regra em contas PENDENTES num período (idempotente).
+  // NÃO paga, NÃO cria transação e NÃO altera saldo/carteira/orçamento.
+  ipcMain.handle(canais.RECURRENCIA_GERAR, (_evento, { id, periodoInicio = null, periodoFim = null } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const geracao = servicoGeracaoOcorrencias.gerar(Number(id ?? 0), { periodoInicio, periodoFim });
+      registro.info(
+        `Geração de ocorrências: encontradas=${geracao.encontradas}, criadas=${geracao.criadas}, existentes=${geracao.existentes}.`,
+      );
+      return { ok: true, geracao };
+    }));
 }
 
 /**
@@ -821,6 +835,11 @@ async function aoIniciar() {
     repositorio: repositorioRecorrencia,
     repositorioServico,
     repositorioJogador,
+  });
+  servicoGeracaoOcorrencias = new ServicoGeracaoOcorrencias({
+    repositorioRecorrencia,
+    repositorioContas: repositorioConta,
+    banco: estadoBanco.banco,
   });
   servicoProjeto = new ServicoProjeto({
     repositorio: repositorioProjeto,
