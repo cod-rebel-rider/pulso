@@ -74,4 +74,4 @@ Canal **`conta:pagar`** (preload `conta.pagar`): `{ jogadorId, id, valorPagoCent
 
 ## Testes
 
-`tests/unidade/pagamento.test.mjs` (regras puras) e `tests/integracao/pagamento.test.mjs` (banco real) cobrem: pagamento de pendente e vencida, valor diferente do esperado, criação da despesa, saldo correto, vínculo conta↔transação, pagamento duplicado, cancelada, inexistente, jogador incorreto, valor/data inválidos, **atomicidade** com falha simulada na despesa, isolamento entre jogadores e persistência fechar → reabrir. Detalhes em `docs/testes.md` (seção 3.9).
+`tests/unidade/pagamento.test.mjs` (regras puras) e `tests/integracao/pagamento.test.mjs` (banco real) cobrem: pagamento de pendente e vencida, valor diferente do esperado, criação da despesa, saldo correto, vínculo conta↔transação, pagamento duplicado, cancelada, inexistente, jogador incorreto, valor/data inválidos, **atomicidade** com falha simulada na despesa, isolamento entre jogadores e persistência fechar → reabrir. Detalhes em `docs/testes.md` (seção 3.10).

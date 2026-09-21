@@ -15,9 +15,45 @@ Pirâmide clássica, respeitando o ritmo das fases:
 
 ```text
 tests/
-├── unidade/      → ambiente, configuração, registro, canais IPC, conexão, migrações, jogador, status, missão, projeto, finança, loja, serviço, conta, recorrência, geração
-└── integracao/   → inicialização da aplicação (fumaça), persistência real do banco, jogador, status, missão, projeto, finança, loja, serviço, conta, recorrência, geração
+├── unidade/      → ambiente, configuração, registro, canais IPC, conexão, migrações, jogador, status, missão, progressão, projeto, finança, loja, serviço, conta, recorrência, geração
+└── integracao/   → inicialização da aplicação (fumaça), persistência real do banco, jogador, status, missão, progressão, projeto, finança, loja, serviço, conta, recorrência, geração
 ```
+
+## 3.3 Fase 06 — Progressão
+
+- `tests/unidade/progressao.test.mjs` — regras puras do domínio: constantes
+  iniciais (nível 1, 0 XP, 0 pontos, atributos em 1), curva (`100 × nível`),
+  cálculo de nível (limites, múltiplos níveis, XP alto `1.000.000 → 141`),
+  detalhe de progresso (`xpNoNivel`/`xpNecessario`/fração), validação de XP
+  total e quantidade (negativo, fração, texto, **inteiros não seguros**),
+  `adicionarXp` (zero, level up, múltiplos níveis, **estouro do inteiro
+  seguro**), **teto de atributo** (`ATRIBUTO_MAXIMO = 100`: no limite passa,
+  acima falha, legado acima do teto não evolui), validação de nome de
+  atributo, distribuição de pontos (excesso, zero, negativo) e **origem do
+  XP** (`ORIGENS_XP`).
+- `tests/unidade/servico-progressao.test.mjs` — serviço em ISOLAMENTO
+  (repositórios fake em memória + banco fake que registra os comandos):
+  criação/consulta, idempotência do reparo, **reparo de estado parcial**,
+  contrato de retorno **uniforme e congelado** nos três métodos, XP zero sem
+  escrita, level up transacional (`BEGIN`/`COMMIT`), validações antes de
+  qualquer escrita, teto respeitado na aplicação, **ROLLBACK** em falha de
+  escrita e em falha do reparo, `ErroConflito` para jogador inexistente e
+  modo degradado (sem banco).
+- `tests/unidade/ipc-progressao.test.mjs` — contrato IPC por **análise
+  estática**: handlers dos três canais registrados no `main.js` (com
+  `jogadorId` explícito e `traduzirResultadoOperacao`) e métodos
+  `obter`/`adicionarXp`/`aumentarAtributo` expostos no preload. O
+  comportamento em execução é coberto pelo teste de fumaça e pela integração.
+- `tests/integracao/progressao.test.mjs` — ciclo completo com banco real:
+  jogador novo (nível 1 / 0 XP / atributos em 1), XP persistido, level up,
+  erros (XP negativo, jogador inexistente), distribuição de pontos, **teto de
+  atributo gravado no banco (100)**, **XP alto (1.000.000 → nível 141)**,
+  origem validada, **reparo de progressão sem atributos sem duplicar**,
+  legado acima do teto (continua legível, não evolui) e persistência
+  fechar → reabrir.
+- Migrações `005` (tabelas de progressão) e `009` (conciliação do banco
+  legado da Fase 06) são verificadas em `tests/unidade/migracoes.test.mjs` e
+  nos testes de jogador/persistência que afirmam a lista de migrações.
 
 ## 3.4 Fase 08 — Finanças
 
@@ -50,7 +86,7 @@ tests/
   recompra bloqueada; cenário completo desejo → planejar → comprar → despesa →
   saldo → histórico.
 
-## 3.7 Fase 10.6 — Serviços e Despesas (visão e estabilização)
+## 3.6 Fase 10.6 — Serviços e Despesas (visão e estabilização)
 
 - `tests/integracao/fase10.test.mjs` — suíte consolidada que valida todo o
   pipeline da FASE 10 como um único fluxo coerente, incluindo os testes de
@@ -86,7 +122,7 @@ inclusiva e a comparação pela data de vencimento. `ServicoPagamentos` passa a
 retornar a conta paga com a situação derivada (`situacao`), alinhando o
 contrato com o restante da FASE 10.
 
-## 3.6 Testes manuais — Fase 09 (executados)
+## 3.7 Testes manuais — Fase 09 (executados)
 
 Cenários da fase executados em banco SQLite temporário (ciclo completo, com reabertura do arquivo):
 
@@ -101,7 +137,7 @@ Cenários da fase executados em banco SQLite temporário (ciclo completo, com re
 | 7 | Cancelar um desejo | item permanece no banco (`CANCELADO`); nenhuma transação criada; carteira intacta |
 | 8 | Fechar e reabrir o aplicativo (novo arquivo → reler) | histórico, estados e saldo **permanecem** |
 
-## 3.7 Fase 10.3 — Recorrências
+## 3.8 Fase 10.3 — Recorrências
 
 - `tests/unidade/recorrencia.test.mjs` — regras puras do domínio: lista controlada
   de frequências e extensibilidade (mensal…anual, cada uma com intervalo em meses),
@@ -119,7 +155,7 @@ Cenários da fase executados em banco SQLite temporário (ciclo completo, com re
   saldo inalterado, **zero contas** e **zero transações** criadas); persistência
   fechar → reabrir.
 
-## 3.8 Fase 10.4 — Geração de Ocorrências
+## 3.9 Fase 10.4 — Geração de Ocorrências
 
 - `tests/unidade/geracao.test.mjs` — regras puras do domínio: período De/Até
   (obrigatório, inclusivo, invertido e data inexistente rejeitados), elegibilidade
@@ -142,7 +178,7 @@ Cenários da fase executados em banco SQLite temporário (ciclo completo, com re
   → saldo R$ 1.000,00 inalterado, carteira intacta, zero transações) e
   persistência fechar → reabrir → regerar sem duplicar.
 
-## 3.9 Fase 10.5 — Pagamentos
+## 3.10 Fase 10.5 — Pagamentos
 
 - `tests/unidade/pagamento.test.mjs` — regras puras do domínio: estados
   pagáveis (`pendente`/`vencida` sim — vencida é a mesma conta `pendente` com
@@ -200,6 +236,7 @@ Ele inicia a aplicação, cria a janela, carrega o renderer, valida a ponte IPC,
 | Domínio | unidade | funções puras, sem E/S |
 | Aplicação | unidade/integração | casos de uso com repositórios simulados ou banco temporário |
 | Persistência | integração | SQLite em arquivo temporário (Fase 02+) |
+| Progressão (Fase 06) | unidade + integração | `progressao.test.mjs` (domínio), `servico-progressao.test.mjs` (serviço isolado com repositórios/banco fake — transações e ROLLBACK) e `ipc-progressao.test.mjs` (contrato IPC por análise estática) + integração com banco real (teto de atributo, XP alto, reparo atômico, persistência) |
 | Finanças (Fase 08) | unidade + integração | `financa.test.mjs` — domínio (centavos, categorias, saldo, período, orçamento) e ciclo completo com banco real (carteira, transações, edição/exclusão, orçamentos, persistência) |
 | Loja / Lista de Desejos (Fase 09) | unidade + integração | `loja.test.mjs` — domínio (estados, transições, validações, diferença/percentual, mapeamento financeiro) e ciclo completo com banco real (compra atômica via Fase 08, rollback, histórico, cancelamento, persistência) |
 | Recorrências (Fase 10.3) | unidade + integração | `recorrencia.test.mjs` — domínio (frequências, estados, datas, ajuste de dia 31, valores) e ciclo completo com banco real (vínculo com serviço, isolamento, filtros, arquivamento terminal, **saldo inalterado / zero contas / zero transações**, persistência) |
