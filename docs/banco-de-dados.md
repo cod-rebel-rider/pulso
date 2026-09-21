@@ -406,7 +406,7 @@ Padrão estabelecido (ver `src/core/database/repositorios/meta.js`):
 - statements preparados uma vez, no construtor;
 - métodos com nomes de intenção (`obter`, `definir`, `remover`), sem vazamento de SQL;
 - repositórios das fases seguem o mesmo modelo em `repositorios/` (o jogador — Fase 03 — já segue o padrão);
-- migrações atuais: **001** (infraestrutura), **002** (jogador — Fase 03), **003** (status — Fase 04), **004** (missões — Fase 05), **005** (progressão — Fase 06), **006** (projetos — Fase 07) e **007** (finanças — Fase 08).
+- migrações atuais: **001** (infraestrutura), **002** (jogador — Fase 03), **003** (status — Fase 04), **004** (missões — Fase 05), **005** (progressão — Fase 06), **006** (projetos — Fase 07), **007** (finanças — Fase 08), **008** (lista de desejos — Fase 09), **009** (conciliação do banco legado da progressão), **010** (serviço — Fase 10.1), **011** (conta — Fase 10.2), **012** (recorrência — Fase 10.3), **013** (vínculo da geração de ocorrências — Fase 10.4) e **014** (campos de pagamento e estado `paga` — Fase 10.5) — **schema v14**.
 
 Fluxo de inicialização da aplicação (main.js):
 

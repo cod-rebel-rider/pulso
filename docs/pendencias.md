@@ -23,7 +23,7 @@ Registro de necessidades identificadas durante as fases que **serão resolvidas 
 | P-017 | Backup automático do banco (agendado + verificação de integridade) | fase futura a definir | hoje: backup manual documentado (`banco-de-dados.md`, seção 9) |
 | P-018 | Criptografia do banco (ex.: SQLCipher) | avaliar quando houver ameaça real | decisão exigirá novo ADR (`banco-de-dados.md`, seção 10) |
 | P-019 | Migrações de reversão (down) e checksum de migrações aplicadas | fase futura | hoje: reversão = restaurar backup |
-| P-021 | Adicionar CHECK constraints no banco (ex.: `energia BETWEEN 0 AND 100`) | fase de polimento | hoje: a aplicação garante os limites antes de persistir |
+| P-021 | Adicionar CHECK constraints no banco (ex.: `energia BETWEEN 0 AND 100`, teto de atributo da Fase 06) | fase de polimento | hoje: a aplicação garante os limites antes de persistir (progressão: teto 100 garantido no domínio/aplicação, sem CHECK — decisão D-2 em `progressao.md`) |
 | P-022 | Recompensas de missões (XP, dinheiro, itens, efeitos sobre status) | fase futura (integração) | Fase 06 entregou o motor de XP; concluir missão ainda não concede XP automaticamente |
 | P-023 | Reset de atributos (respec/redistribuição) | fase futura a definir | Fase 06 não implementa rebuild de build (documentado em `progressao.md`) |
 | P-024 | Recompensas por conclusão de projeto (XP/dinheiro/atributos/status) | fase futura a definir | Fase 07: projeto organiza e acompanha, não concede nada; requisito registrado em `projeto.md` |
@@ -34,6 +34,7 @@ Registro de necessidades identificadas durante as fases que **serão resolvidas 
 | P-029 | Orçamento geral (multi-categoria) | fase futura a definir | Fase 08: orçamentos apenas por categoria de despesa |
 | P-030 | Moedas adicionais além de BRL | fase futura a definir | Fase 08: `MOEDA` centralizada no domínio (`financas.md` §2) |
 | P-031 | Integração financeira das fases seguintes (loja/serviços usam o motor) | 09 — Loja / 10 — Serviços | Fase 08 entrega o motor: transações, carteira, orçamento |
+| P-032 | Teste de IPC em execução (handlers `ipcMain`) e e2e da interface | 17 — Testes e Estabilização | hoje o contrato IPC é coberto por análise estática (`tests/unidade/ipc-progressao.test.mjs`) + teste de fumaça; `src/main/main.js` não é importável em teste (executa o bootstrap do Electron) |
 
 ## Pendências resolvidas
 

@@ -9,6 +9,8 @@ import {
   XP_INICIAL,
   PONTOS_INICIAIS,
   PONTOS_POR_NIVEL,
+  ATRIBUTO_MAXIMO,
+  ORIGENS_XP,
   ATRIBUTOS_DISPONIVEIS,
   ATRIBUTOS_ROTULOS,
   xpNecessarioParaProximoNivel,
@@ -16,6 +18,8 @@ import {
   calcularProgresso,
   validarXpTotal,
   validarQuantidadeXp,
+  validarOrigemXp,
+  validarValorAtributo,
   adicionarXp,
   validarNomeAtributo,
   aumentarAtributo,
@@ -124,6 +128,81 @@ test('atributos: 7 válidos; desconhecido rejeitado', () => {
     assert.equal(validarNomeAtributo(nome), nome);
   }
   assert.throws(() => validarNomeAtributo('mana'), ErroValidacao);
+});
+
+test('teto de atributo: constante e validação do valor', () => {
+  assert.equal(ATRIBUTO_MAXIMO, 100);
+  assert.equal(validarValorAtributo(1), 1);
+  assert.equal(validarValorAtributo(ATRIBUTO_MAXIMO), ATRIBUTO_MAXIMO);
+  assert.equal(validarValorAtributo(3, 'foco'), 3);
+  assert.throws(() => validarValorAtributo(0), ErroValidacao);
+  assert.throws(() => validarValorAtributo(-1), ErroValidacao);
+  assert.throws(() => validarValorAtributo(1.5), ErroValidacao);
+  assert.throws(() => validarValorAtributo('3'), ErroValidacao);
+  assert.throws(() => validarValorAtributo(NaN), ErroValidacao);
+});
+
+test('aumentarAtributo respeita o teto: no limite passa, acima falha', () => {
+  const base = atributosIniciais();
+  const noLimite = aumentarAtributo(
+    { atributos: { ...base, tecnologia: 95 }, pontosDisponiveis: 5 },
+    'tecnologia',
+    5,
+  );
+  assert.equal(noLimite.atributos.tecnologia, ATRIBUTO_MAXIMO);
+  assert.equal(noLimite.pontosDisponiveis, 0);
+
+  const acima = { atributos: { ...base, tecnologia: 95 }, pontosDisponiveis: 6 };
+  assert.throws(() => aumentarAtributo(acima, 'tecnologia', 6), ErroValidacao);
+
+  const cheio = { atributos: { ...base, tecnologia: ATRIBUTO_MAXIMO }, pontosDisponiveis: 10 };
+  assert.throws(() => aumentarAtributo(cheio, 'tecnologia', 1), ErroValidacao);
+
+  // Banco legado acima do teto continua legível, mas não evolui mais.
+  const legado = { atributos: { ...base, foco: ATRIBUTO_MAXIMO + 5 }, pontosDisponiveis: 3 };
+  assert.throws(() => aumentarAtributo(legado, 'foco', 1), ErroValidacao);
+});
+
+test('XP: magnitudes não seguras são rejeitadas', () => {
+  assert.equal(validarXpTotal(Number.MAX_SAFE_INTEGER), Number.MAX_SAFE_INTEGER);
+  assert.throws(() => validarXpTotal(Number.MAX_SAFE_INTEGER + 1), ErroValidacao);
+  assert.equal(validarQuantidadeXp(Number.MAX_SAFE_INTEGER), Number.MAX_SAFE_INTEGER);
+  assert.throws(() => validarQuantidadeXp(2 ** 53), ErroValidacao);
+  assert.throws(() => validarQuantidadeXp(Number.POSITIVE_INFINITY), ErroValidacao);
+});
+
+test('adicionarXp rejeita estouro do inteiro seguro em vez de gravar valor impreciso', () => {
+  const quase = {
+    xpTotal: Number.MAX_SAFE_INTEGER - 1,
+    nivel: NIVEL_INICIAL,
+    pontosDisponiveis: 0,
+  };
+  assert.throws(() => adicionarXp(quase, 2), ErroValidacao);
+});
+
+test('XP alto: nível, sobra e próximo nível seguem a curva', () => {
+  const xp = 1_000_000; // nível 141 (soma 100×1..140 = 987.000)
+  assert.equal(calcularNivel(xp), 141);
+  const detalhe = calcularProgresso(xp);
+  assert.equal(detalhe.nivel, 141);
+  assert.equal(detalhe.xpNoNivel, 13_000);
+  assert.equal(detalhe.xpNecessario, 14_100);
+
+  const r = adicionarXp({ xpTotal: xp, nivel: 141, pontosDisponiveis: 3 }, 14_100);
+  assert.equal(r.xpTotal, 1_014_100);
+  assert.equal(r.nivel, 142);
+  assert.equal(r.niveisGanhos, 1);
+  assert.equal(r.pontosDisponiveis, 4);
+});
+
+test('origem do XP: apenas as origens previstas são aceitas', () => {
+  assert.deepEqual(ORIGENS_XP, ['MISSAO', 'PROJETO', 'CONQUISTA', 'OUTRO']);
+  for (const origem of ORIGENS_XP) {
+    assert.equal(validarOrigemXp(origem), origem);
+  }
+  assert.throws(() => validarOrigemXp('LOJA'), ErroValidacao);
+  assert.throws(() => validarOrigemXp('missao'), ErroValidacao);
+  assert.throws(() => validarOrigemXp(undefined), ErroValidacao);
 });
 
 test('aumentarAtributo consome pontos; excesso e inválidos rejeitados', () => {

@@ -122,6 +122,7 @@ function mapearElementos() {
   elementos.progressaoNivel = consultar('progressao-nivel');
   elementos.progressaoXpTexto = consultar('progressao-xp-texto');
   elementos.progressaoPreenchimento = consultar('progressao-preenchimento');
+  elementos.progressaoBarra = consultar('progressao-barra');
   elementos.progressaoProximo = consultar('progressao-proximo');
   elementos.progressaoPontos = consultar('progressao-pontos');
   elementos.atributosLista = consultar('atributos-lista');
@@ -335,6 +336,15 @@ function renderizarProgressao(progressao) {
   elementos.progressaoNivel.textContent = `NÍVEL ${progressao.nivel}`;
   elementos.progressaoXpTexto.textContent = `${progressao.xpNoNivel} / ${progressao.xpNecessario} XP`;
   elementos.progressaoPreenchimento.style.width = `${Math.round(progressao.progresso * 100)}%`;
+  // Semântica de acessibilidade: a barra visual é o preenchimento, mas o
+  // papel de progresso vive no contêiner — os valores vêm do domínio.
+  elementos.progressaoBarra.setAttribute('aria-valuemin', '0');
+  elementos.progressaoBarra.setAttribute('aria-valuemax', String(progressao.xpNecessario));
+  elementos.progressaoBarra.setAttribute('aria-valuenow', String(progressao.xpNoNivel));
+  elementos.progressaoBarra.setAttribute(
+    'aria-valuetext',
+    `${progressao.xpNoNivel} de ${progressao.xpNecessario} XP`,
+  );
   elementos.progressaoProximo.textContent = `Próximo nível: ${progressao.xpNecessario - progressao.xpNoNivel} XP`;
   elementos.progressaoPontos.textContent = `Pontos de atributo disponíveis: ${progressao.pontosDisponiveis}`;
   elementos.atributosLista.replaceChildren();

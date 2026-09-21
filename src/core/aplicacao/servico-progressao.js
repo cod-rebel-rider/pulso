@@ -12,6 +12,7 @@ import {
   atributosIniciais,
   calcularProgresso,
   validarQuantidadeXp,
+  validarOrigemXp,
   validarNomeAtributo,
   adicionarXp,
   aumentarAtributo,
@@ -37,8 +38,15 @@ export class ServicoProgressao {
     }
   }
 
-  /** Monta a visão completa (progressão + atributos + progresso no nível). */
-  _montarVisao(progressao, atributos) {
+  /**
+   * Monta a visão completa (progressão + atributos + progresso no nível).
+   *
+   * A visão tem forma ÚNICA e congelada para os três métodos públicos: os
+   * sinalizadores de level up existem sempre — `false`/`0` quando a operação
+   * não concede nível (consulta ou aumento de atributo). Assim a interface
+   * pode ler a mesma estrutura em qualquer caminho, sem campos opcionais.
+   */
+  _montarVisao(progressao, atributos, { subiuNivel = false, niveisGanhos = 0 } = {}) {
     const detalhe = calcularProgresso(progressao.xpTotal);
     return Object.freeze({
       jogadorId: progressao.jogadorId,
@@ -59,6 +67,8 @@ export class ServicoProgressao {
       progresso: detalhe.progresso,
       criadoEm: progressao.criadoEm,
       atualizadoEm: progressao.atualizadoEm,
+      subiuNivel,
+      niveisGanhos,
     });
   }
 
@@ -85,36 +95,53 @@ export class ServicoProgressao {
         : this._atributos.criar(jogadorId, atributosIniciais());
       return this._montarVisao(prog, atr);
     };
-    // Sem transação própria: o caminho principal é chamado DENTRO da
-    // transação de criação do jogador (ServicoJogador.aoCriar — Fase 04/06),
-    // e transações aninhadas são rejeitadas pelo SQLite. No caminho de
-    // auto-inicialização (obter → jogador legado), as verificações `existe`
-    // tornam a operação idempotente e reparável em chamadas seguintes.
+    // Sem transação PRÓPRIA: os dois caminhos de chamada já rodam dentro de
+    // uma transação — a criação do jogador (ServicoJogador.aoCriar, Fase 04/06)
+    // e o reparo de jogador legado feito por `obter` (que abre a transação
+    // quando há banco). Transações aninhadas são rejeitadas pelo SQLite, por
+    // isso nenhuma transação é aberta aqui; as verificações `existe` mantêm a
+    // operação idempotente em qualquer chamada repetida.
     return criar();
   }
 
-  /** Obtém a progressão; inicializa se o jogador veio de banco antigo. */
+  /**
+   * Obtém a progressão; inicializa se o jogador veio de banco antigo.
+   *
+   * O reparo (progressão e/ou atributos ausentes) roda em transação quando há
+   * banco disponível: ou as duas tabelas são criadas, ou nenhuma — nunca um
+   * estado parcial.
+   */
   obter(jogadorId) {
     this._garantirJogador(Number(jogadorId));
     const id = Number(jogadorId);
     const prog = this._progressao.buscarPorJogador(id);
     const atr = this._atributos.buscarPorJogador(id);
     if (prog && atr) return this._montarVisao(prog, atr);
-    return this.criarInicial(id);
+    const reparar = () => this.criarInicial(id);
+    return this._banco ? comTransacao(this._banco, reparar) : reparar();
   }
 
   /**
-   * Concede XP (operação interna/controlada — prepara futuras origens
-   * MISSÃO/PROJETO/CONQUISTA/OUTRO sem implementar os módulos).
-   * Zero não gera alteração; negativo é rejeitado pelo domínio.
+   * Concede XP ao jogador (operação interna/controlada).
+   *
+   * A `origem` é validada contra `ORIGENS_XP` e NÃO é persistida nesta fase
+   * (não há histórico de XP); existe para que as integrações futuras
+   * (missão/projeto) não precisem alterar este contrato. Zero não gera
+   * alteração; negativo é rejeitado pelo domínio.
+   *
+   * @param {number} jogadorId
+   * @param {number} quantidade XP a conceder
+   * @param {string} [origem] uma de `ORIGENS_XP`
+   * @returns {object} visão congelada — mesma forma de `obter`/`aumentarAtributo`
    */
-  adicionarXp(jogadorId, quantidade) {
+  adicionarXp(jogadorId, quantidade, origem = 'OUTRO') {
     this._garantirJogador(Number(jogadorId));
     const id = Number(jogadorId);
     validarQuantidadeXp(Number(quantidade));
+    validarOrigemXp(origem);
     const atual = this.obter(id);
     if (Number(quantidade) === 0) {
-      return { ...atual, subiuNivel: false, niveisGanhos: 0 };
+      return atual; // sem alteração: a visão já traz subiuNivel=false/niveisGanhos=0
     }
     const calculado = adicionarXp(
       { xpTotal: atual.xpTotal, nivel: atual.nivel, pontosDisponiveis: atual.pontosDisponiveis },
@@ -127,17 +154,20 @@ export class ServicoProgressao {
         pontosDisponiveis: calculado.pontosDisponiveis,
       });
       const atr = this._atributos.buscarPorJogador(id);
-      return {
-        ...this._montarVisao(prog, atr),
+      return this._montarVisao(prog, atr, {
         subiuNivel: calculado.subiuNivel,
         niveisGanhos: calculado.niveisGanhos,
-      };
+      });
     };
-    const resultado = this._banco ? comTransacao(this._banco, persistir) : persistir();
-    return Object.freeze(resultado);
+    return this._banco ? comTransacao(this._banco, persistir) : persistir();
   }
 
-  /** Distribui pontos em um atributo (atômica: atributos + pontos). */
+  /**
+   * Distribui pontos em um atributo (atômica: atributos + pontos).
+   *
+   * Devolve a mesma visão congelada das demais operações — sem level up,
+   * `subiuNivel` é sempre `false` e `niveisGanhos` sempre `0`.
+   */
   aumentarAtributo(jogadorId, nome, quantidade = 1) {
     this._garantirJogador(Number(jogadorId));
     const id = Number(jogadorId);

@@ -103,6 +103,103 @@ test('integridade: jogador sem progressão é inicializado sem duplicar', () => 
   assert.equal(total, 1);
 });
 
+// ── Teto, magnitude e reparo (auditoria da Fase 06) ──────────────────
+
+/** Cria um jogador direto no banco (a aplicação é single-player). */
+function criarJogadorDireto(nome) {
+  return new RepositorioJogador(banco).criar({ nome, codinome: null });
+}
+
+test('teto de atributo: 100 é o limite e o valor fica gravado no banco', () => {
+  const novo = criarJogadorDireto('Tetudo');
+  const comPontos = servicoProgressao.adicionarXp(novo.id, 495_000); // nível 100 → 99 pontos
+  assert.equal(comPontos.nivel, 100);
+  assert.equal(comPontos.pontosDisponiveis, 99);
+
+  const noLimite = servicoProgressao.aumentarAtributo(novo.id, 'tecnologia', 99);
+  assert.equal(noLimite.atributos.tecnologia, 100);
+  assert.equal(noLimite.pontosDisponiveis, 0);
+
+  const proximo = servicoProgressao.adicionarXp(novo.id, 10_000); // nível 101 → +1 ponto
+  assert.equal(proximo.nivel, 101);
+  assert.equal(proximo.pontosDisponiveis, 1);
+
+  assert.throws(() => servicoProgressao.aumentarAtributo(novo.id, 'tecnologia', 1), ErroValidacao);
+  const outro = servicoProgressao.aumentarAtributo(novo.id, 'foco', 1);
+  assert.equal(outro.atributos.foco, 2);
+  assert.equal(outro.pontosDisponiveis, 0);
+
+  const gravado = banco
+    .prepare('SELECT tecnologia, foco FROM jogador_atributos WHERE jogador_id = ?')
+    .get(novo.id);
+  assert.equal(gravado.tecnologia, 100);
+  assert.equal(gravado.foco, 2);
+});
+
+test('XP alto: persistido e detalhado corretamente (1.000.000 → nível 141)', () => {
+  const novo = criarJogadorDireto('Vet');
+  const visao = servicoProgressao.adicionarXp(novo.id, 1_000_000, 'CONQUISTA');
+  assert.equal(visao.xpTotal, 1_000_000);
+  assert.equal(visao.nivel, 141);
+  assert.equal(visao.xpNoNivel, 13_000);
+  assert.equal(visao.xpNecessario, 14_100);
+  assert.equal(visao.pontosDisponiveis, 140);
+  assert.equal(visao.niveisGanhos, 140);
+  assert.equal(visao.subiuNivel, true);
+
+  const relido = servicoProgressao.obter(novo.id);
+  assert.equal(relido.xpTotal, 1_000_000);
+  assert.equal(relido.nivel, 141);
+});
+
+test('origem do XP é validada e o contrato é uniforme no banco real', () => {
+  const novo = criarJogadorDireto('Origem');
+  assert.throws(() => servicoProgressao.adicionarXp(novo.id, 10, 'LOJA'), ErroValidacao);
+
+  const visao = servicoProgressao.adicionarXp(novo.id, 10, 'MISSAO');
+  const consulta = servicoProgressao.obter(novo.id);
+
+  assert.equal(visao.xpTotal, 10);
+  assert.equal(visao.subiuNivel, false);
+  assert.equal(visao.niveisGanhos, 0);
+  assert.equal(Object.isFrozen(visao), true);
+  assert.deepEqual(Object.keys(visao).sort(), Object.keys(consulta).sort());
+});
+
+test('reparo: progressão existente sem atributos é completada sem duplicar', () => {
+  const parcial = criarJogadorDireto('Parcial');
+  banco
+    .prepare('INSERT INTO jogador_progressao (jogador_id, xp_total, nivel, pontos_disponiveis) VALUES (?, 350, 3, 1)')
+    .run(parcial.id);
+
+  const visao = servicoProgressao.obter(parcial.id);
+
+  assert.equal(visao.xpTotal, 350);
+  assert.equal(visao.nivel, 3);
+  assert.equal(visao.pontosDisponiveis, 1);
+  assert.equal(visao.atributos.tecnologia, 1);
+  const contagens = banco
+    .prepare(
+      `SELECT (SELECT COUNT(*) FROM jogador_progressao WHERE jogador_id = ?) AS progressoes,
+              (SELECT COUNT(*) FROM jogador_atributos WHERE jogador_id = ?) AS atributos`,
+    )
+    .get(parcial.id, parcial.id);
+  assert.equal(contagens.progressoes, 1);
+  assert.equal(contagens.atributos, 1);
+});
+
+test('legado acima do teto: continua legível e não evolui mais', () => {
+  const legado = criarJogadorDireto('Legado');
+  servicoProgressao.obter(legado.id); // repara: cria progressão e atributos
+  banco.prepare('UPDATE jogador_atributos SET tecnologia = 105 WHERE jogador_id = ?').run(legado.id);
+  servicoProgressao.adicionarXp(legado.id, 100); // nível 2 → +1 ponto
+
+  assert.throws(() => servicoProgressao.aumentarAtributo(legado.id, 'tecnologia', 1), ErroValidacao);
+  const visao = servicoProgressao.obter(legado.id);
+  assert.equal(visao.atributos.tecnologia, 105);
+  assert.equal(visao.pontosDisponiveis, 1);
+});
+
 test('persistência: progressão sobrevive ao fechar e reabrir', () => {
   const estado = servicoProgressao.obter(jogador.id);
   banco.close();

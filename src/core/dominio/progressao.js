@@ -15,6 +15,16 @@ export const XP_INICIAL = 0;
 export const PONTOS_INICIAIS = 0;
 export const VALOR_INICIAL_ATRIBUTO = 1;
 export const PONTOS_POR_NIVEL = 1;
+/**
+ * Teto de evolução de um atributo.
+ *
+ * Limite de produto (mesmo valor da primeira implementação da fase): nenhum
+ * atributo passa de 100. A garantia vive AQUI e na aplicação — o banco fica
+ * sem `CHECK` de teto nesta fase, seguindo o precedente já registrado em
+ * `docs/pendencias.md` (P-021: "a aplicação garante os limites antes de
+ * persistir"). Ver `docs/progressao.md`.
+ */
+export const ATRIBUTO_MAXIMO = 100;
 
 /** Atributos fundamentais — a ordem aqui é a ordem de exibição. */
 export const ATRIBUTOS_DISPONIVEIS = Object.freeze([
@@ -38,7 +48,15 @@ export const ATRIBUTOS_ROTULOS = Object.freeze({
   disciplina: 'DISCIPLINA',
 });
 
-/** Origens de XP previstas (nenhum módulo as usa ainda — Fase 06). */
+/**
+ * Origens de XP aceitas pelo domínio (`validarOrigemXp`).
+ *
+ * A origem é VALIDADA na concessão, mas não é persistida nesta fase (não há
+ * histórico de XP — ver `docs/progressao.md`). Os módulos que concederão XP
+ * (missão/projeto) pertencem a fases futuras; a aplicação já aceita a origem
+ * como parâmetro opcional para que essas integrações não exijam mudar o
+ * contrato depois.
+ */
 export const ORIGENS_XP = Object.freeze(['MISSAO', 'PROJETO', 'CONQUISTA', 'OUTRO']);
 
 /**
@@ -53,10 +71,13 @@ export function xpNecessarioParaProximoNivel(nivel) {
   return 100 * nivel;
 }
 
-/** Valida o XP total acumulado (inteiro ≥ 0). */
+/** Valida o XP total acumulado (inteiro seguro ≥ 0). */
 export function validarXpTotal(valor) {
   if (typeof valor !== 'number' || !Number.isFinite(valor) || !Number.isInteger(valor)) {
     throw new ErroValidacao('O XP total deve ser um número inteiro válido.', 'xp');
+  }
+  if (!Number.isSafeInteger(valor)) {
+    throw new ErroValidacao('O XP total excede o limite seguro de representação numérica.', 'xp');
   }
   if (valor < 0) {
     throw new ErroValidacao('O XP total não pode ser negativo.', 'xp');
@@ -64,15 +85,29 @@ export function validarXpTotal(valor) {
   return valor;
 }
 
-/** Valida XP a conceder (zero aceito; negativo rejeitado). */
+/** Valida XP a conceder (zero aceito; negativo e não seguro rejeitados). */
 export function validarQuantidadeXp(valor) {
   if (typeof valor !== 'number' || !Number.isFinite(valor) || !Number.isInteger(valor)) {
     throw new ErroValidacao('A quantidade de XP deve ser um número inteiro válido.', 'quantidade');
+  }
+  if (!Number.isSafeInteger(valor)) {
+    throw new ErroValidacao('A quantidade de XP excede o limite seguro de representação numérica.', 'quantidade');
   }
   if (valor < 0) {
     throw new ErroValidacao('A quantidade de XP não pode ser negativa.', 'quantidade');
   }
   return valor;
+}
+
+/** Valida a origem do XP contra as origens previstas (`ORIGENS_XP`). */
+export function validarOrigemXp(origem) {
+  if (!ORIGENS_XP.includes(origem)) {
+    throw new ErroValidacao(
+      `Origem de XP desconhecida: "${String(origem)}". Previstas: ${ORIGENS_XP.join(', ')}.`,
+      'origem',
+    );
+  }
+  return origem;
 }
 
 /** Calcula o nível correspondente ao XP total acumulado. */
@@ -113,6 +148,9 @@ export function adicionarXp(atual, quantidade) {
   validarQuantidadeXp(quantidade);
   validarXpTotal(atual.xpTotal);
   const xpTotal = atual.xpTotal + quantidade;
+  // A soma pode estourar o inteiro seguro mesmo com parcelas válidas — o
+  // total resultante é revalidado (nunca persiste um XP impreciso).
+  validarXpTotal(xpTotal);
   const nivel = calcularNivel(xpTotal);
   const niveisGanhos = nivel - atual.nivel;
   if (niveisGanhos < 0) {
@@ -149,6 +187,25 @@ export function validarPontosDisponiveis(valor) {
   return valor;
 }
 
+/**
+ * Valida o valor atual de um atributo: inteiro ≥ 1.
+ *
+ * Só é aplicado na LEITURA para incremento — nunca na leitura do estado
+ * persistido, para que um banco antigo com valores fora da faixa ainda possa
+ * ser exibido e reparado sem quebrar a interface.
+ */
+export function validarValorAtributo(valor, nome = null) {
+  if (typeof valor !== 'number' || !Number.isInteger(valor) || valor < VALOR_INICIAL_ATRIBUTO) {
+    throw new ErroValidacao(
+      nome === null
+        ? `O valor do atributo deve ser um número inteiro maior ou igual a ${VALOR_INICIAL_ATRIBUTO}.`
+        : `Valor atual inválido para o atributo "${nome}".`,
+      'atributo',
+    );
+  }
+  return valor;
+}
+
 /** Distribui pontos em um atributo (operação incremental controlada). */
 export function aumentarAtributo(atual, nome, quantidade) {
   validarNomeAtributo(nome);
@@ -166,11 +223,16 @@ export function aumentarAtributo(atual, nome, quantidade) {
     );
   }
   const valorAtual = atual.atributos[nome];
-  if (typeof valorAtual !== 'number' || !Number.isInteger(valorAtual) || valorAtual < VALOR_INICIAL_ATRIBUTO) {
-    throw new ErroValidacao(`Valor atual inválido para o atributo "${nome}".`, 'atributo');
+  validarValorAtributo(valorAtual, nome);
+  const novoValor = valorAtual + quantidade;
+  if (novoValor > ATRIBUTO_MAXIMO) {
+    throw new ErroValidacao(
+      `O atributo "${nome}" não pode ultrapassar ${ATRIBUTO_MAXIMO} (atual ${valorAtual}, solicitado +${quantidade}).`,
+      'atributo',
+    );
   }
   return Object.freeze({
-    atributos: Object.freeze({ ...atual.atributos, [nome]: valorAtual + quantidade }),
+    atributos: Object.freeze({ ...atual.atributos, [nome]: novoValor }),
     pontosDisponiveis: atual.pontosDisponiveis - quantidade,
   });
 }
