@@ -50,6 +50,42 @@ tests/
   recompra bloqueada; cenário completo desejo → planejar → comprar → despesa →
   saldo → histórico.
 
+## 3.7 Fase 10.6 — Serviços e Despesas (visão e estabilização)
+
+- `tests/integracao/fase10.test.mjs` — suíte consolidada que valida todo o
+  pipeline da FASE 10 como um único fluxo coerente, incluindo os testes de
+  regressão das subfases anteriores (serviço/conta/recorrência/geração/
+  pagamento).
+
+**Cenário obrigatório da fase:** Serviço “Internet” (R$ 120,00), recorrência
+mensal (vence dia 15, desde 2026-10), gerar 3 contas (out/nov/dez), pagar 1
+conta (outubro, R$ 125,00 — pago acima do esperado) → 3 contas existentes,
+1 paga, 2 pendentes, 1 transação de despesa criada e saldo reduzido SOMENTE
+pelo valor pago (R$ 1000,00 − R$ 125,00 = R$ 875,00).
+
+**Demais coberturas:** idempotência da geração; conta manual × gerada
+(nenhuma altera saldo); duplicidade de referência rejeitada; fluxos de erro
+(serviço inexistente, recorrência inválida — inativa/arquivada — , conta
+duplicada, conta cancelada — não paga/editada/cancelada de novo — , pagamento
+duplicado bloqueado, valor inválido, jogador incorreto); **atomicidade**
+(falha simulada na criação da despesa → ROLLBACK — conta segue pendente, saldo
+intacto, nenhuma transação parcial); filtros por situação
+(todas/pendentes/vencidas/pagas/canceladas); **vencida deriva de pendente** e
+pode ser paga; **valor esperado ≠ valor pago** (a despesa registra o real);
+edição de conta e ciclo de vida da recorrência
+(ativar/desativar/arquivar — arquivada é terminal); **isolamento por jogador**
+(nenhum outro jogador enxerga, paga ou altera a conta alheia);
+**persistência** (fechar → reabrir → contas/contas pagas/vínculos/saldo
+preservados).
+
+**Bug corrigido durante a estabilização (10.6):** `validarPeriodoGeracao`
+aceitava apenas datas civis completas (`AAAA-MM-DD`), rejeitando competências
+(`AAAA-MM`) como `2026-10`. Normalização adicionada: competência é convertida
+para o primeiro dia (início) e último dia do mês (fim), mantendo a janela
+inclusiva e a comparação pela data de vencimento. `ServicoPagamentos` passa a
+retornar a conta paga com a situação derivada (`situacao`), alinhando o
+contrato com o restante da FASE 10.
+
 ## 3.6 Testes manuais — Fase 09 (executados)
 
 Cenários da fase executados em banco SQLite temporário (ciclo completo, com reabertura do arquivo):

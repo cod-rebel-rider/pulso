@@ -40,15 +40,46 @@ import {
 } from './recorrencia.js';
 
 // ── Período da geração ────────────────────────────────────────────────────
+const REGEX_COMPETENCIA = /^\d{4}-\d{2}$/; // `AAAA-MM`
+const REGEX_CIVIL = /^\d{4}-\d{2}-\d{2}$/; // `AAAA-MM-DD`
+
+/** Normaliza o início do período: aceita competência (`AAAA-MM`, normalizada
+ * para o primeiro dia) ou data civil (`AAAA-MM-DD`). */
+function normalizarInicioPeriodo(value) {
+  if (typeof value !== 'string') {
+    throw new ErroValidacao('Período inválido.', 'periodoInicio');
+  }
+  if (REGEX_COMPETENCIA.test(value)) {
+    return `${value}-01`;
+  }
+  return value; // civil: validarDataCivil valida abaixo
+}
+
+/** Normaliza o fim do período: aceita competência (`AAAA-MM`, normalizada
+ * para o último dia do mês) ou data civil (`AAAA-MM-DD`). */
+function normalizarFimPeriodo(value) {
+  if (typeof value !== 'string') {
+    throw new ErroValidacao('Período inválido.', 'periodoFim');
+  }
+  if (REGEX_COMPETENCIA.test(value)) {
+    const ano = Number(value.slice(0, 4));
+    const mes = Number(value.slice(5, 7));
+    const ultimoDia = new Date(Date.UTC(ano, mes, 0)).getUTCDate();
+    return `${value}-${String(ultimoDia).padStart(2, '0')}`;
+  }
+  return value; // civil: validarDataCivil valida abaixo
+}
+
 /**
- * Valida o período informado pelo usuário (De / Até). Ambas as datas são
- * obrigatórias, civis (`AAAA-MM-DD`) e o fim não pode ser anterior ao
- * início. A geração só considera vencimentos dentro desse período
- * (inclusivo nas duas pontas).
+ * Valida o período informado pelo usuário (De / Até). Aceita competência
+ * (`AAAA-MM`) ou data civil (`AAAA-MM-DD`) em ambas as pontas — a competência
+ * é normalizada para o primeiro (início) e último (fim) dias do mês. Ambas as
+ * datas são obrigatórias, civis, e o fim não pode ser anterior ao início. A
+ * geração só considera vencimentos dentro desse período (inclusivo).
  */
 export function validarPeriodoGeracao(inicio, fim) {
-  const comeco = validarDataCivil(inicio, 'periodoInicio');
-  const termino = validarDataCivil(fim, 'periodoFim');
+  const comeco = validarDataCivil(normalizarInicioPeriodo(inicio), 'periodoInicio');
+  const termino = validarDataCivil(normalizarFimPeriodo(fim), 'periodoFim');
   if (termino < comeco) {
     throw new ErroValidacao(
       'O fim do período de geração não pode ser anterior ao início.',

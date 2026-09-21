@@ -93,12 +93,22 @@ function nomeServicoRecorrencia(servicoId) {
 }
 
 // ── Navegação entre as visões de recorrência ──────────────────────────────
+// Fase 10.6: isolamento entre os módulos da FASE 10 — nenhuma visão "vaza".
 function exibirVisaoRecorrencia(nome) {
   for (const visao of ["visao-recorrencias", "visao-recorrencia-detalhe", "visao-formulario-recorrencia"]) {
     consultarElementoRecorrencia(visao).classList.toggle("oculto", visao !== nome);
   }
+  for (const visao of [
+    "visao-servicos", "visao-servico-detalhe", "visao-formulario-servico",
+    "visao-contas", "visao-conta-detalhe", "visao-formulario-conta",
+    "visao-formulario-pagamento-conta", "visao-servicos-despesas",
+  ]) {
+    const el = document.getElementById(visao);
+    if (el) el.classList.add("oculto");
+  }
   consultarElementoRecorrencia("visao-configuracao").classList.add("oculto");
   consultarElementoRecorrencia("visao-boot").classList.add("oculto");
+  if (nome === "visao-boot") consultarElementoRecorrencia("visao-boot").classList.remove("oculto");
 }
 
 async function irParaRecorrencias() {
@@ -115,7 +125,6 @@ function voltarAoPainelRecorrencia() {
 
 // ── Mapeamento de elementos ───────────────────────────────────────────────
 function mapearRecorrencias() {
-  elementosRecorrencia.botaoVerRecorrencias = consultarElementoRecorrencia("botao-ver-recorrencias");
   // lista
   elementosRecorrencia.avisoRecorrencias = consultarElementoRecorrencia("aviso-recorrencias");
   elementosRecorrencia.filtrosRecorrencias = consultarElementoRecorrencia("filtros-recorrencias");
@@ -151,6 +160,8 @@ function mapearRecorrencias() {
   elementosRecorrencia.avisoGeracao = consultarElementoRecorrencia("aviso-geracao");
   elementosRecorrencia.botaoGerarOcorrencias = consultarElementoRecorrencia("botao-gerar-ocorrencias");
   elementosRecorrencia.resultadoGeracao = consultarElementoRecorrencia("resultado-geracao");
+  // Navegação cruzada da geração para as contas (Fase 10.6).
+  elementosRecorrencia.botaoGeracaoVerContas = consultarElementoRecorrencia("botao-geracao-ver-contas");
   elementosRecorrencia.geracaoEncontradas = consultarElementoRecorrencia("geracao-encontradas");
   elementosRecorrencia.geracaoCriadas = consultarElementoRecorrencia("geracao-criadas");
   elementosRecorrencia.geracaoExistentes = consultarElementoRecorrencia("geracao-existentes");
@@ -356,6 +367,8 @@ async function visualizarRecorrencia(id) {
 
 function renderizarDetalheRecorrencia(recorrencia) {
   estadoRecorrencia.recorrenciaAtualId = recorrencia.id;
+  // Serviço da regra em exibição — usado pela navegação cruzada (Fase 10.6).
+  estadoRecorrencia.servicoAtualId = recorrencia.servicoId;
   elementosRecorrencia.detalheTitulo.textContent =
     `${nomeServicoRecorrencia(recorrencia.servicoId)} · ${rotuloFrequenciaRecorrencia(recorrencia.frequencia)}`;
   elementosRecorrencia.detalheServico.textContent = nomeServicoRecorrencia(recorrencia.servicoId);
@@ -382,6 +395,7 @@ function renderizarDetalheRecorrencia(recorrencia) {
   elementosRecorrencia.campoGerarFim.value = "";
   elementosRecorrencia.avisoGeracao.textContent = "";
   elementosRecorrencia.resultadoGeracao.classList.add("oculto");
+  elementosRecorrencia.botaoGeracaoVerContas.classList.add("oculto");
   montarAcoesDetalheRecorrencia(recorrencia);
 }
 
@@ -436,6 +450,30 @@ function montarAcoesDetalheRecorrencia(recorrencia) {
     acoes.push(arquivar);
   }
 
+  // Navegação cruzada da FASE 10 (Fase 10.6): da recorrência, saltar para o
+  // serviço e para as contas DESTE serviço (com filtro aplicado).
+  const verServico = document.createElement("button");
+  verServico.type = "button";
+  verServico.className = "botao-secundario";
+  verServico.textContent = "VER SERVIÇO";
+  verServico.addEventListener("click", () => {
+    if (typeof window.__visualizarServico === "function") {
+      window.__visualizarServico(recorrencia.servicoId);
+    }
+  });
+  acoes.push(verServico);
+
+  const verContas = document.createElement("button");
+  verContas.type = "button";
+  verContas.className = "botao-secundario";
+  verContas.textContent = "VER CONTAS DO SERVIÇO";
+  verContas.addEventListener("click", () => {
+    if (typeof window.__irParaContasComServico === "function") {
+      window.__irParaContasComServico(recorrencia.servicoId);
+    }
+  });
+  acoes.push(verContas);
+
   elementosRecorrencia.acoesRecorrenciaDetalhe.append(...acoes);
 }
 
@@ -450,6 +488,7 @@ async function acaoAtivarRecorrencia(id) {
     }
     renderizarDetalheRecorrencia(resultado.recorrencia);
     carregarResumoRecorrencias();
+    elementosRecorrencia.avisoRecorrenciaDetalhe.textContent = "Recorrência reativada.";
   } catch (erro) {
     console.error(`PULSO: falha ao reativar a recorrência ${id} — ${erro.message}`, erro);
   }
@@ -465,6 +504,8 @@ async function acaoDesativarRecorrencia(id) {
     }
     renderizarDetalheRecorrencia(resultado.recorrencia);
     carregarResumoRecorrencias();
+    elementosRecorrencia.avisoRecorrenciaDetalhe.textContent =
+      "Recorrência desativada — não gera novas ocorrências até ser reativada.";
   } catch (erro) {
     console.error(`PULSO: falha ao desativar a recorrência ${id} — ${erro.message}`, erro);
   }
@@ -480,6 +521,8 @@ async function acaoArquivarRecorrencia(id) {
     }
     renderizarDetalheRecorrencia(resultado.recorrencia);
     carregarResumoRecorrencias();
+    elementosRecorrencia.avisoRecorrenciaDetalhe.textContent =
+      "Recorrência arquivada — estado terminal, sem geração de ocorrências.";
   } catch (erro) {
     console.error(`PULSO: falha ao arquivar a recorrência ${id} — ${erro.message}`, erro);
   }
@@ -524,6 +567,13 @@ async function acaoGerarOcorrencias(evento) {
       criadas === 0 && existentes > 0
         ? "Nenhuma conta nova: as ocorrências deste período já haviam sido geradas."
         : "";
+    // Navegação cruzada (Fase 10.6): revisar as contas deste serviço.
+    elementosRecorrencia.botaoGeracaoVerContas.classList.remove("oculto");
+    // Feedback de sucesso (Fase 10.6) — geração não movimenta dinheiro.
+    if (criadas > 0) {
+      elementosRecorrencia.avisoRecorrenciaDetalhe.textContent =
+        `Geração concluída: ${criadas} ${criadas === 1 ? "conta criada" : "contas criadas"} — nenhuma movimentação financeira.`;
+    }
   } catch (erro) {
     console.error(
       `PULSO: falha ao gerar ocorrências da recorrência ${recorrenciaId} — ${erro.message}`,
@@ -598,6 +648,10 @@ async function salvarRecorrencia(evento) {
     exibirVisaoRecorrencia("visao-recorrencias");
     carregarResumoRecorrencias();
     carregarRecorrencias();
+    // Feedback de sucesso (Fase 10.6 — consistência entre módulos).
+    elementosRecorrencia.avisoRecorrencias.textContent = estadoRecorrencia.modoEdicaoRecorrencia
+      ? "Recorrência atualizada com sucesso."
+      : "Recorrência registrada com sucesso — nenhuma conta foi gerada ainda.";
   } catch (erro) {
     console.error(`PULSO: falha ao salvar a recorrência — ${erro.message}`, erro);
     elementosRecorrencia.avisoFormulario.textContent = "Falha interna ao salvar a recorrência.";
@@ -624,7 +678,22 @@ function registrarEventosRecorrencias() {
     carregarRecorrencias();
   });
   elementosRecorrencia.botaoNovaRecorrencia.addEventListener("click", () => exibirFormularioRecorrencia(null));
+  // Navegação cruzada da FASE 10 (Fase 10.6).
+  elementosRecorrencia.botaoRecorrenciasIrServicos = consultarElementoRecorrencia("botao-recorrencias-ir-servicos");
+  elementosRecorrencia.botaoRecorrenciasIrServicos.addEventListener("click", () => {
+    if (typeof window.__irParaServicos === "function") window.__irParaServicos();
+  });
+  elementosRecorrencia.botaoRecorrenciasIrContas = consultarElementoRecorrencia("botao-recorrencias-ir-contas");
+  elementosRecorrencia.botaoRecorrenciasIrContas.addEventListener("click", () => {
+    if (typeof window.__irParaContas === "function") window.__irParaContas();
+  });
   elementosRecorrencia.botaoVoltarRecorrencias.addEventListener("click", voltarAoPainelRecorrencia);
+  // Navegação cruzada da geração (Fase 10.6): contas do serviço da regra.
+  elementosRecorrencia.botaoGeracaoVerContas.addEventListener("click", () => {
+    if (estadoRecorrencia.servicoAtualId && typeof window.__irParaContasComServico === "function") {
+      window.__irParaContasComServico(estadoRecorrencia.servicoAtualId);
+    }
+  });
   elementosRecorrencia.formularioRecorrencia.addEventListener("submit", salvarRecorrencia);
   elementosRecorrencia.formularioGeracao.addEventListener("submit", acaoGerarOcorrencias);
   elementosRecorrencia.botaoSalvarRecorrencia.addEventListener("click", (e) => {
@@ -641,8 +710,15 @@ function registrarEventosRecorrencias() {
   });
 }
 
-/** Permite que principal.js navegue para as recorrências (botão do painel). */
+/** Permite que principal.js e os demais módulos naveguem para as recorrências. */
 window.__irParaRecorrencias = irParaRecorrencias;
+/** Recorrências de um serviço, com o filtro já aplicado (Fase 10.6). */
+window.__irParaRecorrenciasComServico = async function (servicoId) {
+  await irParaRecorrencias();
+  estadoRecorrencia.filtroServico = String(servicoId);
+  elementosRecorrencia.filtroServicoRecorrencias.value = estadoRecorrencia.filtroServico;
+  carregarRecorrencias();
+};
 
 document.addEventListener("DOMContentLoaded", () => {
   mapearRecorrencias();

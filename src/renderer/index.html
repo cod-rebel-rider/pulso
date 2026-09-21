@@ -104,9 +104,50 @@
         <button type="button" id="botao-ver-projetos" class="botao-secundario" disabled>VER PROJETOS</button>
         <button type="button" id="botao-ver-financas" class="botao-secundario" disabled>VER FINANÇAS</button>
         <button type="button" id="botao-ver-loja" class="botao-secundario" disabled>VER LOJA</button>
-        <button type="button" id="botao-ver-servicos" class="botao-secundario" disabled>VER SERVIÇOS</button>
-        <button type="button" id="botao-ver-contas" class="botao-secundario" disabled>VER CONTAS</button>
-        <button type="button" id="botao-ver-recorrencias" class="botao-secundario" disabled>VER RECORRÊNCIAS</button>
+        <button type="button" id="botao-ver-servicos-despesas" class="botao-secundario" disabled>SERVIÇOS E DESPESAS</button>
+        <button type="button" id="botao-ver-pagamento" class="botao-secundario" disabled>REGISTRAR PAGAMENTO</button>
+      </div>
+    </section>
+
+    <!-- SERVIÇOS E DESPESAS: visão consolidada da FASE 10 (hub de navegação) -->
+    <section class="nucleo visao oculto" id="visao-servicos-despesas">
+      <p class="rotulo-secao">SERVIÇOS E DESPESAS</p>
+      <h1 class="titulo-secao">OBRIGAÇÕES RECORRENTES</h1>
+      <p class="descricao-secao">Serviço → Recorrência → Conta → Pagamento → Transação → Carteira. Somente o pagamento movimenta dinheiro (Fase 08).</p>
+
+      <section class="financa-resumo" aria-label="Resumo consolidado de serviços e despesas">
+        <div class="financa-cartao">
+          <p class="rotulo-secao">SERVIÇOS ATIVOS</p>
+          <p class="financa-metrica" id="sd-servicos-ativos">0</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">RECORRÊNCIAS ATIVAS</p>
+          <p class="financa-metrica" id="sd-recorrencias-ativas">0</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">CONTAS EM ABERTO</p>
+          <p class="financa-metrica" id="sd-contas-aberto">0</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">ESPERADO EM ABERTO</p>
+          <p class="financa-metrica" id="sd-contas-valor">R$ 0,00</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">CONTAS PAGAS</p>
+          <p class="financa-metrica" id="sd-contas-pagas">0</p>
+        </div>
+      </section>
+
+      <p class="aviso" id="aviso-servicos-despesas" role="alert"></p>
+
+      <div class="filtros" role="tablist" aria-label="Áreas de serviços e despesas">
+        <button type="button" class="filtro" id="sd-ir-servicos">SERVIÇOS</button>
+        <button type="button" class="filtro" id="sd-ir-recorrencias">RECORRÊNCIAS</button>
+        <button type="button" class="filtro" id="sd-ir-contas">CONTAS</button>
+      </div>
+
+      <div class="acoes-missao">
+        <button type="button" id="sd-voltar-painel" class="botao-secundario">VOLTAR AO PAINEL</button>
       </div>
     </section>
 
@@ -658,6 +699,8 @@
 
       <div class="acoes-missao">
         <button type="button" id="botao-novo-servico" class="botao-primario">NOVO SERVIÇO</button>
+        <button type="button" id="botao-servicos-ir-recorrencias" class="botao-secundario">VER RECORRÊNCIAS</button>
+        <button type="button" id="botao-servicos-ir-contas" class="botao-secundario">VER CONTAS</button>
         <button type="button" id="botao-voltar-servicos" class="botao-secundario">VOLTAR AO PAINEL</button>
       </div>
     </section>
@@ -785,6 +828,8 @@
 
       <div class="acoes-missao">
         <button type="button" id="botao-nova-conta" class="botao-primario">NOVA CONTA</button>
+        <button type="button" id="botao-contas-ir-servicos" class="botao-secundario">VER SERVIÇOS</button>
+        <button type="button" id="botao-contas-ir-recorrencias" class="botao-secundario">VER RECORRÊNCIAS</button>
         <button type="button" id="botao-voltar-contas" class="botao-secundario">VOLTAR AO PAINEL</button>
       </div>
     </section>
@@ -826,6 +871,22 @@
         <div id="linha-conta-cancelada">
           <dt>CANCELADA EM</dt>
           <dd id="conta-detalhe-cancelada">—</dd>
+        </div>
+        <div id="linha-conta-pagamento">
+          <dt>VALOR PAGO</dt>
+          <dd id="conta-detalhe-pago">—</dd>
+        </div>
+        <div id="linha-conta-pagamento-data">
+          <dt>PAGO EM</dt>
+          <dd id="conta-detalhe-pago-em">—</dd>
+        </div>
+        <div id="linha-conta-pagamento-obs">
+          <dt>OBSERVAÇÃO DO PAGAMENTO</dt>
+          <dd id="conta-detalhe-pagamento-obs">—</dd>
+        </div>
+        <div id="linha-conta-transacao">
+          <dt>TRANSAÇÃO FINANCEIRA</dt>
+          <dd id="conta-detalhe-transacao">—</dd>
         </div>
       </dl>
 
@@ -911,6 +972,8 @@
 
       <div class="acoes-missao">
         <button type="button" id="botao-nova-recorrencia" class="botao-primario">NOVA RECORRÊNCIA</button>
+        <button type="button" id="botao-recorrencias-ir-servicos" class="botao-secundario">VER SERVIÇOS</button>
+        <button type="button" id="botao-recorrencias-ir-contas" class="botao-secundario">VER CONTAS</button>
         <button type="button" id="botao-voltar-recorrencias" class="botao-secundario">VOLTAR AO PAINEL</button>
       </div>
     </section>
@@ -998,6 +1061,10 @@
             <dd id="geracao-existentes">0</dd>
           </div>
         </dl>
+
+        <div class="acoes-formulario">
+          <button type="button" id="botao-geracao-ver-contas" class="botao-secundario oculto">VER CONTAS GERADAS</button>
+        </div>
       </section>
 
       <div class="acoes-missao" id="acoes-recorrencia-detalhe"></div>
@@ -1131,5 +1198,6 @@
   <script src="js/servicos.js"></script>
   <script src="js/contas.js"></script>
   <script src="js/recorrencias.js"></script>
+  <script src="js/servicos-despesas.js"></script>
 </body>
 </html>
