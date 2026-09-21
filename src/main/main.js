@@ -45,6 +45,7 @@ import { ServicoServicos } from '../core/aplicacao/servico-servicos.js';
 import { ServicoContas } from '../core/aplicacao/servico-contas.js';
 import { ServicoRecorrencias } from '../core/aplicacao/servico-recorrencias.js';
 import { ServicoGeracaoOcorrencias } from '../core/aplicacao/servico-geracao-ocorrencias.js';
+import { ServicoPagamentos } from '../core/aplicacao/servico-pagamentos.js';
 import {
   CATEGORIAS_DESEJO,
   PRIORIDADES_DESEJO_ORDEM,
@@ -107,6 +108,7 @@ let servicoServicos = null;
 let servicoContas = null;
 let servicoRecorrencias = null;
 let servicoGeracaoOcorrencias = null;
+let servicoPagamentos = null;
 
 // ── Teste de fumaça ─────────────────────────────────────────────────────
 const resultadosFumaca = {
@@ -660,6 +662,26 @@ function registrarIpc() {
   ipcMain.handle(canais.CONTA_CANCELAR, (_evento, { id } = {}) =>
     traduzirResultadoOperacao(() => ({ ok: true, conta: servicoContas.cancelar(Number(id ?? 0)) })));
 
+  // Pagamento de conta (Fase 10.5) — transforma obrigação em DESPESA financeira.
+  // Cria transação DESPESA + marca conta como PAGA + atualiza carteira, tudo em
+  // uma transação SQLite atômica. Valor pago pode diferir do esperado.
+  ipcMain.handle(canais.CONTA_PAGAR, (_evento, { id, jogadorId, valorPagoCentavos, paidAt, paymentDescription } = {}) =>
+    traduzirResultadoOperacao(() => {
+      const contaId = Number(id ?? 0);
+      const dados = {
+        valorPagoCentavos,
+        paidAt,
+        paymentDescription: paymentDescription ?? null,
+      };
+      const resultado = servicoPagamentos.registrarPagamento(Number(jogadorId ?? 0), contaId, dados);
+      return {
+        ok: true,
+        conta: resultado.conta,
+        transacao: resultado.transacao,
+        resumo: resultado.resumo,
+      };
+    }));
+
   // ── Recorrências (Fase 10.3) — sem integração financeira ───────────────
   // Criar/editar/ativar/desativar/arquivar uma recorrência NÃO gera conta,
   // NÃO cria transação e NÃO altera saldo (geração de contas é a Fase 10.4).
@@ -839,6 +861,11 @@ async function aoIniciar() {
   servicoGeracaoOcorrencias = new ServicoGeracaoOcorrencias({
     repositorioRecorrencia,
     repositorioContas: repositorioConta,
+    banco: estadoBanco.banco,
+  });
+  servicoPagamentos = new ServicoPagamentos({
+    repositorio: repositorioConta,
+    servicoFinanca,
     banco: estadoBanco.banco,
   });
   servicoProjeto = new ServicoProjeto({

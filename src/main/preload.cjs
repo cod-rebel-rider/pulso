@@ -80,6 +80,7 @@ const CANAL_CONTA_CRIAR = 'conta:criar'; // igual a canais.cjs → CONTA_CRIAR
 const CANAL_CONTA_ATUALIZAR = 'conta:atualizar'; // igual a canais.cjs → CONTA_ATUALIZAR
 const CANAL_CONTA_CANCELAR = 'conta:cancelar'; // igual a canais.cjs → CONTA_CANCELAR
 const CANAL_CONTA_CONFIG = 'conta:config'; // igual a canais.cjs → CONTA_CONFIG
+const CANAL_CONTA_PAGAR = 'conta:pagar'; // igual a canais.cjs → CONTA_PAGAR
 const CANAL_RECURRENCIA_LISTAR = 'recorrencia:listar'; // igual a canais.cjs → RECURRENCIA_LISTAR
 const CANAL_RECURRENCIA_OBTER = 'recorrencia:obter'; // igual a canais.cjs → RECURRENCIA_OBTER
 const CANAL_RECURRENCIA_CRIAR = 'recorrencia:criar'; // igual a canais.cjs → RECURRENCIA_CRIAR
@@ -305,6 +306,8 @@ contextBridge.exposeInMainWorld(
       criar: (dados) => ipcRenderer.invoke(CANAL_CONTA_CRIAR, dados),
       atualizar: (dados) => ipcRenderer.invoke(CANAL_CONTA_ATUALIZAR, dados),
       cancelar: (id) => ipcRenderer.invoke(CANAL_CONTA_CANCELAR, { id }),
+      pagar: (jogadorId, id, dados) =>
+        ipcRenderer.invoke(CANAL_CONTA_PAGAR, { jogadorId, id, ...dados }),
       config: () => ipcRenderer.invoke(CANAL_CONTA_CONFIG),
     }),
 

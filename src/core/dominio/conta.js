@@ -113,37 +113,43 @@ export function dataHojeIso(agora = new Date()) {
 export const ESTADOS_CONTA = Object.freeze({
   PENDENTE: 'pendente',
   CANCELADA: 'cancelada',
+  PAGA: 'paga',
 });
 
 export const ESTADOS_CONTA_ORDEM = Object.freeze([
   ESTADOS_CONTA.PENDENTE,
+  ESTADOS_CONTA.PAGA,
   ESTADOS_CONTA.CANCELADA,
 ]);
 
 export const ESTADOS_CONTA_ROTULOS = Object.freeze({
   [ESTADOS_CONTA.PENDENTE]: 'Pendente',
   [ESTADOS_CONTA.CANCELADA]: 'Cancelada',
+  [ESTADOS_CONTA.PAGA]: 'Paga',
 });
 
 /** Conta nasce PENDENTE. */
 export const ESTADO_CONTA_INICIAL = ESTADOS_CONTA.PENDENTE;
 
-/** Situação apresentada ao jogador: pendente | vencida | cancelada. */
+/** Situação apresentada ao jogador: pendente | vencida | paga | cancelada. */
 export const SITUACOES_CONTA = Object.freeze({
   PENDENTE: 'pendente',
   VENCIDA: 'vencida',
+  PAGA: 'paga',
   CANCELADA: 'cancelada',
 });
 
 export const SITUACOES_CONTA_ORDEM = Object.freeze([
   SITUACOES_CONTA.PENDENTE,
   SITUACOES_CONTA.VENCIDA,
+  SITUACOES_CONTA.PAGA,
   SITUACOES_CONTA.CANCELADA,
 ]);
 
 export const SITUACOES_CONTA_ROTULOS = Object.freeze({
   [SITUACOES_CONTA.PENDENTE]: 'Pendente',
   [SITUACOES_CONTA.VENCIDA]: 'Vencida',
+  [SITUACOES_CONTA.PAGA]: 'Paga',
   [SITUACOES_CONTA.CANCELADA]: 'Cancelada',
 });
 
@@ -168,6 +174,9 @@ export function exigirCancelamentoConta(estado) {
   if (contaCancelada(estado)) {
     throw new ErroTransicao('Esta conta já está cancelada.');
   }
+  if (estado === ESTADOS_CONTA.PAGA) {
+    throw new ErroTransicao('Não é possível cancelar uma conta já paga.');
+  }
   if (estado !== ESTADOS_CONTA.PENDENTE) {
     throw new ErroTransicao(`Não é possível cancelar uma conta no estado "${estado}".`);
   }
@@ -176,15 +185,18 @@ export function exigirCancelamentoConta(estado) {
 /**
  * Situação derivada — NÃO altera o banco.
  *
- *   cancelada                            → CANCELADA
- *   pendente + vencimento < hoje         → VENCIDA
- *   pendente + vencimento >= hoje        → PENDENTE
+ *   paga                                → PAGA
+ *   cancelada                           → CANCELADA
+ *   pendente + vencimento < hoje        → VENCIDA
+ *   pendente + vencimento >= hoje       → PENDENTE
  *
  * Regra documentada em docs/contas-despesas.md: `VENCIDA` é condição de
  * apresentação/consulta; o registro permanece `pendente` no banco.
+ * `PAGA` é persistido na FASE 10.5 (pagamento) e nunca é derivado.
  */
 export function situacaoConta(conta, hoje = dataHojeIso()) {
   if (!conta) return null;
+  if (conta.estado === ESTADOS_CONTA.PAGA) return SITUACOES_CONTA.PAGA;
   if (contaCancelada(conta.estado)) return SITUACOES_CONTA.CANCELADA;
   const referencia = validarDataIso(hoje);
   return String(conta.vencimento) < referencia
@@ -288,5 +300,10 @@ export function paraConta(linha) {
     canceladoEm: linha.cancelado_em ?? null,
     // Recorrência que gerou a conta (Fase 10.4); null nas contas manuais.
     recorrenciaId: linha.recorrencia_id ?? null,
+    // Pagamento (FASE 10.5); apenas preenchidos quando a conta é paga.
+    paidAmount: linha.paid_amount ?? null,
+    paidAt: linha.paid_at ?? null,
+    paymentDescription: linha.payment_description ?? null,
+    transactionId: linha.transaction_id ?? null,
   });
 }

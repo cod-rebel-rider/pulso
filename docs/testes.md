@@ -106,6 +106,29 @@ Cenários da fase executados em banco SQLite temporário (ciclo completo, com re
   → saldo R$ 1.000,00 inalterado, carteira intacta, zero transações) e
   persistência fechar → reabrir → regerar sem duplicar.
 
+## 3.9 Fase 10.5 — Pagamentos
+
+- `tests/unidade/pagamento.test.mjs` — regras puras do domínio: estados
+  pagáveis (`pendente`/`vencida` sim — vencida é a mesma conta `pendente` com
+  vencimento no passado; cancelada/já paga/inexistente recusadas), isolamento
+  por dono (conta de outro jogador recusada), valor pago em centavos inteiros
+  > 0 (zero/negativo/decimal rejeitados), data civil `AAAA-MM-DD` (formato
+  ruim/data inexistente rejeitadas), observação opcional truncada em 500 e
+  situação de pagamento derivada (`pago`/`a_pagar`/`nao_aplicavel`).
+- `tests/integracao/pagamento.test.mjs` — ciclo completo com banco real:
+  pagamento de conta pendente e vencida (conta vira `PAGA` com `paid_amount`,
+  `paid_at`, observação e `transaction_id`); **valor diferente do esperado**
+  (esperado R$ 120, pago R$ 127,50 → despesa de R$ 127,50); **teste financeiro
+  principal** (saldo R$ 1.000 → pago R$ 125 → saldo R$ 875, conta PAGA,
+  transação DESPESA de R$ 125); vínculo conta↔transação consultável;
+  **duplicidade bloqueada** (segunda tentativa não cria transação nem altera
+  saldo); cancelada/inexistente/jogador errado/valor inválido recusados;
+  **atomicidade** (falha simulada na criação da despesa → conta segue
+  pendente, saldo intacto, nenhuma transação parcial); isolamento entre
+  jogadores (pagar conta alheia não move carteira de ninguém) e
+  **persistência** (fechar → reabrir o arquivo → conta continua PAGA com o
+  vínculo e o saldo corretos).
+
 ## 4. Teste de fumaça (Fases 01–02)
 
 O processo principal aceita a flag `--teste-fumaca`:
@@ -144,6 +167,7 @@ Ele inicia a aplicação, cria a janela, carrega o renderer, valida a ponte IPC,
 | Finanças (Fase 08) | unidade + integração | `financa.test.mjs` — domínio (centavos, categorias, saldo, período, orçamento) e ciclo completo com banco real (carteira, transações, edição/exclusão, orçamentos, persistência) |
 | Loja / Lista de Desejos (Fase 09) | unidade + integração | `loja.test.mjs` — domínio (estados, transições, validações, diferença/percentual, mapeamento financeiro) e ciclo completo com banco real (compra atômica via Fase 08, rollback, histórico, cancelamento, persistência) |
 | Recorrências (Fase 10.3) | unidade + integração | `recorrencia.test.mjs` — domínio (frequências, estados, datas, ajuste de dia 31, valores) e ciclo completo com banco real (vínculo com serviço, isolamento, filtros, arquivamento terminal, **saldo inalterado / zero contas / zero transações**, persistência) |
+| Pagamentos (Fase 10.5) | unidade + integração | `pagamento.test.mjs` — domínio (estados pagáveis, isolamento por dono, valor/data, situação derivada) e ciclo completo com banco real (DESPESA via Fase 08, saldo correto, vínculo conta↔transação, duplicidade bloqueada, atomicidade com rollback, isolamento, persistência) |
 | Processo principal + janela | integração | teste de fumaça (Fase 01) |
 | Persistência (SQLite) | unidade + integração | conexão/PRAGMAs, migrações e ciclo salvar→reabrir→ler em bancos isolados (Fase 02) |
 | Interface | e2e | automação dedicada (Fase 17) |

@@ -755,6 +755,10 @@
           <p class="financa-metrica" id="conta-canceladas">0</p>
         </div>
         <div class="financa-cartao">
+          <p class="rotulo-secao">PAGAS</p>
+          <p class="financa-metrica" id="conta-pagas">0</p>
+        </div>
+        <div class="financa-cartao">
           <p class="rotulo-secao">ESPERADO EM ABERTO</p>
           <p class="financa-metrica" id="conta-valor-aberto">R$ 0,00</p>
         </div>
@@ -768,6 +772,7 @@
           <button type="button" class="filtro" data-filtro="pendente">PENDENTES</button>
           <button type="button" class="filtro" data-filtro="vencida">VENCIDAS</button>
           <button type="button" class="filtro" data-filtro="cancelada">CANCELADAS</button>
+          <button type="button" class="filtro" data-filtro="paga">PAGAS</button>
         </div>
         <div class="loja-filtros-extras">
           <select id="filtro-servico-contas" aria-label="Filtrar por serviço">
@@ -1035,6 +1040,80 @@
         </div>
       </form>
     </section>
+
+    <!-- Contas / Despesas: pagamento (Fase 10.5) -->
+    <section class="nucleo visao oculto" id="visao-formulario-pagamento-conta">
+      <p class="rotulo-secao" id="formulario-pagamento-titulo-secao">PAGAMENTO</p>
+      <h1 class="titulo-secao" id="formulario-pagamento-titulo">REGISTRAR PAGAMENTO</h1>
+
+      <form id="formulario-pagamento-conta" novalidate>
+        <input type="hidden" id="campo-pagamento-conta-id" name="contaId" />
+
+        <label for="campo-pagamento-valor">VALOR PAGO <span class="obrigatorio">*</span></label>
+        <input id="campo-pagamento-valor" name="valorPago" inputmode="decimal"
+               placeholder="0,00" autocomplete="off" spellcheck="false" />
+
+        <label for="campo-pagamento-data">DATA DO PAGAMENTO <span class="obrigatorio">*</span></label>
+        <input id="campo-pagamento-data" name="paidAt" type="date" />
+
+        <label for="campo-pagamento-observacao">OBSERVAÇÃO <span class="opcional">(opcional)</span></label>
+        <textarea id="campo-pagamento-observacao" name="observacao" maxlength="500" rows="3"></textarea>
+
+        <p class="aviso" id="aviso-formulario-pagamento" role="alert"></p>
+
+        <div class="acoes-formulario">
+          <button type="submit" id="botao-salvar-pagamento" class="botao-primario">REGISTRAR PAGAMENTO</button>
+          <button type="button" id="botao-cancelar-pagamento" class="botao-secundario">CANCELAR</button>
+        </div>
+      </form>
+
+      <dl class="loja-detalhes" aria-live="polite">
+        <div>
+          <dt>CONTA</dt>
+          <dd id="pagamento-detalhe-conta">—</dd>
+        </div>
+        <div>
+          <dt>SERVIÇO</dt>
+          <dd id="pagamento-detalhe-servico">—</dd>
+        </div>
+        <div>
+          <dt>VALOR ESPERADO</dt>
+          <dd id="pagamento-detalhe-valor-esperado">—</dd>
+        </div>
+        <div>
+          <dt>VENCIMENTO</dt>
+          <dd id="pagamento-detalhe-vencimento">—</dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- Resultado do pagamento (Fase 10.5) -->
+    <dl class="loja-detalhes oculto" id="resultado-pagamento" aria-live="polite">
+      <div>
+        <dt>STATUS</dt>
+        <dd id="pagamento-resultado-status">—</dd>
+      </div>
+      <div>
+        <dt>VALOR ESPERADO</dt>
+        <dd id="pagamento-resultado-valor-esperado">—</dd>
+      </div>
+      <div>
+        <dt>VALOR PAGO</dt>
+        <dd id="pagamento-resultado-valor-pago">—</dd>
+      </div>
+      <div>
+        <dt>DATA DO PAGAMENTO</dt>
+        <dd id="pagamento-resultado-data">—</dd>
+      </div>
+      <div>
+        <dt>TRANSAÇÃO</dt>
+        <dd id="pagamento-resultado-transacao">—</dd>
+      </div>
+      <div>
+        <dt>OBSERVAÇÃO</dt>
+        <dd id="pagamento-resultado-observacao">—</dd>
+      </div>
+    </dl>
 
     <footer class="rodape">
       <span id="rodape-ambiente">AMBIENTE: —</span>
