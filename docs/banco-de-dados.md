@@ -53,9 +53,9 @@ Em outros sistemas operacionais o caminho acompanha o padrão da plataforma(Fase
 | `busy_timeout` | `5000` | locks transitórios esperam até 5 s em vez de falhar de imediato |
 | `synchronous` | `NORMAL` | par recomendado com WAL: seguro contra falha da aplicação; risco residual apenas em queda de energia(janela mínima) |
 
-##  ̈5. Schema atual(versão 11
+##  ̈5. Schema atual(versão 12
 
-Infraestrutura + entidades de negócio implementadas até a **Fase 10.2** (cada fase acrescenta sua migração ao final da lista — ver `src/core/database/migracoes.js`).
+Infraestrutura + entidades de negócio implementadas até a **Fase 10.3** (cada fase acrescenta sua migração ao final da lista — ver `src/core/database/migracoes.js`).
 
 
 
@@ -243,11 +243,42 @@ CREATE INDEX IF NOT EXISTS idx_desejo_estado ON desejo(jogador_id, estado);
 -- derivado do XP acumulado pela MESMA regra do domínio (`calcularNivel`).
 -- Em bancos novos (ou já corretos) ela NÃO altera nada: cada passo só age
 -- quando detecta a forma legada.
+
+-- migração 010 "criar-tabela-servico" — Fase 10.1
+-- serviço: estrutura PERMANENTE de serviço recorrente (o "molde").
+
+-- migração 011 "criar-tabela-servico-conta" — Fase 10.2 (ver docs/contas-despesas.md)
+-- ocorrência CONCRETA de um serviço (conta/despesa manual, sem efeito financeiro).
+
+-- migração 012 "criar-tabela-servico-recorrencia" — Fase 10.3 (ver docs/recorrencias.md)
+CREATE TABLE servico_recorrencia (
+  id                      INTEGER PRIMARY KEY,
+  jogador_id              INTEGER NOT NULL REFERENCES jogador(id) ON DELETE CASCADE,
+  servico_id              INTEGER NOT NULL REFERENCES servico(id) ON DELETE RESTRICT,
+  frequencia              TEXT NOT NULL,
+  data_inicio             TEXT NOT NULL,
+  data_fim                TEXT,
+  dia_vencimento          INTEGER NOT NULL CHECK (dia_vencimento BETWEEN 1 AND 31),
+  valor_esperado_centavos INTEGER NOT NULL CHECK (valor_esperado_centavos > 0),
+  descricao               TEXT,
+  estado                  TEXT NOT NULL,
+  criado_em               TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  atualizado_em           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  arquivado_em            TEXT,
+  CHECK (estado IN ('ativa', 'inativa', 'arquivada')),
+  CHECK (frequencia IN (
+    'mensal', 'bimestral', 'trimestral', 'semestral', 'anual'
+  )),
+  CHECK (data_inicio GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+  CHECK (data_fim IS NULL OR data_fim GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]')
+) STRICT;
+
+CREATE INDEX IF NOT EXISTS idx_servico_recorrencia_jogador ON servico_recorrencia(jogador_id);
+CREATE INDEX IF NOT EXISTS idx_servico_recorrencia_servico ON servico_recorrencia(servico_id);
+CREATE INDEX IF NOT EXISTS idx_servico_recorrencia_estado ON servico_recorrencia(jogador_id, estado);
 ```
 
-
-
-- `schema_migrations` responde "qual é a versão atual do banco?" (`SELECT MAX(versao)` . Atual: **v11**..
+- `schema_migrations` responde "qual é a versão atual do banco?" (`SELECT MAX(versao)` . Atual: **v12**..
 - `meta` guarda metadados técnico-operacionais(chave/valor. **Não** é configuração de ambiente(,isso vive em `config/*.json`) nem dado de sistema de jogo..
 
 - `jogador` (ver `docs/jogador.md`): identidade do operador — entidade central do PULSO; single-player imposta pelo Serviço,, com schema aberto a evolução futura.
@@ -257,6 +288,7 @@ CREATE INDEX IF NOT EXISTS idx_desejo_estado ON desejo(jogador_id, estado);
 - `desejo` (ver `docs/loja.md`): item da lista de desejos (Fase 09) — preço esperado/pago em centavos inteiros positivos, estado com `CHECK` de domínio e `transacao_id` apontando para a despesa criada pela compra (`ON DELETE SET NULL` preserva o histórico do desejo mesmo se a transação for excluída manualmente no financeiro). Desejo **nunca** movimenta saldo por si só — só a compra, via transação.
 - `servico` (Fase 10.1): estrutura permanente de serviço recorrente (ex.: Internet) — o "molde" do qual as contas derivam.
 - `servico_conta` (ver `docs/contas-despesas.md`, Fase 10.2, migração 011, schema **v11**): ocorrência concreta de um serviço (ex.: Internet · `2026-09` · vence `2026-09-15` · R$ 120,00 em centavos). `servico_id` com `ON DELETE RESTRICT`, `UNIQUE(servico_id, referencia)` contra duplicatas, estado persistido `pendente`/`cancelada` (`VENCIDA` é derivada, nunca gravada). Criar/editar/cancelar **não** cria transação e **não** altera carteira/saldo.
+- `servico_recorrencia` (ver `docs/recorrencias.md`, Fase 10.3, migração 012, schema **v12**): a REGRA DE REPETIÇÃO de um serviço (frequência `mensal`…`anual` com `CHECK`, início obrigatório, término opcional, dia de vencimento 1–31, valor esperado > 0 em centavos). `servico_id` com `ON DELETE RESTRICT`; estado persistido `ativa`/`inativa`/`arquivada` com `CHECK`; `arquivado_em` marca o fim. É apenas **regra** — nenhuma conta, transação ou movimento de saldo é derivado dela nesta subfase (geração na Fase 10.4).
 - `STRICT` impõe tipagem real nas colunas(SQLite ≥  3.37; embutido aqui: 3.50.4.
 
 ##  ̈6. Sistema de migrações

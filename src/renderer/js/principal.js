@@ -172,6 +172,7 @@ function mapearElementos() {
   elementos.botaoVerLoja = consultar('botao-ver-loja');
   elementos.botaoVerServicos = consultar('botao-ver-servicos');
   elementos.botaoVerContas = consultar('botao-ver-contas');
+  elementos.botaoVerRecorrencias = consultar('botao-ver-recorrencias');
   elementos.visaoFinancas = consultar('visao-financas');
   elementos.visaoFormularioTransacao = consultar('visao-formulario-transacao');
   elementos.visaoFormularioOrcamento = consultar('visao-formulario-orcamento');
@@ -1621,6 +1622,7 @@ function executarBoot() {
   elementos.botaoVerLoja.disabled = true;
   elementos.botaoVerServicos.disabled = true;
   elementos.botaoVerContas.disabled = true;
+  elementos.botaoVerRecorrencias.disabled = true;
   definirEstado('INICIANDO…');
   const linhas = linhasDoBoot();
   montarLinhasBoot(linhas, false);
@@ -1637,6 +1639,7 @@ function executarBoot() {
     elementos.botaoVerLoja.disabled = false;
     elementos.botaoVerServicos.disabled = false;
     elementos.botaoVerContas.disabled = false;
+    elementos.botaoVerRecorrencias.disabled = false;
     elementos.mensagem.textContent = 'Operador identificado. Aguardando módulos…';
     carregarStatus();
     carregarProgressao();
@@ -1795,6 +1798,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   elementos.botaoVerServicos.addEventListener('click', () => {
     if (typeof window.__irParaServicos === 'function') window.__irParaServicos();
+  });
+  elementos.botaoVerRecorrencias.addEventListener('click', () => {
+    if (typeof window.__irParaRecorrencias === 'function') window.__irParaRecorrencias();
   });
   elementos.financasPainel.addEventListener('click', voltarAoPainelFinancas);
   elementos.filtrosFinanca.addEventListener('click', (evento) => {

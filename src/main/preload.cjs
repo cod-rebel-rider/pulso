@@ -80,6 +80,14 @@ const CANAL_CONTA_CRIAR = 'conta:criar'; // igual a canais.cjs → CONTA_CRIAR
 const CANAL_CONTA_ATUALIZAR = 'conta:atualizar'; // igual a canais.cjs → CONTA_ATUALIZAR
 const CANAL_CONTA_CANCELAR = 'conta:cancelar'; // igual a canais.cjs → CONTA_CANCELAR
 const CANAL_CONTA_CONFIG = 'conta:config'; // igual a canais.cjs → CONTA_CONFIG
+const CANAL_RECURRENCIA_LISTAR = 'recorrencia:listar'; // igual a canais.cjs → RECURRENCIA_LISTAR
+const CANAL_RECURRENCIA_OBTER = 'recorrencia:obter'; // igual a canais.cjs → RECURRENCIA_OBTER
+const CANAL_RECURRENCIA_CRIAR = 'recorrencia:criar'; // igual a canais.cjs → RECURRENCIA_CRIAR
+const CANAL_RECURRENCIA_ATUALIZAR = 'recorrencia:atualizar'; // igual a canais.cjs → RECURRENCIA_ATUALIZAR
+const CANAL_RECURRENCIA_ATIVAR = 'recorrencia:ativar'; // igual a canais.cjs → RECURRENCIA_ATIVAR
+const CANAL_RECURRENCIA_DESATIVAR = 'recorrencia:desativar'; // igual a canais.cjs → RECURRENCIA_DESATIVAR
+const CANAL_RECURRENCIA_ARQUIVAR = 'recorrencia:arquivar'; // igual a canais.cjs → RECURRENCIA_ARQUIVAR
+const CANAL_RECURRENCIA_CONFIG = 'recorrencia:config'; // igual a canais.cjs → RECURRENCIA_CONFIG
 
 const { contextBridge, ipcRenderer } = require('electron');
 
@@ -297,6 +305,24 @@ contextBridge.exposeInMainWorld(
       atualizar: (dados) => ipcRenderer.invoke(CANAL_CONTA_ATUALIZAR, dados),
       cancelar: (id) => ipcRenderer.invoke(CANAL_CONTA_CANCELAR, { id }),
       config: () => ipcRenderer.invoke(CANAL_CONTA_CONFIG),
+    }),
+
+    /**
+     * Operacoes de Recorrencias (Fase 10.3).
+     * A recorrencia e a REGRA DE REPETICAO de um servico: criar/editar/
+     * ativar/desativar/arquivar NAO gera conta, NAO cria transacao e NAO
+     * altera o saldo (a geracao de ocorrencias e da Fase 10.4).
+     */
+    recorrencia: Object.freeze({
+      listar: (jogadorId, filtros = {}) =>
+        ipcRenderer.invoke(CANAL_RECURRENCIA_LISTAR, { jogadorId, ...filtros }),
+      obter: (id) => ipcRenderer.invoke(CANAL_RECURRENCIA_OBTER, { id }),
+      criar: (dados) => ipcRenderer.invoke(CANAL_RECURRENCIA_CRIAR, dados),
+      atualizar: (dados) => ipcRenderer.invoke(CANAL_RECURRENCIA_ATUALIZAR, dados),
+      ativar: (id) => ipcRenderer.invoke(CANAL_RECURRENCIA_ATIVAR, { id }),
+      desativar: (id) => ipcRenderer.invoke(CANAL_RECURRENCIA_DESATIVAR, { id }),
+      arquivar: (id) => ipcRenderer.invoke(CANAL_RECURRENCIA_ARQUIVAR, { id }),
+      config: () => ipcRenderer.invoke(CANAL_RECURRENCIA_CONFIG),
     }),
   }),
 );

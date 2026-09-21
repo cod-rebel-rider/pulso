@@ -508,6 +508,60 @@ const MIGRACAO_011 = Object.freeze({
   },
 });
 
+/**
+ * Migração 012 — recorrências (Fase 10.3).
+ *
+ * A RECORRÊNCIA é a REGRA DE REPETIÇÃO de um serviço — não é conta e não é
+ * despesa: apenas descreve COMO uma obrigação se repete (frequência, início,
+ * término opcional, dia de vencimento, valor esperado). A geração das
+ * ocorrências concretas (contas) pertence à Fase 10.4 — esta subfase NÃO
+ * cria conta, NÃO cria transação e NÃO altera saldo/carteira.
+ *
+ * - `servico_id`: obrigatório — a regra pertence a um serviço existente
+ *   (`RESTRICT` impede apagar um serviço que tenha recorrências);
+ * - `frequencia`: lista controlada do domínio (mensal, bimestral, trimestral,
+ *   semestral, anual) — extensível por nova migração/lista do domínio;
+ * - `data_inicio` / `data_fim`: datas civis AAAA-MM-DD; término opcional;
+ * - `dia_vencimento`: 1–31 — em meses menores a ocorrência usa o último dia
+ *   válido do mês (regra canônica em docs/recorrencias.md, Fase 10.4);
+ * - `valor_esperado_centavos`: expectativa em centavos (Fase 08), > 0;
+ * - `estado`: 'ativa' | 'inativa' | 'arquivada' — nasce 'ativa';
+ *   arquivada é terminal nesta subfase;
+ * - `arquivado_em`: preenchido no arquivamento (registro nunca é apagado).
+ */
+const MIGRACAO_012 = Object.freeze({
+  versao: 12,
+  nome: 'criar-tabela-servico-recorrencia',
+  cima(banco) {
+    banco.exec(`
+      CREATE TABLE servico_recorrencia (
+        id                      INTEGER PRIMARY KEY,
+        jogador_id              INTEGER NOT NULL REFERENCES jogador(id) ON DELETE CASCADE,
+        servico_id              INTEGER NOT NULL REFERENCES servico(id) ON DELETE RESTRICT,
+        frequencia              TEXT NOT NULL,
+        data_inicio             TEXT NOT NULL,
+        data_fim                TEXT,
+        dia_vencimento          INTEGER NOT NULL CHECK (dia_vencimento BETWEEN 1 AND 31),
+        valor_esperado_centavos INTEGER NOT NULL CHECK (valor_esperado_centavos > 0),
+        descricao               TEXT,
+        estado                  TEXT NOT NULL,
+        criado_em               TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        atualizado_em           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+        arquivado_em            TEXT,
+        CHECK (estado IN ('ativa', 'inativa', 'arquivada')),
+        CHECK (frequencia IN (
+          'mensal', 'bimestral', 'trimestral', 'semestral', 'anual'
+        )),
+        CHECK (data_inicio GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+        CHECK (data_fim IS NULL OR data_fim GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]')
+      ) STRICT
+    `);
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_servico_recorrencia_jogador ON servico_recorrencia(jogador_id)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_servico_recorrencia_servico ON servico_recorrencia(servico_id)');
+    banco.exec('CREATE INDEX IF NOT EXISTS idx_servico_recorrencia_estado ON servico_recorrencia(jogador_id, estado)');
+  },
+});
+
 /** Lista oficial de migracoes — fases futuras ACRESCENTAM ao final. */
 export const MIGRACOES = Object.freeze([
   MIGRACAO_001,
@@ -521,6 +575,7 @@ export const MIGRACOES = Object.freeze([
   MIGRACAO_009,
   MIGRACAO_010,
   MIGRACAO_011,
+  MIGRACAO_012,
 ]);
 
 function validarLista(migracoes) {

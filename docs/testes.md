@@ -15,8 +15,8 @@ Pirâmide clássica, respeitando o ritmo das fases:
 
 ```text
 tests/
-├── unidade/      → ambiente, configuração, registro, canais IPC, conexão, migrações, jogador, status, missão, projeto, finança, loja, serviço, conta
-└── integracao/   → inicialização da aplicação (fumaça), persistência real do banco, jogador, status, missão, projeto, finança, loja, serviço, conta
+├── unidade/      → ambiente, configuração, registro, canais IPC, conexão, migrações, jogador, status, missão, projeto, finança, loja, serviço, conta, recorrência
+└── integracao/   → inicialização da aplicação (fumaça), persistência real do banco, jogador, status, missão, projeto, finança, loja, serviço, conta, recorrência
 ```
 
 ## 3.4 Fase 08 — Finanças
@@ -65,6 +65,24 @@ Cenários da fase executados em banco SQLite temporário (ciclo completo, com re
 | 7 | Cancelar um desejo | item permanece no banco (`CANCELADO`); nenhuma transação criada; carteira intacta |
 | 8 | Fechar e reabrir o aplicativo (novo arquivo → reler) | histórico, estados e saldo **permanecem** |
 
+## 3.7 Fase 10.3 — Recorrências
+
+- `tests/unidade/recorrencia.test.mjs` — regras puras do domínio: lista controlada
+  de frequências e extensibilidade (mensal…anual, cada uma com intervalo em meses),
+  máquina de estados (nasce `ATIVA`; desativa/reativa; `ARQUIVADA` é terminal),
+  datas civis (`AAAA-MM-DD`, datas inexistentes rejeitadas), último dia do mês
+  (bissextos), **ajuste do dia 31 em meses menores** (fev → 28/29, abr/jun/nov → 30),
+  valor esperado (centavos inteiros > 0), período (término ≥ início), criação e
+  edição parciais, conversor linha → objeto.
+- `tests/integracao/recorrencia.test.mjs` — ciclo completo com banco real:
+  criar → consultar → editar → persistir; ativar/desativar/arquivar (arquivada é
+  terminal: reativação e edição recusadas); vínculo com o serviço (inexistente ou
+  de outro jogador recusado); validações de datas, frequência e valor; isolamento
+  por jogador e filtros por estado/serviço; regras mensal e anual com dia 31;
+  **teste financeiro obrigatório** (criar/editar/ativar recorrência de R$ 120,00 →
+  saldo inalterado, **zero contas** e **zero transações** criadas); persistência
+  fechar → reabrir.
+
 ## 4. Teste de fumaça (Fases 01–02)
 
 O processo principal aceita a flag `--teste-fumaca`:
@@ -102,6 +120,7 @@ Ele inicia a aplicação, cria a janela, carrega o renderer, valida a ponte IPC,
 | Persistência | integração | SQLite em arquivo temporário (Fase 02+) |
 | Finanças (Fase 08) | unidade + integração | `financa.test.mjs` — domínio (centavos, categorias, saldo, período, orçamento) e ciclo completo com banco real (carteira, transações, edição/exclusão, orçamentos, persistência) |
 | Loja / Lista de Desejos (Fase 09) | unidade + integração | `loja.test.mjs` — domínio (estados, transições, validações, diferença/percentual, mapeamento financeiro) e ciclo completo com banco real (compra atômica via Fase 08, rollback, histórico, cancelamento, persistência) |
+| Recorrências (Fase 10.3) | unidade + integração | `recorrencia.test.mjs` — domínio (frequências, estados, datas, ajuste de dia 31, valores) e ciclo completo com banco real (vínculo com serviço, isolamento, filtros, arquivamento terminal, **saldo inalterado / zero contas / zero transações**, persistência) |
 | Processo principal + janela | integração | teste de fumaça (Fase 01) |
 | Persistência (SQLite) | unidade + integração | conexão/PRAGMAs, migrações e ciclo salvar→reabrir→ler em bancos isolados (Fase 02) |
 | Interface | e2e | automação dedicada (Fase 17) |

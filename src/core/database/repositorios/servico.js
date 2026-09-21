@@ -59,8 +59,8 @@ export class RepositorioServico {
     this._inserir.run(
       jogadorId,
       dados.nome,
-      dados.descricao,
-      dados.fornecedor,
+      dados.descricao ?? null,
+      dados.fornecedor ?? null,
       dados.categoria,
       dados.valorEsperado,
       estado,
@@ -91,8 +91,8 @@ export class RepositorioServico {
   atualizar(id, dados) {
     this._atualizarCampos.run(
       dados.nome,
-      dados.descricao,
-      dados.fornecedor,
+      dados.descricao ?? null,
+      dados.fornecedor ?? null,
       dados.categoria,
       dados.valorEsperado,
       id,
