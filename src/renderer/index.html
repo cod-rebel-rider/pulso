@@ -105,6 +105,7 @@
         <button type="button" id="botao-ver-financas" class="botao-secundario" disabled>VER FINANÇAS</button>
         <button type="button" id="botao-ver-loja" class="botao-secundario" disabled>VER LOJA</button>
         <button type="button" id="botao-ver-servicos" class="botao-secundario" disabled>VER SERVIÇOS</button>
+        <button type="button" id="botao-ver-contas" class="botao-secundario" disabled>VER CONTAS</button>
       </div>
     </section>
 
@@ -733,6 +734,132 @@
       </form>
     </section>
 
+    <!-- Contas / Despesas: ocorrências dos serviços (Fase 10.2) -->
+    <section class="nucleo visao oculto" id="visao-contas">
+      <p class="rotulo-secao">CONTAS E DESPESAS</p>
+      <h1 class="titulo-secao">OCORRÊNCIAS</h1>
+      <p class="descricao-secao">Cada conta é uma ocorrência concreta de um serviço (ex.: Internet · Setembro/2026). Valor esperado é o previsto do vencimento — nenhum pagamento ou movimentação financeira acontece aqui.</p>
+
+      <section class="financa-resumo" aria-label="Resumo das contas">
+        <div class="financa-cartao">
+          <p class="rotulo-secao">PENDENTES</p>
+          <p class="financa-metrica" id="conta-pendentes">0</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">VENCIDAS</p>
+          <p class="financa-metrica" id="conta-vencidas">0</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">CANCELADAS</p>
+          <p class="financa-metrica" id="conta-canceladas">0</p>
+        </div>
+        <div class="financa-cartao">
+          <p class="rotulo-secao">ESPERADO EM ABERTO</p>
+          <p class="financa-metrica" id="conta-valor-aberto">R$ 0,00</p>
+        </div>
+      </section>
+
+      <p class="aviso" id="aviso-contas" role="alert"></p>
+
+      <div class="toolbar-missoes">
+        <div class="filtros" id="filtros-contas" role="tablist" aria-label="Filtros de contas">
+          <button type="button" class="filtro ativo" data-filtro="">TODAS</button>
+          <button type="button" class="filtro" data-filtro="pendente">PENDENTES</button>
+          <button type="button" class="filtro" data-filtro="vencida">VENCIDAS</button>
+          <button type="button" class="filtro" data-filtro="cancelada">CANCELADAS</button>
+        </div>
+        <div class="loja-filtros-extras">
+          <select id="filtro-servico-contas" aria-label="Filtrar por serviço">
+            <option value="">TODOS OS SERVIÇOS</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="lista-missoes" id="lista-contas"></div>
+
+      <div class="acoes-missao">
+        <button type="button" id="botao-nova-conta" class="botao-primario">NOVA CONTA</button>
+        <button type="button" id="botao-voltar-contas" class="botao-secundario">VOLTAR AO PAINEL</button>
+      </div>
+    </section>
+
+    <!-- Contas / Despesas: detalhe (Fase 10.2) -->
+    <section class="nucleo visao oculto" id="visao-conta-detalhe">
+      <p class="rotulo-secao">CONTAS E DESPESAS</p>
+      <h1 class="titulo-secao" id="conta-detalhe-titulo">DETALHE DA CONTA</h1>
+
+      <dl class="loja-detalhes">
+        <div>
+          <dt>SERVIÇO</dt>
+          <dd id="conta-detalhe-servico">—</dd>
+        </div>
+        <div>
+          <dt>REFERÊNCIA</dt>
+          <dd id="conta-detalhe-referencia">—</dd>
+        </div>
+        <div>
+          <dt>VALOR ESPERADO</dt>
+          <dd id="conta-detalhe-valor">—</dd>
+        </div>
+        <div>
+          <dt>VENCIMENTO</dt>
+          <dd id="conta-detalhe-vencimento">—</dd>
+        </div>
+        <div>
+          <dt>SITUAÇÃO</dt>
+          <dd id="conta-detalhe-situacao">—</dd>
+        </div>
+        <div>
+          <dt>CRIADA EM</dt>
+          <dd id="conta-detalhe-criada">—</dd>
+        </div>
+        <div>
+          <dt>ATUALIZADA EM</dt>
+          <dd id="conta-detalhe-atualizada">—</dd>
+        </div>
+        <div id="linha-conta-cancelada">
+          <dt>CANCELADA EM</dt>
+          <dd id="conta-detalhe-cancelada">—</dd>
+        </div>
+      </dl>
+
+      <p class="loja-descricao" id="conta-detalhe-descricao"></p>
+      <p class="aviso" id="aviso-conta-detalhe" role="alert"></p>
+
+      <div class="acoes-missao" id="acoes-conta-detalhe"></div>
+    </section>
+
+    <!-- Contas / Despesas: formulário (Fase 10.2) -->
+    <section class="nucleo visao oculto" id="visao-formulario-conta">
+      <p class="rotulo-secao" id="formulario-conta-titulo-secao">NOVA CONTA</p>
+      <h1 class="titulo-secao" id="formulario-conta-titulo">REGISTRAR CONTA</h1>
+
+      <form id="formulario-conta" novalidate>
+        <label for="campo-conta-servico">SERVIÇO <span class="obrigatorio">*</span></label>
+        <select id="campo-conta-servico" name="servicoId"></select>
+
+        <label for="campo-conta-referencia">REFERÊNCIA <span class="obrigatorio">*</span></label>
+        <input id="campo-conta-referencia" name="referencia" type="month" />
+
+        <label for="campo-conta-vencimento">VENCIMENTO <span class="obrigatorio">*</span></label>
+        <input id="campo-conta-vencimento" name="vencimento" type="date" />
+
+        <label for="campo-conta-valor">VALOR ESPERADO <span class="obrigatorio">*</span></label>
+        <input id="campo-conta-valor" name="valorEsperado" inputmode="decimal"
+               placeholder="0,00" autocomplete="off" spellcheck="false" maxlength="14" />
+
+        <label for="campo-conta-descricao">DESCRIÇÃO <span class="opcional">(opcional)</span></label>
+        <textarea id="campo-conta-descricao" name="descricao" maxlength="2000" rows="4"></textarea>
+
+        <p class="aviso" id="aviso-formulario-conta" role="alert"></p>
+
+        <div class="acoes-formulario">
+          <button type="submit" id="botao-salvar-conta">SALVAR</button>
+          <button type="button" id="botao-cancelar-conta" class="botao-secundario">CANCELAR</button>
+        </div>
+      </form>
+    </section>
+
     <footer class="rodape">
       <span id="rodape-ambiente">AMBIENTE: —</span>
       <span class="separador" aria-hidden="true">·</span>
@@ -747,5 +874,6 @@
   <script src="js/principal.js"></script>
   <script src="js/loja.js"></script>
   <script src="js/servicos.js"></script>
+  <script src="js/contas.js"></script>
 </body>
 </html>

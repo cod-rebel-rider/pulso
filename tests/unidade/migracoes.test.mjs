@@ -8,7 +8,7 @@ import { abrirConexao, fecharConexao } from '../../src/core/database/conexao.js'
 import { aplicarMigracoes, versaoAtual, MIGRACOES } from '../../src/core/database/migracoes.js';
 import { calcularNivel } from '../../src/core/dominio/progressao.js';
 
-test('banco vazio recebe as migrações oficiais: schema v10 com infraestrutura, jogador, status, missões, progressão, projetos, finanças, lista de desejos, conciliação legada e serviços', () => {
+test('banco vazio recebe as migrações oficiais: schema v11 com infraestrutura, jogador, status, missões, progressão, projetos, finanças, lista de desejos, conciliação legada, serviços e contas', () => {
   const banco = abrirConexao({ caminho: ':memory:' });
   try {
     const resultado = aplicarMigracoes(banco);
@@ -23,9 +23,10 @@ test('banco vazio recebe as migrações oficiais: schema v10 com infraestrutura,
       { versao: 8, nome: 'criar-tabela-desejo' },
       { versao: 9, nome: 'conciliar-progressao-legado' },
       { versao: 10, nome: 'criar-tabela-servico' },
+      { versao: 11, nome: 'criar-tabela-servico-conta' },
     ]);
-    assert.equal(resultado.versaoAtual, 10);
-    assert.equal(versaoAtual(banco), 10);
+    assert.equal(resultado.versaoAtual, 11);
+    assert.equal(versaoAtual(banco), 11);
 
     assert.equal(banco.prepare("SELECT valor FROM meta WHERE chave = 'aplicacao'").get().valor, 'PULSO');
     // a tabela do jogador existe e aceita inserção mínima
@@ -75,6 +76,27 @@ test('banco vazio recebe as migrações oficiais: schema v10 com infraestrutura,
       () => banco.prepare("INSERT INTO servico (jogador_id, nome, categoria, valor_esperado_centavos, estado) VALUES (1, 'X', 'contas', 12000, 'estado_invalido')").run(),
       /CHECK/,
     );
+    // a tabela de contas de serviço existe, aceita inserção mínima e valida CHECKs
+    banco.prepare("INSERT INTO servico_conta (jogador_id, servico_id, referencia, valor_esperado_centavos, vencimento, estado) VALUES (1, 1, '2026-09', 12000, '2026-09-15', 'pendente')").run();
+    assert.equal(banco.prepare('SELECT COUNT(*) AS n FROM servico_conta').get().n, 1);
+    assert.throws(
+      () => banco.prepare("INSERT INTO servico_conta (jogador_id, servico_id, referencia, valor_esperado_centavos, vencimento, estado) VALUES (1, 1, '2026-10', 0, '2026-10-15', 'pendente')").run(),
+      /CHECK/,
+    );
+    assert.throws(
+      () => banco.prepare("INSERT INTO servico_conta (jogador_id, servico_id, referencia, valor_esperado_centavos, vencimento, estado) VALUES (1, 1, '2026-11', 12000, '2026-11-15', 'vencida')").run(),
+      /CHECK/,
+    );
+    assert.throws(
+      () => banco.prepare("INSERT INTO servico_conta (jogador_id, servico_id, referencia, valor_esperado_centavos, vencimento, estado) VALUES (1, 1, '2026-09', 12000, '2026-09-15', 'pendente')").run(),
+      /UNIQUE/,
+      'a mesma ocorrência (serviço + referência) não pode duplicar',
+    );
+    assert.throws(
+      () => banco.prepare("INSERT INTO servico_conta (jogador_id, servico_id, referencia, valor_esperado_centavos, vencimento, estado) VALUES (1, 999, '2026-09', 12000, '2026-09-15', 'pendente')").run(),
+      /FOREIGN KEY/,
+      'a conta exige um serviço existente',
+    );
   } finally {
     fecharConexao(banco);
   }
@@ -97,7 +119,7 @@ test('migrações já aplicadas não são executadas novamente', () => {
     assert.equal(registroDepois.aplicada_em, registroOriginal.aplicada_em, 'registro inalterado');
     assert.equal(
       banco.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get().n,
-      10,
+      11,
       'todas as migrações oficiais registradas uma única vez',
     );
   } finally {
@@ -238,13 +260,14 @@ test('migração 009 concilia banco legado da Fase 06: restaura nivel e jogador_
     const registrar = banco.prepare('INSERT INTO schema_migrations (versao, nome) VALUES (?, ?)');
     for (let versao = 5; versao <= 8; versao += 1) registrar.run(versao, `legado-${versao}`);
 
-    // 5) A aplicação atual aplica a conciliação (v9) e os serviços (v10).
+    // 5) A aplicação atual aplica a conciliação (v9), os serviços (v10) e as contas (v11).
     const resultado = aplicarMigracoes(banco);
     assert.deepEqual(resultado.aplicadas, [
       { versao: 9, nome: 'conciliar-progressao-legado' },
       { versao: 10, nome: 'criar-tabela-servico' },
+      { versao: 11, nome: 'criar-tabela-servico-conta' },
     ]);
-    assert.equal(versaoAtual(banco), 10);
+    assert.equal(versaoAtual(banco), 11);
 
     // 6) Progressão reconstruída: nivel derivado do XP pela regra do domínio.
     const colunas = banco

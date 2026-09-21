@@ -66,4 +66,10 @@ module.exports = Object.freeze({
   SERVICO_DESATIVAR: 'servico:desativar',
   SERVICO_ARQUIVAR: 'servico:arquivar',
   SERVICO_CONFIG: 'servico:config',
+  CONTA_LISTAR: 'conta:listar',
+  CONTA_OBTER: 'conta:obter',
+  CONTA_CRIAR: 'conta:criar',
+  CONTA_ATUALIZAR: 'conta:atualizar',
+  CONTA_CANCELAR: 'conta:cancelar',
+  CONTA_CONFIG: 'conta:config',
 });

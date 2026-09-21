@@ -171,6 +171,7 @@ function mapearElementos() {
   elementos.botaoVerFinancas = consultar('botao-ver-financas');
   elementos.botaoVerLoja = consultar('botao-ver-loja');
   elementos.botaoVerServicos = consultar('botao-ver-servicos');
+  elementos.botaoVerContas = consultar('botao-ver-contas');
   elementos.visaoFinancas = consultar('visao-financas');
   elementos.visaoFormularioTransacao = consultar('visao-formulario-transacao');
   elementos.visaoFormularioOrcamento = consultar('visao-formulario-orcamento');
@@ -1547,6 +1548,17 @@ function exibirVisao(nomeVisao) {
       if (visao) visao.classList.add('oculto');
     }
   }
+
+  // Contas / Despesas (Fase 10.2) — telas próprias gerenciadas por contas.js
+  const emContas = nomeVisao === 'visao-contas'
+    || nomeVisao === 'visao-conta-detalhe'
+    || nomeVisao === 'visao-formulario-conta';
+  if (!emContas) {
+    for (const id of ['visao-contas', 'visao-conta-detalhe', 'visao-formulario-conta']) {
+      const visao = document.getElementById(id);
+      if (visao) visao.classList.add('oculto');
+    }
+  }
 }
 
 /** Vai para a lista de projetos (esconde o painel principal). */
@@ -1608,6 +1620,7 @@ function executarBoot() {
   elementos.botaoVerFinancas.disabled = true;
   elementos.botaoVerLoja.disabled = true;
   elementos.botaoVerServicos.disabled = true;
+  elementos.botaoVerContas.disabled = true;
   definirEstado('INICIANDO…');
   const linhas = linhasDoBoot();
   montarLinhasBoot(linhas, false);
@@ -1623,6 +1636,7 @@ function executarBoot() {
     elementos.botaoVerFinancas.disabled = false;
     elementos.botaoVerLoja.disabled = false;
     elementos.botaoVerServicos.disabled = false;
+    elementos.botaoVerContas.disabled = false;
     elementos.mensagem.textContent = 'Operador identificado. Aguardando módulos…';
     carregarStatus();
     carregarProgressao();

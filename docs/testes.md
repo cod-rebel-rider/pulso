@@ -15,8 +15,8 @@ Pirâmide clássica, respeitando o ritmo das fases:
 
 ```text
 tests/
-├── unidade/      → ambiente, configuração, registro, canais IPC, conexão, migrações, jogador, status, missão, projeto, finança, loja
-└── integracao/   → inicialização da aplicação (fumaça), persistência real do banco, jogador, status, missão, projeto, finança, loja
+├── unidade/      → ambiente, configuração, registro, canais IPC, conexão, migrações, jogador, status, missão, projeto, finança, loja, serviço, conta
+└── integracao/   → inicialização da aplicação (fumaça), persistência real do banco, jogador, status, missão, projeto, finança, loja, serviço, conta
 ```
 
 ## 3.4 Fase 08 — Finanças

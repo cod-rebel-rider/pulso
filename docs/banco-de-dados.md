@@ -53,9 +53,9 @@ Em outros sistemas operacionais o caminho acompanha o padrão da plataforma(Fase
 | `busy_timeout` | `5000` | locks transitórios esperam até 5 s em vez de falhar de imediato |
 | `synchronous` | `NORMAL` | par recomendado com WAL: seguro contra falha da aplicação; risco residual apenas em queda de energia(janela mínima) |
 
-##  ̈5. Schema atual(versão 9
+##  ̈5. Schema atual(versão 11
 
-Infraestrutura + entidades de negócio implementadas até a **Fase 09** (cada fase acrescenta sua migração ao final da lista — ver `src/core/database/migracoes.js`).
+Infraestrutura + entidades de negócio implementadas até a **Fase 10.2** (cada fase acrescenta sua migração ao final da lista — ver `src/core/database/migracoes.js`).
 
 
 
@@ -247,7 +247,7 @@ CREATE INDEX IF NOT EXISTS idx_desejo_estado ON desejo(jogador_id, estado);
 
 
 
-- `schema_migrations` responde "qual é a versão atual do banco?" (`SELECT MAX(versao)` . Atual: **v9**..
+- `schema_migrations` responde "qual é a versão atual do banco?" (`SELECT MAX(versao)` . Atual: **v11**..
 - `meta` guarda metadados técnico-operacionais(chave/valor. **Não** é configuração de ambiente(,isso vive em `config/*.json`) nem dado de sistema de jogo..
 
 - `jogador` (ver `docs/jogador.md`): identidade do operador — entidade central do PULSO; single-player imposta pelo Serviço,, com schema aberto a evolução futura.
@@ -255,6 +255,8 @@ CREATE INDEX IF NOT EXISTS idx_desejo_estado ON desejo(jogador_id, estado);
 - `transacao` (ver `docs/financas.md`): movimentação financeira — valor em **centavos inteiros positivos** (`CHECK valor_centavos > 0`), tipo `receita`/`despesa` (o sentido vem do tipo, nunca do sinal), categoria validada pelo domínio, `ocorrida_em` (data da ocorrência, `YYYY-MM-DD`) separado de `criado_em` (registro no PULSO).
 - `orcamento` (ver `docs/financas.md`): planejamento por categoria de despesa num período (limites inclusivos; `CHECK fim >= inicio`) — não cria dinheiro e não altera saldo.
 - `desejo` (ver `docs/loja.md`): item da lista de desejos (Fase 09) — preço esperado/pago em centavos inteiros positivos, estado com `CHECK` de domínio e `transacao_id` apontando para a despesa criada pela compra (`ON DELETE SET NULL` preserva o histórico do desejo mesmo se a transação for excluída manualmente no financeiro). Desejo **nunca** movimenta saldo por si só — só a compra, via transação.
+- `servico` (Fase 10.1): estrutura permanente de serviço recorrente (ex.: Internet) — o "molde" do qual as contas derivam.
+- `servico_conta` (ver `docs/contas-despesas.md`, Fase 10.2, migração 011, schema **v11**): ocorrência concreta de um serviço (ex.: Internet · `2026-09` · vence `2026-09-15` · R$ 120,00 em centavos). `servico_id` com `ON DELETE RESTRICT`, `UNIQUE(servico_id, referencia)` contra duplicatas, estado persistido `pendente`/`cancelada` (`VENCIDA` é derivada, nunca gravada). Criar/editar/cancelar **não** cria transação e **não** altera carteira/saldo.
 - `STRICT` impõe tipagem real nas colunas(SQLite ≥  3.37; embutido aqui: 3.50.4.
 
 ##  ̈6. Sistema de migrações
