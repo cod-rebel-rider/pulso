@@ -25,7 +25,7 @@ Fases conhecidas do projeto. Nenhuma fase antecipa o conteúdo da seguinte; o de
 | 12 | Música | Acompanhamento musical | ⬜ Pendente |
 | 13 | Mapa / Trilha | Visualização em rede / trilha | ⬜ Pendente |
 | 14 | Conquistas | Conquistas e marcos | ⬜ Pendente |
-| 15 | Dashboard | Painel consolidado definitivo | ⬜ Pendente |
+| 15 | Dashboard | Painel consolidado definitivo | ✅ Concluída |
 | 16 | Polimento | Refinamento visual e de experiência | ⬜ Pendente |
 | 17 | Testes e Estabilização | Cobertura, correções e estabilidade | ⬜ Pendente |
 | 18 | Portabilidade | Pacotes separados: Linux, Windows e pendrive | ⬜ Pendente |

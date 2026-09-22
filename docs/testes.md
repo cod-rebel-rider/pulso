@@ -15,8 +15,8 @@ Pirâmide clássica, respeitando o ritmo das fases:
 
 ```text
 tests/
-├── unidade/      → ambiente, configuração, registro, canais IPC, conexão, migrações, jogador, status, missão, progressão, projeto, finança, loja, serviço, conta, recorrência, geração
-└── integracao/   → inicialização da aplicação (fumaça), persistência real do banco, jogador, status, missão, progressão, projeto, finança, loja, serviço, conta, recorrência, geração
+├── unidade/      → ambiente, configuração, registro, canais IPC, conexão, migrações, jogador, status, missão, progressão, projeto, finança, loja, serviço, conta, recorrência, geração, dashboard (domínio + serviço)
+└── integracao/   → inicialização da aplicação (fumaça), persistência real do banco, jogador, status, missão, progressão, projeto, finança, loja, serviço, conta, recorrência, geração, dashboard
 ```
 
 ## 3.3 Fase 06 — Progressão
@@ -241,6 +241,7 @@ Ele inicia a aplicação, cria a janela, carrega o renderer, valida a ponte IPC,
 | Loja / Lista de Desejos (Fase 09) | unidade + integração | `loja.test.mjs` — domínio (estados, transições, validações, diferença/percentual, mapeamento financeiro) e ciclo completo com banco real (compra atômica via Fase 08, rollback, histórico, cancelamento, persistência) |
 | Recorrências (Fase 10.3) | unidade + integração | `recorrencia.test.mjs` — domínio (frequências, estados, datas, ajuste de dia 31, valores) e ciclo completo com banco real (vínculo com serviço, isolamento, filtros, arquivamento terminal, **saldo inalterado / zero contas / zero transações**, persistência) |
 | Pagamentos (Fase 10.5) | unidade + integração | `pagamento.test.mjs` — domínio (estados pagáveis, isolamento por dono, valor/data, situação derivada) e ciclo completo com banco real (DESPESA via Fase 08, saldo correto, vínculo conta↔transação, duplicidade bloqueada, atomicidade com rollback, isolamento, persistência) |
+| Dashboard (Fase 15) | unidade + integração + fumaça | `dashboard.test.mjs` (domínio: consolidação, agrupamentos, datas, atributos, status, missões, projetos, financas, contas e serviços, estado vazio, valores correspondem às fontes, sem dados fictícios); `servico-dashboard.test.mjs` (serviço: visão consolidada, período financeiro, saldo atual independente do período, atalhos para listas, vencidas destacadas sem alterar estado, múltiplos dados simultaneamente, criação/conclusão de missão, criação/início de projeto, transação financeira, persistência após reinicialização); smoke end-to-end com Electron (dashboard visível como tela principal, valores exibidos correspondem a missão + transação criados, sem erros de console). Regressão: `npm test` com 398 testes e 0 falhas. |
 | Processo principal + janela | integração | teste de fumaça (Fase 01) |
 | Persistência (SQLite) | unidade + integração | conexão/PRAGMAs, migrações e ciclo salvar→reabrir→ler em bancos isolados (Fase 02) |
 | Interface | e2e | automação dedicada (Fase 17) |

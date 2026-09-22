@@ -12,7 +12,16 @@
  *
  * Ações rápidas: chamam os fluxos existentes via window.__* (expostos por
  * principal.js / contas.js / servicos.js) — nenhum fluxo é reimplementado.
+ *
+ * Escopo: TODO o módulo vive dentro de uma IIFE. Scripts clássicos
+ * compartilham o escopo global; sem o isolamento, funções com o mesmo nome
+ * de outros módulos (ex.: `renderizarMissoes`) seriam sobrescritas e a
+ * interface quebraria. Para fora, o módulo expõe apenas:
+ *   window.__irParaDashboard     → entra no painel consolidado
+ *   window.__atualizarDashboard  → recarrega a visão consolidada
  */
+
+(() => {
 
 const VISAO_DASHBOARD = 'visao-dashboard';
 
@@ -435,3 +444,4 @@ if (document.readyState === 'loading') {
 } else {
   iniciarModuloDashboard();
 }
+})();
