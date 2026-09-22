@@ -173,6 +173,7 @@ function mapearElementos() {
   elementos.botaoVerLoja = consultar('botao-ver-loja');
   elementos.botaoVerServicos = consultar('botao-ver-servicos-despesas');
   elementos.botaoVerPagamento = consultar('botao-ver-pagamento');
+  elementos.botaoVerDashboard = consultar('botao-ver-dashboard');
   elementos.visaoFinancas = consultar('visao-financas');
   elementos.visaoFormularioTransacao = consultar('visao-formulario-transacao');
   elementos.visaoFormularioOrcamento = consultar('visao-formulario-orcamento');
@@ -816,6 +817,11 @@ function irParaFinancas() {
 
 /** Volta ao painel principal. */
 function voltarAoPainelFinancas() {
+  // Fase 15: o painel principal é o DASHBOARD (o boot fica acessível por lá).
+  if (typeof window.__irParaDashboard === 'function') {
+    window.__irParaDashboard();
+    return;
+  }
   exibirVisao('visao-boot');
 }
 
@@ -1577,6 +1583,14 @@ function exibirVisao(nomeVisao) {
     const hub = document.getElementById('visao-servicos-despesas');
     if (hub) hub.classList.add('oculto');
   }
+
+  // Dashboard (Fase 15) — escondido em qualquer troca por exibirVisao;
+  // a ENTRADA no dashboard é feita por dashboard.js (__irParaDashboard),
+  // que também cobre as demais visões.
+  if (nomeVisao !== 'visao-dashboard') {
+    const dash = document.getElementById('visao-dashboard');
+    if (dash) dash.classList.add('oculto');
+  }
 }
 
 /** Vai para a lista de projetos (esconde o painel principal). */
@@ -1591,9 +1605,40 @@ function irParaMissoes() {
   carregarMissoes();
 }
 
-/** Volta ao painel principal (boot com status + progressão). */
+/** Volta ao painel principal (Dashboard — Fase 15; boot acessível por lá). */
 function voltarAoPainel() {
+  if (typeof window.__irParaDashboard === 'function') {
+    window.__irParaDashboard();
+    return;
+  }
   exibirVisao('visao-boot');
+}
+
+// ── Pontes globais para o DASHBOARD (Fase 15) ────────────────────────────
+// O dashboard (dashboard.js) chama os fluxos EXISTENTES via window.* —
+// nenhum formulário ou navegação é reimplementado lá. As atribuições usam
+// guardas para não sobrescrever nada já exposto por outros módulos.
+if (typeof window.__irParaMissoes !== 'function') {
+  window.__irParaMissoes = () => { exibirVisaoMissao('visao-missoes'); carregarMissoes(); };
+}
+if (typeof window.__irParaProjetos !== 'function') {
+  window.__irParaProjetos = () => { exibirVisaoProjeto('visao-projetos'); carregarProjetos(); };
+}
+if (typeof window.__irParaFinancas !== 'function') {
+  window.__irParaFinancas = irParaFinancas;
+}
+if (typeof window.__abrirNovaMissao !== 'function') {
+  window.__abrirNovaMissao = () => exibirFormularioMissao();
+}
+if (typeof window.__abrirNovoProjeto !== 'function') {
+  window.__abrirNovoProjeto = () => exibirFormularioProjeto({ modo: 'criacao' });
+}
+if (typeof window.__abrirNovaTransacao !== 'function') {
+  window.__abrirNovaTransacao = async () => {
+    irParaFinancas(); // carrega a configuração financeira das categorias
+    try { await carregarFinancas(); } catch { /* erros já tratados dentro */ }
+    exibirFormularioTransacao();
+  };
 }
 
 function setAviso(texto) {
@@ -1638,6 +1683,7 @@ function executarBoot() {
   elementos.botaoVerFinancas.disabled = true;
   elementos.botaoVerLoja.disabled = true;
   elementos.botaoVerServicos.disabled = true;
+  elementos.botaoVerDashboard.disabled = true;
   definirEstado('INICIANDO…');
   const linhas = linhasDoBoot();
   montarLinhasBoot(linhas, false);
@@ -1653,11 +1699,20 @@ function executarBoot() {
     elementos.botaoVerFinancas.disabled = false;
     elementos.botaoVerLoja.disabled = false;
     elementos.botaoVerServicos.disabled = false;
+    elementos.botaoVerDashboard.disabled = false;
     elementos.mensagem.textContent = 'Operador identificado. Aguardando módulos…';
     carregarStatus();
     carregarProgressao();
     carregarMissoes();
     carregarProjetos();
+    // Fase 15: o DASHBOARD é a tela principal do PULSO — entra após o boot
+    // concluir (com uma pausa curta para o SISTEMA ONLINE ser visível).
+    // O painel de boot continua acessível pelo atalho "PAINEL DE BOOT".
+    if (typeof window.__irParaDashboard === 'function') {
+      setTimeout(() => {
+        if (typeof window.__irParaDashboard === 'function') window.__irParaDashboard();
+      }, 600);
+    }
   }, atrasoConclusao);
 }
 
@@ -1812,6 +1867,10 @@ document.addEventListener('DOMContentLoaded', () => {
   elementos.botaoVerServicos.addEventListener('click', () => {
     // Visão consolidada da FASE 10 (hub gerenciado por servicos-despesas.js)
     if (typeof window.__irParaServicosDespesas === 'function') window.__irParaServicosDespesas();
+  });
+  // Dashboard (Fase 15) — navegação delegada ao módulo dashboard.js
+  elementos.botaoVerDashboard.addEventListener('click', () => {
+    if (typeof window.__irParaDashboard === 'function') window.__irParaDashboard();
   });
   elementos.financasPainel.addEventListener('click', voltarAoPainelFinancas);
   elementos.filtrosFinanca.addEventListener('click', (evento) => {

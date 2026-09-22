@@ -87,6 +87,7 @@ function exibirVisaoServico(nome) {
     "visao-recorrencias", "visao-recorrencia-detalhe", "visao-formulario-recorrencia",
     "visao-contas", "visao-conta-detalhe", "visao-formulario-conta",
     "visao-formulario-pagamento-conta", "visao-servicos-despesas",
+    "visao-dashboard",
   ]) {
     const el = document.getElementById(visao);
     if (el) el.classList.add("oculto");
@@ -103,6 +104,11 @@ function irParaServicos() {
 }
 
 function voltarAoPainelServico() {
+  // Fase 15: o painel principal é o DASHBOARD (com retorno ao boot por lá).
+  if (typeof window.__irParaDashboard === "function") {
+    window.__irParaDashboard();
+    return;
+  }
   exibirVisaoServico("visao-boot");
 }
 
@@ -505,6 +511,11 @@ function registrarEventosServicos() {
 window.__irParaServicos = irParaServicos;
 /** Abre o DETALHE de um serviço direto (navegação cruzada da Fase 10.6). */
 window.__visualizarServico = visualizarServico;
+
+// Fase 15: ponte para a ação rápida "NOVO SERVIÇO" do dashboard.
+if (typeof window.__abrirNovoServico !== "function") {
+  window.__abrirNovoServico = () => exibirFormularioServico(null);
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   mapearServicos();

@@ -1475,3 +1475,268 @@
   color: var(--pulso-cinza);
 }
 
+
+/* ── Dashboard (Fase 15) ─────────────────────────────────────────────── */
+/* Camada de consolidação: cartões somente leitura, hierarquia por blocos,
+   vermelho apenas como destaque (alertas/atalhos). */
+
+#visao-dashboard {
+  /* o painel consolidado usa mais largura que as telas de formulário */
+  max-width: min(1180px, 100%);
+}
+
+.dash-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  align-items: start;
+}
+
+.dash-cartao {
+  border: 1px solid var(--pulso-cinza-escuro);
+  border-left: 2px solid var(--pulso-vermelho-escuro);
+  background: var(--pulso-superficie);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dash-destaque {
+  font-size: 22px;
+  letter-spacing: 0.06em;
+  color: var(--pulso-branco);
+  overflow-wrap: anywhere;
+}
+
+.dash-nota {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--pulso-cinza);
+  overflow-wrap: anywhere;
+}
+
+.dash-par {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.dash-nivel {
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  color: var(--pulso-vermelho);
+}
+
+/* status: rótulo + barra (reuso de .progressao-barra definida acima) */
+.dash-status {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.dash-status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.dash-atributos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 12px;
+}
+
+/* contagens: rótulo à esquerda, valor à direita */
+.dash-contagens {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+}
+
+.dash-contagens > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  border-bottom: 1px dotted var(--pulso-cinza-escuro);
+  padding-bottom: 3px;
+}
+
+.dash-contagem-rotulo {
+  color: var(--pulso-cinza);
+  letter-spacing: 0.1em;
+  min-width: 0;
+}
+
+.dash-contagem-valor {
+  color: var(--pulso-branco);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.dash-contagem-valor.alerta {
+  color: var(--pulso-perigo);
+}
+
+.dash-vazio {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--pulso-cinza);
+  font-style: normal;
+}
+
+/* progresso (XP de projeto, orçamento): barra + texto */
+.dash-progressos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.dash-progresso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dash-progresso-barra {
+  flex: 1 1 auto;
+  min-width: 40px;
+  height: 8px;
+  background: var(--pulso-preto);
+  border: 1px solid var(--pulso-cinza-escuro);
+  overflow: hidden;
+}
+
+.dash-progresso-preenchimento {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--pulso-vermelho-escuro), var(--pulso-vermelho));
+  transition: width 0.3s ease;
+}
+
+.dash-progresso-texto {
+  flex: 0 0 auto;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--pulso-cinza);
+  white-space: nowrap;
+}
+
+.dash-progresso-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dash-progresso-titulo {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--pulso-branco);
+  overflow-wrap: anywhere;
+}
+
+.dash-progresso-titulo.alerta {
+  color: var(--pulso-perigo);
+}
+
+/* seletor de período financeiro (mês civil) */
+.dash-periodo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.dash-periodo-rotulo {
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: var(--pulso-branco);
+  min-width: 12ch;
+  text-align: center;
+}
+
+/* próximas contas (vencidas destacadas, sem alterar os dados) */
+.dash-contas {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+  width: 100%;
+  min-width: 0;
+}
+
+.dash-conta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-left: 2px solid var(--pulso-cinza-escuro);
+  padding-left: 8px;
+  min-width: 0;
+}
+
+.dash-conta-item.vencida {
+  border-left-color: var(--pulso-perigo);
+}
+
+.dash-conta-nome {
+  font-size: 12px;
+  color: var(--pulso-branco);
+  overflow-wrap: anywhere;
+}
+
+.dash-conta-item.vencida .dash-conta-nome {
+  color: var(--pulso-perigo);
+}
+
+.dash-conta-detalhes {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--pulso-cinza);
+  overflow-wrap: anywhere;
+}
+
+/* atalhos de navegação e ações rápidas */
+.dash-atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.dash-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+@media (max-width: 720px) {
+  .dash-grade {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-atributos {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-periodo-rotulo {
+    min-width: 0;
+  }
+}
+

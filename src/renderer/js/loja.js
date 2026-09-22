@@ -194,6 +194,9 @@ function exibirVisaoLoja(nome) {
   }
   consultarElementoLoja('visao-configuracao').classList.add('oculto');
   consultarElementoLoja('visao-boot').classList.add('oculto');
+  // Dashboard (Fase 15) também é coberto para nenhuma visão "vazar".
+  const dash = document.getElementById('visao-dashboard');
+  if (dash) dash.classList.add('oculto');
   if (nome === 'visao-boot') consultarElementoLoja('visao-boot').classList.remove('oculto');
 }
 
@@ -204,6 +207,11 @@ function irParaLoja() {
 }
 
 function voltarAoPainelPulso() {
+  // Fase 15: o painel principal é o DASHBOARD (com retorno ao boot por lá).
+  if (typeof window.__irParaDashboard === 'function') {
+    window.__irParaDashboard();
+    return;
+  }
   exibirVisaoLoja('visao-boot');
 }
 
