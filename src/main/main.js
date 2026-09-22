@@ -46,6 +46,7 @@ import { ServicoContas } from '../core/aplicacao/servico-contas.js';
 import { ServicoRecorrencias } from '../core/aplicacao/servico-recorrencias.js';
 import { ServicoGeracaoOcorrencias } from '../core/aplicacao/servico-geracao-ocorrencias.js';
 import { ServicoPagamentos } from '../core/aplicacao/servico-pagamentos.js';
+import { ServicoDashboard } from '../core/aplicacao/servico-dashboard.js';
 import {
   CATEGORIAS_DESEJO,
   PRIORIDADES_DESEJO_ORDEM,
@@ -109,6 +110,7 @@ let servicoContas = null;
 let servicoRecorrencias = null;
 let servicoGeracaoOcorrencias = null;
 let servicoPagamentos = null;
+let servicoDashboard = null;
 
 // ── Teste de fumaça ─────────────────────────────────────────────────────
 const resultadosFumaca = {
@@ -722,6 +724,12 @@ function registrarIpc() {
       );
       return { ok: true, geracao };
     }));
+
+  // ── Dashboard (Fase 15) ───────────────────────────────────────────────
+  // Somente LEITURA: consolida os serviços existentes numa única visão.
+  // Nenhuma escrita, nenhuma regra nova, nenhum banco próprio.
+  ipcMain.handle(canais.DASHBOARD_VISAO, (_evento, { anoMes = null } = {}) =>
+    traduzirResultadoOperacao(() => ({ ok: true, visao: servicoDashboard.visao({ anoMes }) })));
 }
 
 /**
@@ -872,6 +880,18 @@ async function aoIniciar() {
     repositorio: repositorioProjeto,
     repositorioMissao,
     repositorioJogador,
+  });
+  // Dashboard (Fase 15): camada de CONSOLIDAÇÃO — somente leitura, reutiliza
+  // os serviços existentes. Não possui banco próprio nem regras novas.
+  servicoDashboard = new ServicoDashboard({
+    servicoJogador,
+    servicoStatus,
+    servicoProgressao,
+    servicoMissao,
+    servicoProjeto,
+    servicoFinanca,
+    servicoServicos,
+    servicoContas,
   });
 
   registrarIpc();
