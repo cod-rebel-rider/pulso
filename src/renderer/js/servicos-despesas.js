@@ -50,7 +50,7 @@ function mapearHub() {
   elementosHub.botaoVoltarPainel = consultarElementoHub("sd-voltar-painel");
 }
 
-/** Entra no hub: esconde os módulos e o painel, atualiza o resumo. */
+/** Entra no hub: esconde os módulos, o painel e o dashboard; atualiza o resumo. */
 function exibirHub() {
   for (const visao of VISOES_MODULO_FASE10) {
     const el = document.getElementById(visao);
@@ -60,6 +60,9 @@ function exibirHub() {
   if (resultadoPagamento) resultadoPagamento.classList.add("oculto");
   consultarElementoHub("visao-configuracao").classList.add("oculto");
   consultarElementoHub("visao-boot").classList.add("oculto");
+  // Dashboard (Fase 15) também é coberto para nenhuma visão "vazar".
+  const dash = document.getElementById("visao-dashboard");
+  if (dash) dash.classList.add("oculto");
   consultarElementoHub("visao-servicos-despesas").classList.remove("oculto");
   elementosHub.aviso.textContent = "";
 }
@@ -108,6 +111,11 @@ async function carregarResumoConsolidado() {
 }
 
 function voltarAoPainelHub() {
+  // Fase 15: o painel principal é o DASHBOARD (com retorno ao boot por lá).
+  if (typeof window.__irParaDashboard === "function") {
+    window.__irParaDashboard();
+    return;
+  }
   consultarElementoHub("visao-servicos-despesas").classList.add("oculto");
   consultarElementoHub("visao-boot").classList.remove("oculto");
 }

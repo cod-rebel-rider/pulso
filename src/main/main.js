@@ -46,6 +46,7 @@ import { ServicoContas } from '../core/aplicacao/servico-contas.js';
 import { ServicoRecorrencias } from '../core/aplicacao/servico-recorrencias.js';
 import { ServicoGeracaoOcorrencias } from '../core/aplicacao/servico-geracao-ocorrencias.js';
 import { ServicoPagamentos } from '../core/aplicacao/servico-pagamentos.js';
+import { ServicoDashboard } from '../core/aplicacao/servico-dashboard.js';
 import {
   CATEGORIAS_DESEJO,
   PRIORIDADES_DESEJO_ORDEM,
@@ -109,6 +110,7 @@ let servicoContas = null;
 let servicoRecorrencias = null;
 let servicoGeracaoOcorrencias = null;
 let servicoPagamentos = null;
+let servicoDashboard = null;
 
 // ── Teste de fumaça ─────────────────────────────────────────────────────
 const resultadosFumaca = {
@@ -137,7 +139,11 @@ function encerrarFumaca(ok, motivo) {
 }
 
 function executarTesteFumaca(janela) {
-  prazoFumaca = setTimeout(() => encerrarFumaca(false, 'tempo esgotado (20 s)'), 20_000);
+  prazoFumaca = setTimeout(() => encerrarFumaca(false, 'tempo esgotado (30 s)'), 30_000);
+  // O fluxo roda UMA vez: a validação do dashboard (Fase 15) recarrega o
+  // renderer, o que dispara `did-finish-load` novamente — sem esta guarda o
+  // handler reentraria e duplicaria/reiniciaria o teste.
+  let fluxoExecutado = false;
 
   janela.webContents.on('console-message', (...argumentos) => {
     const { nivel, mensagem } = extrairConsole(...argumentos);
@@ -151,6 +157,8 @@ function executarTesteFumaca(janela) {
     encerrarFumaca(false, `render-process-gone: ${detalhes?.reason}`));
 
   janela.webContents.on('did-finish-load', async () => {
+    if (fluxoExecutado) return;
+    fluxoExecutado = true;
     try {
       resultadosFumaca.rendererCarregado = true;
 
@@ -196,12 +204,88 @@ function executarTesteFumaca(janela) {
         await new Promise((r) => setTimeout(r, 100));
       }
 
+      // ── Fase 15: validação do DASHBOARD de ponta a ponta ──────────────
+      // Cria dados REAIS pelos módulos existentes (missão + receita) para
+      // conferir que os números exibidos no painel vêm das fontes.
+      const jogadorId = criacao?.jogador?.id ?? null;
+      const dadosCriados = await janela.webContents.executeJavaScript(
+        `(async () => {
+          const hoje = new Date().toISOString().slice(0, 10);
+          const missao = await window.pulso.missao.criar({ titulo: 'Miss\\u00e3o do teste de fuma\\u00e7a' });
+          const transacao = await window.pulso.financa.criarTransacao({
+            jogadorId: ${Number(jogadorId) || 0},
+            tipo: 'receita',
+            valorCentavos: 12345,
+            categoria: 'salario',
+            descricao: 'Receita do teste de fuma\\u00e7a',
+            data: hoje,
+          });
+          return { missaoOk: !!missao && missao.ok === true, transacaoOk: !!transacao && transacao.ok === true };
+        })()`,
+        true,
+      );
+      // O jogador passou a existir durante o teste; recarrega o renderer
+      // para que o boot identifique o operador e leve ao painel consolidado.
+      // Confere que o painel ficou VISÍVEL e que os blocos essenciais
+      // (operador, XP, missões, finanças e as 5 ações rápidas) renderizaram.
+      try {
+        const recarregado = new Promise((r) => janela.webContents.once('did-finish-load', r));
+        janela.webContents.reload();
+        await recarregado;
+
+        const inicioDashboard = Date.now();
+        while (Date.now() - inicioDashboard < 12_000) {
+          const estado = await janela.webContents.executeJavaScript(
+            `(() => {
+              const visao = document.getElementById('visao-dashboard');
+              if (!visao || visao.classList.contains('oculto')) return null;
+              return {
+                nome: document.getElementById('dash-jogador-nome')?.textContent ?? '',
+                nivel: document.getElementById('dash-nivel')?.textContent ?? '',
+                xp: document.getElementById('dash-xp-total')?.textContent ?? '',
+                missoes: document.getElementById('dash-missoes')?.textContent ?? '',
+                financas: document.getElementById('dash-financas')?.textContent ?? '',
+                pontos: document.getElementById('dash-pontos')?.textContent ?? '',
+                acoes: document.querySelectorAll(
+                  '#dash-acao-nova-missao, #dash-acao-novo-projeto, #dash-acao-nova-transacao, #dash-acao-nova-conta, #dash-acao-novo-servico'
+                ).length,
+              };
+            })()`,
+            true,
+          );
+          if (
+            estado
+            && estado.nome === 'Operador Teste'
+            && estado.acoes === 5
+            // valor REALMENTE criado (R$ 123,45) exibido no bloco financeiro
+            && /123,45/.test(estado.financas)
+          ) {
+            resultadosFumaca.dashboard = {
+              visivel: true,
+              operador: estado.nome,
+              nivel: estado.nivel,
+              xp: estado.xp,
+              pontos: estado.pontos,
+              missoes: estado.missoes,
+              financas: estado.financas,
+              acoesRapidas: estado.acoes,
+              dadosCriados,
+            };
+            break;
+          }
+          await new Promise((r) => setTimeout(r, 200));
+        }
+      } catch (erro) {
+        resultadosFumaca.dashboard = { visivel: false, erro: erro.message };
+      }
+
       const bancoOk =
         resultadosFumaca.banco?.inicializado === true && resultadosFumaca.banco.versaoSchema >= 1;
       const jogadorOk =
         resultadosFumaca.jogador?.preparado === true &&
         resultadosFumaca.jogador?.criado === true &&
         resultadosFumaca.jogador?.carregado === true;
+      const dashboardOk = resultadosFumaca.dashboard?.visivel === true;
       const ok =
         resultadosFumaca.aplicacaoIniciou &&
         resultadosFumaca.janelaCriada &&
@@ -209,12 +293,13 @@ function executarTesteFumaca(janela) {
         jogadorOk &&
         resultadosFumaca.rendererPronto &&
         resultadosFumaca.ipcAtivo &&
+        dashboardOk &&
         resultadosFumaca.errosConsole.length === 0;
       encerrarFumaca(
         ok,
         ok
           ? null
-          : `aplicacaoIniciou=${resultadosFumaca.aplicacaoIniciou}, janelaCriada=${resultadosFumaca.janelaCriada}, bancoOk=${bancoOk}, jogadorOk=${JSON.stringify(resultadosFumaca.jogador)}, rendererPronto=${resultadosFumaca.rendererPronto}, ipcAtivo=${resultadosFumaca.ipcAtivo}, errosConsole=${resultadosFumaca.errosConsole.length}`,
+          : `aplicacaoIniciou=${resultadosFumaca.aplicacaoIniciou}, janelaCriada=${resultadosFumaca.janelaCriada}, bancoOk=${bancoOk}, jogadorOk=${JSON.stringify(resultadosFumaca.jogador)}, rendererPronto=${resultadosFumaca.rendererPronto}, ipcAtivo=${resultadosFumaca.ipcAtivo}, dashboard=${JSON.stringify(resultadosFumaca.dashboard ?? null)}, errosConsole=${resultadosFumaca.errosConsole.length}`,
       );
     } catch (erro) {
       encerrarFumaca(false, `falha na verificação do renderer: ${erro.message}`);
@@ -722,6 +807,12 @@ function registrarIpc() {
       );
       return { ok: true, geracao };
     }));
+
+  // ── Dashboard (Fase 15) ───────────────────────────────────────────────
+  // Somente LEITURA: consolida os serviços existentes numa única visão.
+  // Nenhuma escrita, nenhuma regra nova, nenhum banco próprio.
+  ipcMain.handle(canais.DASHBOARD_VISAO, (_evento, { anoMes = null } = {}) =>
+    traduzirResultadoOperacao(() => ({ ok: true, visao: servicoDashboard.visao({ anoMes }) })));
 }
 
 /**
@@ -872,6 +963,18 @@ async function aoIniciar() {
     repositorio: repositorioProjeto,
     repositorioMissao,
     repositorioJogador,
+  });
+  // Dashboard (Fase 15): camada de CONSOLIDAÇÃO — somente leitura, reutiliza
+  // os serviços existentes. Não possui banco próprio nem regras novas.
+  servicoDashboard = new ServicoDashboard({
+    servicoJogador,
+    servicoStatus,
+    servicoProgressao,
+    servicoMissao,
+    servicoProjeto,
+    servicoFinanca,
+    servicoServicos,
+    servicoContas,
   });
 
   registrarIpc();

@@ -142,6 +142,22 @@ async function validarCicloCompleto({ tentativa = 1 } = {}) {
   assert.equal(r.jogador.preparado, true, 'banco de fumaça deveria começar sem jogador');
   assert.equal(r.jogador.criado, true, 'criação do jogador via IPC falhou');
   assert.equal(r.jogador.carregado, true, 're-consulta do jogador via IPC falhou');
+
+  // Fase 15: o DASHBOARD é a tela principal — visível após o boot, com o
+  // operador identificado, os indicadores e as 5 ações rápidas.
+  assert.equal(r.dashboard?.visivel, true, `dashboard não abriu: ${JSON.stringify(r.dashboard)}`);
+  assert.equal(r.dashboard.operador, 'Operador Teste', 'operador não exibido no dashboard');
+  assert.equal(r.dashboard.acoesRapidas, 5, 'ações rápidas do dashboard não renderizaram');
+  assert.match(r.dashboard.nivel, /^NÍVEL \d+$/, 'nível do operador ausente no dashboard');
+  assert.match(r.dashboard.xp, /^XP TOTAL: \d+$/, 'XP total ausente no dashboard');
+  assert.match(r.dashboard.pontos, /Pontos de atributo disponíveis: \d+/, 'pontos ausentes no dashboard');
+  // Os valores exibidos correspondem aos dados criados pelos módulos:
+  // conta a missão criada e mostra a receita de R$ 123,45 do período.
+  assert.equal(r.dashboard.dadosCriados?.missaoOk, true, 'missão do teste de fumaça não foi criada');
+  assert.equal(r.dashboard.dadosCriados?.transacaoOk, true, 'receita do teste de fumaça não foi criada');
+  assert.match(r.dashboard.financas, /123,45/, `receita não refletida no dashboard: ${r.dashboard.financas}`);
+  assert.match(r.dashboard.missoes, /PENDENTES/, 'bloco de missões não renderizou contagens');
+  assert.doesNotMatch(r.dashboard.missoes, /Nada registrado ainda/, 'missão criada não apareceu no resumo');
   return r;
 }
 

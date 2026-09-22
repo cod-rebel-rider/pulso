@@ -55,6 +55,7 @@ const CANAL_FINANCA_CRIAR_ORCAMENTO = 'financa:criar-orcamento'; // igual a cana
 const CANAL_FINANCA_ATUALIZAR_ORCAMENTO = 'financa:atualizar-orcamento'; // igual a canais.cjs → FINANCA_ATUALIZAR_ORCAMENTO
 const CANAL_FINANCA_EXCLUIR_ORCAMENTO = 'financa:excluir-orcamento'; // igual a canais.cjs → FINANCA_EXCLUIR_ORCAMENTO
 const CANAL_FINANCA_SITUACAO_ORCAMENTO = 'financa:situacao-orcamento'; // igual a canais.cjs → FINANCA_SITUACAO_ORCAMENTO
+const CANAL_DASHBOARD_VISAO = 'dashboard:visao'; // igual a canais.cjs → DASHBOARD_VISAO
 const CANAL_LOJA_LISTAR = 'loja:listar'; // igual a canais.cjs → LOJA_LISTAR
 const CANAL_LOJA_OBTER = 'loja:obter'; // igual a canais.cjs → LOJA_OBTER
 const CANAL_LOJA_CRIAR = 'loja:criar'; // igual a canais.cjs → LOJA_CRIAR
@@ -331,6 +332,18 @@ contextBridge.exposeInMainWorld(
       gerar: (id, periodo = {}) =>
         ipcRenderer.invoke(CANAL_RECURRENCIA_GERAR, { id, ...periodo }),
       config: () => ipcRenderer.invoke(CANAL_RECURRENCIA_CONFIG),
+    }),
+
+    /**
+     * Operacoes do Dashboard (Fase 15). Somente LEITURA: a visao consolidada
+     * reutiliza os servicos existentes (jogador, status, progressao, missoes,
+     * projetos, financas, servicos e contas). Nao cria dados, nao altera
+     * regras e nao movimenta dinheiro. `anoMes` e a competencia `AAAA-MM`
+     * (omitida = mes atual); o saldo exibido e sempre o saldo ATUAL.
+     */
+    dashboard: Object.freeze({
+      visao: (periodo = {}) =>
+        ipcRenderer.invoke(CANAL_DASHBOARD_VISAO, { ...periodo }),
     }),
   }),
 );

@@ -82,4 +82,5 @@ module.exports = Object.freeze({
   RECURRENCIA_ARQUIVAR: 'recorrencia:arquivar',
   RECURRENCIA_GERAR: 'recorrencia:gerar',
   RECURRENCIA_CONFIG: 'recorrencia:config',
+  DASHBOARD_VISAO: 'dashboard:visao',
 });

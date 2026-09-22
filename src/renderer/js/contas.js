@@ -111,7 +111,7 @@ function exibirVisaoConta(nome) {
   for (const visao of [
     "visao-servicos", "visao-servico-detalhe", "visao-formulario-servico",
     "visao-recorrencias", "visao-recorrencia-detalhe", "visao-formulario-recorrencia",
-    "visao-servicos-despesas",
+    "visao-servicos-despesas", "visao-dashboard",
   ]) {
     const el = document.getElementById(visao);
     if (el) el.classList.add("oculto");
@@ -135,6 +135,11 @@ async function irParaContas() {
 }
 
 function voltarAoPainelConta() {
+  // Fase 15: o painel principal é o DASHBOARD (com retorno ao boot por lá).
+  if (typeof window.__irParaDashboard === "function") {
+    window.__irParaDashboard();
+    return;
+  }
   exibirVisaoConta("visao-boot");
 }
 
@@ -683,6 +688,12 @@ window.__irParaContasComServico = async function (servicoId) {
   elementosConta.filtroServicoContas.value = estadoConta.filtroServico;
   carregarContas();
 };
+
+// Fase 15: ponte para a ação rápida "NOVA CONTA" do dashboard.
+if (typeof window.__abrirNovaConta !== "function") {
+  window.__abrirNovaConta = () => exibirFormularioConta(null);
+}
+
 
 document.addEventListener("DOMContentLoaded", () => {
   mapearContas();

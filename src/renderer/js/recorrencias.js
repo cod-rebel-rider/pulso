@@ -102,6 +102,7 @@ function exibirVisaoRecorrencia(nome) {
     "visao-servicos", "visao-servico-detalhe", "visao-formulario-servico",
     "visao-contas", "visao-conta-detalhe", "visao-formulario-conta",
     "visao-formulario-pagamento-conta", "visao-servicos-despesas",
+    "visao-dashboard",
   ]) {
     const el = document.getElementById(visao);
     if (el) el.classList.add("oculto");
@@ -119,6 +120,11 @@ async function irParaRecorrencias() {
 }
 
 function voltarAoPainelRecorrencia() {
+  // Fase 15: o painel principal é o DASHBOARD (com retorno ao boot por lá).
+  if (typeof window.__irParaDashboard === "function") {
+    window.__irParaDashboard();
+    return;
+  }
   exibirVisaoRecorrencia("visao-boot");
   consultarElementoRecorrencia("visao-boot").classList.remove("oculto");
 }

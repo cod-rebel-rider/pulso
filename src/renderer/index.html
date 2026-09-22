@@ -99,6 +99,7 @@
 
       <div class="acoes-boot">
         <button type="button" id="botao-editar" class="botao-secundario" disabled>EDITAR IDENTIDADE</button>
+        <button type="button" id="botao-ver-dashboard" class="botao-secundario" disabled>DASHBOARD</button>
         <button type="button" id="botao-teste-status" class="botao-secundario oculto">AJUSTAR STATUS</button>
         <button type="button" id="botao-ver-missoes" class="botao-secundario" disabled>VER MISSÕES</button>
         <button type="button" id="botao-ver-projetos" class="botao-secundario" disabled>VER PROJETOS</button>
@@ -108,6 +109,107 @@
         <button type="button" id="botao-ver-pagamento" class="botao-secundario" disabled>REGISTRAR PAGAMENTO</button>
       </div>
     </section>
+
+    <!-- DASHBOARD (Fase 15): camada de consolidação — somente leitura.
+         Não cria dados: tudo vem dos módulos existentes via dashboard:visao. -->
+    <section class="nucleo visao oculto" id="visao-dashboard" aria-label="Painel consolidado">
+      <p class="rotulo-secao">PAINEL CONSOLIDADO</p>
+      <h1 class="titulo-secao">DASHBOARD</h1>
+      <p class="descricao-secao">Estado do sistema reunido dos módulos existentes. Somente leitura — nada é criado ou alterado aqui.</p>
+      <p class="aviso" id="dashboard-aviso" role="alert"></p>
+
+      <!-- 1. Situação atual -->
+      <div class="dash-grade">
+        <section class="dash-cartao" aria-label="Operador e progressão">
+          <p class="rotulo-secao">OPERADOR</p>
+          <p class="dash-destaque" id="dash-jogador-nome">—</p>
+          <p class="dash-nota" id="dash-jogador-codinome"></p>
+          <div class="dash-par">
+            <span class="dash-nivel" id="dash-nivel">NÍVEL —</span>
+            <span class="dash-nota" id="dash-xp-total">XP TOTAL: —</span>
+          </div>
+          <div class="progressao-barra" role="progressbar" aria-label="Progresso de XP no nível"
+            aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="dash-barra-xp">
+            <span class="progressao-preenchimento" id="dash-barra-xp-preenchimento"></span>
+          </div>
+          <p class="dash-nota" id="dash-xp-progresso">XP NO NÍVEL: —</p>
+          <p class="dash-nota" id="dash-pontos">Pontos de atributo disponíveis: —</p>
+        </section>
+
+        <section class="dash-cartao" aria-label="Estado operacional">
+          <p class="rotulo-secao">ESTADO OPERACIONAL</p>
+          <div class="dash-status" id="dash-status"></div>
+        </section>
+
+        <section class="dash-cartao" aria-label="Atributos">
+          <p class="rotulo-secao">ATRIBUTOS</p>
+          <div class="dash-atributos" id="dash-atributos"></div>
+        </section>
+
+        <!-- 2. Ações pendentes -->
+        <section class="dash-cartao" aria-label="Resumo de missões">
+          <p class="rotulo-secao">MISSÕES</p>
+          <div class="dash-contagens" id="dash-missoes"></div>
+          <div class="dash-atalhos">
+            <button type="button" id="dash-ir-missoes" class="botao-secundario">VER MISSÕES</button>
+          </div>
+        </section>
+
+        <!-- 3. Progresso -->
+        <section class="dash-cartao" aria-label="Resumo de projetos">
+          <p class="rotulo-secao">PROJETOS</p>
+          <div class="dash-contagens" id="dash-projetos"></div>
+          <div class="dash-progressos" id="dash-projetos-progresso"></div>
+          <div class="dash-atalhos">
+            <button type="button" id="dash-ir-projetos" class="botao-secundario">VER PROJETOS</button>
+          </div>
+        </section>
+
+        <!-- 4. Situação financeira (período selecionável; saldo é sempre o atual) -->
+        <section class="dash-cartao" aria-label="Situação financeira">
+          <p class="rotulo-secao">FINANÇAS</p>
+          <div class="dash-periodo" role="group" aria-label="Período financeiro">
+            <button type="button" id="dash-periodo-anterior" class="botao-secundario" aria-label="Mês anterior">‹</button>
+            <span class="dash-periodo-rotulo" id="dash-periodo-rotulo">—</span>
+            <button type="button" id="dash-periodo-proximo" class="botao-secundario" aria-label="Mês seguinte">›</button>
+            <button type="button" id="dash-periodo-atual" class="botao-secundario">MÊS ATUAL</button>
+          </div>
+          <div class="dash-contagens" id="dash-financas"></div>
+          <div class="dash-progressos" id="dash-orcamentos"></div>
+          <div class="dash-atalhos">
+            <button type="button" id="dash-ir-financas" class="botao-secundario">VER FINANÇAS</button>
+          </div>
+        </section>
+
+        <!-- 5. Contas próximas/vencidas -->
+        <section class="dash-cartao" aria-label="Serviços e contas">
+          <p class="rotulo-secao">SERVIÇOS E CONTAS</p>
+          <div class="dash-contagens" id="dash-servicos-contas"></div>
+          <div class="dash-contas" id="dash-proximas-contas"></div>
+          <div class="dash-atalhos">
+            <button type="button" id="dash-ir-servicos-despesas" class="botao-secundario">SERVIÇOS E DESPESAS</button>
+          </div>
+        </section>
+
+        <!-- Ações rápidas (chamam os fluxos existentes — nada duplicado) -->
+        <section class="dash-cartao" aria-label="Ações rápidas">
+          <p class="rotulo-secao">AÇÕES RÁPIDAS</p>
+          <div class="dash-acoes">
+            <button type="button" id="dash-acao-nova-missao" class="botao-secundario">NOVA MISSÃO</button>
+            <button type="button" id="dash-acao-novo-projeto" class="botao-secundario">NOVO PROJETO</button>
+            <button type="button" id="dash-acao-nova-transacao" class="botao-secundario">NOVA TRANSAÇÃO</button>
+            <button type="button" id="dash-acao-nova-conta" class="botao-secundario">NOVA CONTA</button>
+            <button type="button" id="dash-acao-novo-servico" class="botao-secundario">NOVO SERVIÇO</button>
+          </div>
+        </section>
+      </div>
+
+      <div class="acoes-missao">
+        <button type="button" id="dash-atualizar" class="botao-secundario">ATUALIZAR</button>
+        <button type="button" id="dash-ir-boot" class="botao-secundario">PAINEL DE BOOT</button>
+      </div>
+    </section>
+
 
     <!-- SERVIÇOS E DESPESAS: visão consolidada da FASE 10 (hub de navegação) -->
     <section class="nucleo visao oculto" id="visao-servicos-despesas">
@@ -1199,5 +1301,6 @@
   <script src="js/contas.js"></script>
   <script src="js/recorrencias.js"></script>
   <script src="js/servicos-despesas.js"></script>
+  <script src="js/dashboard.js"></script>
 </body>
 </html>
